@@ -1,0 +1,28 @@
+#------------------------------------------------------------------------------#
+#                             make.inc for SunOS 
+#------------------------------------------------------------------------------#
+ FC = f95
+ MPIFC = f95
+ CC = cc
+ MPICC = cc
+ CFLAGS = -O3
+
+# compilation options for product version 
+ OOPT = -dalign -O3 -free 
+
+# compilation options for debug version
+ DOPT = -O0 -C -g -u  -xcommonchk -errtags -Xlist -DDEBUG
+
+ FFLAGS = -fpp $(OOPT)
+
+ MPIFFLAGS = $(FFLAGS) -DMPI
+ MPITAG = mpi
+
+ LDFLAGS = -L./lapack_lapw  -llapack_lapw -xlic_lib=sunperf
+
+ USEMOD= -M
+ YACC = yacc
+ AR     = ar
+ ARFLAGS= crv
+ RANLIB   = ar sr
+

@@ -1,0 +1,118 @@
+#!/bin/tcsh -f 
+#
+unalias rm 
+unalias mv 
+unalias cp  
+set current_dir=`pwd`
+
+echo '--------------------------------------------------------------------'
+echo '                          save_gwx                                  '
+echo '--------------------------------------------------------------------'
+
+
+set interactive
+unset file
+unset clean
+unset savedir
+unset zip
+unset saveall 
+unset inponly
+set sp = 0
+# Get options
+
+alias sb "shift; breaksw"
+while ($#argv)
+  switch ($1)
+    case -c: 
+      set clean; sb 
+    case -f:
+      shift; set file=$1; sb 
+    case -d:
+      shift; set savedir=$1; sb
+    case -i: 
+      set inponly; sb 
+    case -z:
+      set zip; sb 
+    case -a:
+      set saveall; sb
+    case -h:
+      goto help
+    default:
+      echo "save_gwx: undefined options !" 
+      goto help 
+  endsw
+end
+
+
+# set default values of variables
+set wdir=`pwd`
+set wdir=$wdir:t
+
+if !($?file) then
+  set gwinp = `ls *.struct`
+  set file = $gwinp:r
+endif
+
+if !($?savedir)  then 
+  set savedir=$wdir 
+endif
+mkdir -p $savedir
+
+echo '  Case name ' $file 
+echo '  Save Dir  ' $savedir 
+
+if ! (-e gw.inp ) then
+  echo "gw files not exist or wrong missing/wrong options"
+  goto help 
+  exit 1
+endif 
+
+# list1 -- spin-independent input files 
+# list2 -- spin-dependent input files 
+# list3 -- main output files 
+set list1 = ( struct core in1 vsp vxc vorb )     
+set list2 = ( energy vector )
+set list3 = ( eqpH eqpeV emac outgw sxc sx vxcnn ) 
+
+if ($?saveall) then 
+  echo "Files to be saved\n" "gw.inp" $list1 $list2 $list3
+  cp gw.inp $savedir
+  foreach i ( $list1 ) 
+    if ( -e $file.$i ) cp $file.$i  $savedir 
+  end 
+
+ foreach i ( $list2 $list3 )
+   cp $file.${i}* $savedir
+ end 
+
+else 
+  echo "Files to be saved\n" "gw.inp" $list3
+  cp gw.inp $savedir
+  foreach i ( $list3 )
+    cp $file.${i}*  $savedir
+    if($?clean) then 
+      rm -rf $file.${i}*
+    endif 
+  end
+endif 
+
+if($?zip) then 
+  tar cvf $savedir.tar $savedir 
+  gzip $savedir.tar
+  rm -rf $savedir 
+endif 
+
+exit 0 
+
+help:
+  cat<<EOF
+    Usage: `basename $0` [Options]
+     Options:
+      -a                  # save gw results and all input files 
+      -c                  # remove the saved files afterwards (only if "-a" flag is off) 
+      -d <savedir>                  # save files to <savedir>
+      -f <file>,   --file <file>    # filename prefix 
+      -z                   # <savedir> is compressed into <savedir.tgz> and then removed 
+      -h,          --help           # write help and exit
+EOF
+exit 1  

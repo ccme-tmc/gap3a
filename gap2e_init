@@ -1,0 +1,972 @@
+#!/bin/csh -f
+
+# This script perform the necessary initializations for running the gw calculations
+
+echo '-----------------------------------------------------------------'
+echo '                           gap2_init                             ' 
+echo '-----------------------------------------------------------------'
+
+set fullname=$0
+set bindir=$fullname:h
+set name=$fullname:t
+set gwinp="gw.inp"
+setenv SCRATCH '.'
+
+set gap_prefix=gap2
+
+alias AWK gawk
+alias KGEN $bindir/${gap_prefix}_kgen
+alias DMFTPR $bindir/src_dmftproj/dmftproj.x
+alias print 'echo  \!:* | tee -a $outfile '
+alias INITWANN   $bindir/gap2_initwann
+alias WIEN2WANN  $bindir/gap2_w2w 
+
+alias   teststatus      'if ($error) goto recover'
+alias   exec   '(x_lapw  -f $file \!:*) ; set error=$status ; teststatus ' 
+
+if !($?EDITOR) set EDITOR=vi
+
+set cmplx
+set optsp
+set orb_flag
+set sp = 0
+set gwdir = ./gw
+set initopts = "$*"
+set symvec = 1
+set kshift
+set addinv 
+set error=0
+set nkp=1
+set hf_tag
+set task='gw'
+set nproc=1
+set para
+set spflag 
+set lomax=3 
+set emax=1000
+set lom10_flag 
+set batch_flag=''
+
+unset newin1
+set newin1_opt=""
+
+unset emin
+unset file
+unset gwdir
+unset gwtask
+unset lattice
+unset cmplx
+unset orb 
+unset frozen_core  
+unset bandonly
+unset inponly
+unset pbe0
+unset band 
+unset wannier  
+set wf_method
+unset hf
+unset recover
+unset lom10
+unset newin1test  
+
+# Get options
+
+alias sb 'shift; breaksw'       #definition used in switcha
+while ($#argv)
+  switch ($1)
+    case -b: 
+      set batch_flag='-b'; sb 
+    case -c:
+      set cmplx='c'; sb
+    case -d:
+      shift; set gwdir=$1:q; sb 
+    case -emin:
+      shift; set emin=$1:q; sb
+    case -emax:
+      shift; set emax=$1; sb
+    case -f:
+      shift; set file=$1; sb 
+    case -fc:
+      set frozen_core; sb
+    case -hf:
+      shift; set hf=$1; set hf_tag='hf'; sb 
+    case -nkp:
+      shift; set nkp = $1; sb
+    case -orb:
+      set orb; set orb_flag=-orb; sb
+    case -s:
+      shift; set sp = $1; sb
+    case -kshift:
+      set kshift='-shift'; sb
+
+# some options for newin1 
+    case -newin1:
+      shift; set newin1=$1; sb
+    case -newin1opt:
+      shift; 
+      echo $1
+      set newin1_opt = "$1" ; sb 
+
+    case -newin1test:
+      set newin1test; sb 
+  
+    case -lom10:
+      set lomax=10; set lom10_flag='-lom10'; set lom10; sb 
+
+    case -p:
+      shift; set para="-p"; set nproc=$1; sb
+
+    case -R:
+      set recover; sb 
+
+#   Option related to Wannier functions 
+    case -w:
+      shift; set wf_method = $1; set wannier; sb
+    case -win:
+      set wf_inp;
+      shift; set wf_proj = $1
+      shift; set wf_bot = $1
+      shift; set wf_top = $1
+      sb
+    case -sv:
+      shift; set symvec=$1; sb
+    case -t:
+      shift; set task=$1;    sb 
+    case -h:
+    case --help:
+      goto help
+    default:
+      echo "Internal error!" 
+      exit 1
+  endsw
+end
+
+# set default vaule of the filename to the name of the working directory
+
+  if (! $?file) then
+    set file  = `pwd`
+    set file  = $file:t
+  endif
+  echo ' case name:' $file
+
+  set outfile=$file.outgwinit
+
+  set savdir="./save"
+
+#  if($?lom10) then 
+#    setenv WIENROOT ${WIENROOT}_gw
+#    setenv PATH  "${WIENROOT}:${PATH}"
+#  endif 
+
+  echo "Now using wien2k in "
+  set w2k_version=`which  lapw1`
+  set w2k_version=$w2k_version:h
+  print "WIEN2k version:" $w2k_version 
+
+  # CRPA calculations need using KS vectors in the full BZ 
+  if($?wannier) then
+    set symvec=0
+    if ($task == 'gw') then 
+      set task='gw2wann'
+    endif 
+  endif 
+
+#
+# set nspin 
+#
+
+  print " - sp=" $sp
+  switch($sp)
+    case 2:
+      print "  -- spin-polarized GW calculation based on sp_lapw "
+      set spflag='-up' 
+      set nspin = 2
+      set sptag='{up,dn}'
+      breaksw
+    case 0:
+      print "  -- spin-unpolarized GW calculation based on lapw "
+      set nspin  = 1
+      set sptag=''
+      breaksw
+    case 1:
+      print "  -- spin-unpolarized GW calculation based on sp_c_lapw or runafm_lapw"
+      set nspin  = 1
+      set sptag='up'
+      set spflag='-up' 
+      breaksw
+    case default: 
+      print "  ERROR: unsupported sp option! "
+      goto error 
+      breaksw 
+  endsw
+
+# Do some secure check in case some necessary command option is missing 
+
+#
+# check complex 
+#
+
+  # If *.in1 does not exist, indicating complex calculations 
+  if ( ! $?cmplx ) then 
+    if( ( -e $file.in1 ) && (-e $file.in1c ) ) then
+      print ' ERROR: both *.in1 and *.in1c file exists'
+      print '   please either remove the wrong one or use command line option -c explicitly  ' 
+      exit 1
+    endif 
+
+    set cmplx=''
+    set cmplx_flag=''
+    set lcmplx=F
+    if ( -e $file.in1c ) then 
+      print 'Complex calcuation'
+      set cmplx='c'
+      set cmplx_flag='-c'
+      set lcmplx=T
+    endif
+  endif
+
+  if ( $symvec == 0 ) then 
+    set lsymvec='F'
+    set flag_sym
+  else 
+    set lsymvec='T'
+    set flag_sym='-s'
+    if ( $symvec == 2 ) then
+      set addinv=" -addinv"
+    endif
+  endif
+
+  set lr2v=`grep 'NR2V  ' $file.in0`
+  if("$lr2v" != '' ) then
+    print '  R2V is not calculated '
+    mv -f $file.in0 $file.in0.tmp
+    AWK '{if(index($0,"NR2V")){$1 = "R2V";printf "%-20s\n", $1 FS $2}else{print $0}}' $file.in0.tmp >>& $file.in0
+    rm -f $file.in0.tmp
+    exec lapw0
+  endif
+ 
+#
+# make a copy of all WIEN2k files that might be changed during the initiliazation 
+#
+  set bakuplist = ( in0 in1$cmplx in2$cmplx inc inm klist kgen \
+                    clmcor$sptag clmsum clm$sptag clmval$sptag \
+                   vsp$sptag vns$sptag energy$sptag r2v r2vdn scfc$sptag )
+
+  if($?hf) then 
+    set bakuplist = ( $bakuplist klist_fbz kgen_fbz klist_ibz kgen_ibz outputkgenhf \
+                      energy$sptag$hf_tag scfhf$sptag )
+
+    if( $hf == 1 ) then 
+      cp $file.klist_fbz $file.klist_fbz_old 
+    endif 
+
+  endif    
+
+  if($?recover) then 
+    goto recover
+  endif  
+
+  print " "
+  print '--- Backup SCF files ---'
+  print " "
+  foreach ext ( $bakuplist )
+    if ( -e $file.$ext) then 
+      print " backup " $file.$ext
+      cp -f  $file.$ext $file.${ext}_scf
+    endif 
+  end
+
+#
+# Generate *.r2v for GW calculations 
+# 
+  
+r2v:
+  if( ! $?frozen_core )  then 
+    goto vector  
+  endif 
+
+  print " "
+  print '--- Generate *.r2v ---'
+  print " "
+
+  if ($?frozen_core) then 
+    print "  - edit $file.inc to prepare for frozen-core calculation"
+    print "  - set zero occupation for core states to be frozen" 
+    $EDITOR $file.inc
+    print "  - generate core density for a frozen-core calculation"
+
+   switch($sp)
+   case 0:
+     exec lcore; breaksw
+   case 1:
+     exec lcore -up; breaksw
+   case 2: 
+     exec lcore -up
+     exec lcore -dn
+     breaksw
+   endsw
+
+
+  endif 
+
+  print "   - change mix factor in $file.inm"
+  mv $file.inm $file.inm.tmp
+
+  if($?frozen_core) then 
+    AWK '{ if ( NR == 1 ) \
+           { $3="NO"; print $0 } \
+         else { \
+           if ( NR == 2 ) { printf "%5.2f\n",1.0} else{print $0} \
+         } \
+       }' $file.inm.tmp >>& $file.inm
+  else
+    AWK '{ if(NR == 2 ){printf "%5.2f\n",1.0} else{print $0} }' $file.inm.tmp >>& $file.inm
+  endif 
+ 
+  rm -f $file.inm.tmp
+  rm -f $file.broyd*
+  rm -f $file.clmsum_old 
+  exec mixer
+
+  print "   - make a copy of original potential files"
+  switch($sp)
+  case 0:
+    cp -f $file.vsp $file.vsp.bak
+    cp -f $file.vns $file.vns.bak
+    breaksw
+  case 1:
+  case 2:
+    cp -f $file.vspup $file.vspup.bak
+    cp -f $file.vnsup $file.vnsup.bak
+    cp -f $file.vspdn $file.vspdn.bak
+    cp -f $file.vnsdn $file.vnsdn.bak
+    breaksw
+  endsw
+
+  print "   - Recover original potential files"
+  switch($sp)
+  case 0:
+    mv -f $file.vsp.bak $file.vsp
+    mv -f $file.vns.bak $file.vns
+    breaksw
+  case 1:
+  case 2:
+    mv -f $file.vspup.bak $file.vspup
+    mv -f $file.vnsup.bak $file.vnsup
+    mv -f $file.vspdn.bak $file.vspdn
+    mv -f $file.vnsdn.bak $file.vnsdn
+    breaksw
+  endsw
+
+vector:
+
+  # check parallelization setup
+  if( $nproc > 1 ) then
+    if ( -e .machines ) then
+      mv -f .machines .machines.old
+    endif
+
+    print "create .machines file"
+    echo '# .machines for crpa_init' > .machines
+
+    setenv USE_REMOTE 0
+    set host=`hostname `
+    set i=1
+    while ($i <= $nproc )
+      echo -n '1:' >> .machines
+      @ i1 = $i + 1
+      @ i2 = $i1 - 1
+      echo "$host " >> .machines
+      set i=$i1
+    end
+    echo '' >> .machines
+    echo 'granularity:1' >>.machines
+    echo 'extrafine:1' >>.machines
+    echo 'lapw2_vector_split:1 ' >>.machines
+  endif
+
+  print  
+  print '--- vector:  Generate *.vector for GW  ---'
+  print
+
+  if ($?emax) then
+    print "  change emax in $file.in1 to "  $emax
+    mv $file.in1$cmplx $file.in1.tmp
+    AWK -v em=$emax '{if(index($0,"K-VECTOR")){$5 = em;printf "%21s%10.1f%10.1f%19s\n", $1 FS $2 FS $3,$4,$5,$6  FS $7}else{print $0}}' $file.in1.tmp  >&  $file.in1$cmplx
+    rm -f $file.in1.tmp
+  endif
+
+  #
+  # generate k-mesh for hybrid calculations 
+  #
+  if($?hf) then 
+    KGEN -f $file -nkp $nkp
+    mv -f $file.klist $file.klist_fbz 
+    mv -f $file.kgen  $file.kgen_fbz
+ 
+    KGEN -s -f $file -nkp $nkp
+    mv -f $file.klist $file.klist_ibz
+    mv -f $file.kgen  $file.kgen_ibz
+  endif 
+
+  # Generate k-points
+  KGEN $flag_sym $kshift -f $file -nkp $nkp 
+
+  # create the new in1 for GW
+  if($?newin1) then
+    if ( $newin1 == -1 ) then
+      print "Edit in1 file directly"
+      sleep 1
+      $EDITOR $file.in1$cmplx
+
+    else if ( $newin1 == -2 ) then
+
+      ${gap_prefix}_newin1 $newin1_opt
+      mv -f $file.in1${cmplx}_new $file.in1${cmplx}
+
+    else if ( $newin1 >= 0 ) then 
+
+      if ( $?lom10 ) then 
+        $EDITOR $file.in1$cmplx
+      endif 
+
+      if( $newin1 == 0 ) then  
+        print "Using x_nmr_lapw -mode in1 $newin1_opt"
+        x_nmr_lapw -mode in1 $spflag $newin1_opt $lom10_flag 
+
+      else  
+        print "Using x_nmr_lapw -mode in1 -nodes $newin1 $newin1_opt"
+        x_nmr_lapw -mode in1 $spflag -nodes $newin1 $newin1_opt  $lom10_flag 
+      endif 
+
+      if ($status) then 
+        set error=1
+        goto recover
+      endif 
+
+      if($?newin1test) then 
+        x_nmr_lapw -mode testval  $lom10_flag 
+      endif 
+      
+      mv $file.in1${cmplx}_nmr $file.in1${cmplx}
+
+      $EDITOR $file.in1$cmplx
+
+    else
+      print "WARNING: unsupported option for newin1=$newin1"
+    endif
+  endif
+
+  # x lapw1
+  switch($sp)
+  case 0:
+    exec lapw1 $cmplx_flag $orb_flag $para $lom10_flag 
+    if($nproc > 1) then
+      exec joinvec  
+    endif
+    breaksw
+  case 1:
+    exec lapw1 $cmplx_flag $orb_flag -up  $lom10_flag 
+    if($nproc > 1) then
+      exec joinvec   -up
+    endif
+    breaksw
+  case 2:
+    exec lapw1 $cmplx_flag $orb_flag -up $lom10_flag
+    exec lapw1 $cmplx_flag $orb_flag -dn $lom10_flag
+    if($nproc > 1) then
+      exec joinvec   -up
+      exec joinvec   -dn
+    endif
+
+    breaksw
+  endsw
+
+  print "check whether to start from hybrids"
+  if($?hf) then
+    print "====> start from hybrid functionals!"
+
+    if !(-e ${file}.inhf)  then 
+      print "ERROR: case.inhf does not exist!" 
+      set error=1
+      goto recover
+    endif 
+
+    cat $file.inhf | tee -a $outfile 
+
+    # reset the nband in case.inhf 
+
+    set nband=`AWK 'BEGIN{nb=5000}; {if( NF==7) {if ($6<nb) {nb=$6} }}; END{print nb}' $file.energy$sptag`
+    print "nband = " $nband 
+    mv -f $file.inhf $file.inhf_old
+    AWK -v nb=$nband '{if(NR==3) {$1 = nb ;print $0 } else{print $0 }}' $file.inhf_old >>& $file.inhf
+
+    if($hf == 0) then 
+      set hf_opts="-gw" 
+    else 
+      set hf_opts="-gw -newklist"
+    endif 
+
+    print "Create vector files based on hybrid functionals"    
+    switch($sp)
+    case 0:
+      exec hf $hf_opts $cmplx_flag 
+      breaksw
+    case 1:
+      exec hf $hf_opts $cmplx_flag $orb_flag -up
+      breaksw
+    case 2:
+      exec hf $hf_opts $cmplx_flag $orb_flag -up
+      exec hf $hf_opts $cmplx_flag $orb_flag -dn
+    breaksw
+    endsw
+  endif 
+
+#
+# Wannier 
+#
+wannier:
+  if($?wannier) then   
+    print "**************************************************"
+    print "*      Generate Wannier projectors               *"
+    print "**************************************************"
+
+    if($wf_method == 1 ) then
+      print "==> Generate Wannier projectors by calling dmftproj"
+      print
+      if($?wf_inp) then
+        print "-> create input file for Wannier projections"
+
+        INITWANN $batch_flag -f $file -w 1 -p $wf_proj -r $wf_bot $wf_top  | tee -a $outfile 
+        teststatus
+      endif
+
+      print "=> input file:"
+      cat $file.indmftpr | tee -a $outfile
+      print
+
+      switch($sp)
+      case 0:
+        print "-> call lapw2 to obtain case.almblm"
+        exec lapw2 $cmplx_flag -almd > $outfile
+
+        print '-> run dmftproj to build the Wannier Functions projectors '
+        DMFTPR $file  > $outfile
+        mv -f $file.almblm $file.almblm_crpa
+        breaksw
+      case 2:
+        print "-> call lapw2 to obtain case.almblm"
+        exec lapw2 -up $cmplx_flag -almd > $outfile 
+        exec lapw2 -dn $cmplx_flag -almd > $outfile 
+        
+        print '-> run dmftproj to build the Wannier Functions projectors '
+        DMFTPR $file -sp > $outfile
+        # check whether everything is OK 
+        grep 'WARNING' $file.outdmftpr 
+        if($?) then
+          print "WARNING: something may go wrong when running dmftproj!"
+        endif 
+          
+        mv -f $file.almblmup $file.almblmup_crpa
+        mv -f $file.almblmdn $file.almblmdn_crpa
+        breaksw
+      endsw
+
+    else if ($wf_method == 2 ) then
+      print "==> Generate Wannier projectors by wannier90 + wien2wannier (w2w)"
+      if($?wf_inp) then
+
+        if(-e $file.win) then 
+          echo " - make a copy of the existing  $file.win to $file.win_old" 
+          mv -f $file.win $file.win_old 
+        endif 
+
+        WIEN2WANN -st inwf -win $wf_proj $wf_bot $wf_top -s $sp $lom10_flag
+      else
+        WIEN2WANN -st inwf -s $sp $lom10_flag 
+      endif
+    else
+      print "==> No Wannier projectors are generated !"
+    endif
+  endif 
+#
+# generate gw.inp file 
+#
+
+gwinp:
+  print 
+  print "---Generate $gwinp---"
+  print  
+
+  if($?hf) set lsymvec='F'
+
+  echo "#Initialization options: $name $initopts" > $gwinp
+  echo "#WIEN2k version used: $w2k_version" >>$gwinp 
+  echo '' >> $gwinp
+  echo "Task    = '$task'"  >> $gwinp
+
+  if( $task == 'crpa' ) then 
+
+    cat << EOF >> $gwinp
+%crpa
+  1  | $wf_method | 0   # iop_crpa  | iop_wf | ncell 
+%
+
+%BZConv                 # BZ convolution options
+ "tetra" | "refreq"
+%
+
+%FreqGrid                         # Frequency grid parameters
+ 1   |  2  | 1.5  |  0.0   |  0   # iop_fgrid | nomeg | omegmax | omegmin | nomeg_blk
+%                                 # iop_fgrid= 1 (equally spaced) or 2 (Gauss-Laguerre)
+                                  #            3 (double Gauss-Legendre), 4 - Matsubara freq.
+EOF
+
+  else 
+    cat << EOF >> $gwinp
+%gw
+  0 | 0                       # iop_sxc | iop_vxc 
+%
+
+%gwsc 
+ 0  | 2   # iop_sxc | iop_sc 
+ 0  | 1  | 0.5 | 0      # iop_sxc_sc | iop_dvh | beta_sc | iop_restart 
+%
+
+%gw2wann
+  0     | $wf_method |  1    |  0   # iop_sxc   | iop_wf  | isym_kbz |  iop_hgw
+  1000  |  40.0  |   0              # nomg_mats |  beta_mats (in 1/eV) |  iop_intpl_mats (0 -- Pade analytic continuation) 
+%
+
+%BZConv                 # BZ convolution options
+ "tetra" | "imfreq"
+%
+
+%FreqGrid                         # Frequency grid parameters
+  3   |  16  | 0.42  |  0.0   |  0       # iop_fgrid | nomeg | omegmax | omegmin | nomeg_blk
+%      
+EOF
+
+  endif 
+
+  cat <<EOF >> $gwinp
+
+%eps_mask 
+  0  | 0.0    # iop_mask_eps |  wt_mask
+  0  | 0      # noc_excl   | iocc_excl 
+  0  | 0      # nunoc_excl | iunoc_excl
+%
+
+CaseName = "$file"           # case name, used as prefix for input/output files
+dftpkg  = 0                  # indicate which package is used for DFT calculations ( 0 -> wien2k ) 
+Restart = F
+SavDir ="./tmp"              # directory to store temporary data that might be reused 
+                             # once you are sure you are not going to reuse them, you should remove this directory 
+                             # since it may occupy large space especially with large N_k
+
+emingw = -2.0                # emingw and emaxgw ( unit --  Ry. ) are used to control the range of bands 
+emaxgw =  2.0                # for which GW correction are going to be calculated. Only states whose LDA energies 
+                             # falls between E_Fermi+emingw and E_Fermi+emaxgw are calculated 
+
+nspin = $nspin               # 1 for spin-unpolarized and 2 for spin-polarized calculations 
+ComplexVector = $lcmplx      # T for for sytems without inversal symmetry 
+UseScratch = 2               # 0 - if not using scratch space in which zzk are all kept in core 
+                             #     and minm is always calculated from scratch. 
+                             # 1 - use the scratch and different vectord files for different processes
+                             # 2 - use the scratch and different processes share the single vectord 
+
+SymVector = $lsymvec         # whether use symmetrized output from wien2k 
+SaveDilemat = T              # set this as F if you are running out of disk space (but then you can not restart a calculation)
+
+esmear = 0.001               # the smearing parameter (in the unit of Hartree)
+%bzint                       # set the scheme for BZ integration 
+  1  |   1                   # iop_bzint | iop_bzintq 
+%                            #   iop_bzint  -- standard BZ integration(0/1: tetrahedral/smearing) 
+                             #   iop_bzintq -- q-dependent BZ integration weights(0/1:tetrahedon/smearing)
+
+Minm_mblksiz = 48            # block size to split m-index for the calculations of minm 
+
+%SelfEnergy             # option for correlation self-energy 
+  0  |  0   |   0       # <npol> |  <iopes>  |  <iopac> 
+%                       # Number of poles ( valid range: 2.. nomeg/2, or 0 meaning the default for the chozen AC scheme ) 
+                        # iopes: 0/1/2/3 - without or with itereration > 
+                        # iopsac:0/1     - Pade's approximation / multipole fitting 
+
+emaxpol =  1.0E10       # the upper bound for unoccupied states considered in polarizatioin 
+emaxsc  =  1.0E10       # the upper bound for unoccupie states considered in the self-energies
+eminpol = -1.0E10       # the lower bound for deep core states considered in polarization 
+barcevtol = 0.1         # tolerance used to reduce the bare Coulomb matrix eigenvectors as the basis set 
+MB_ludot = F            # whether considering the contribution of udot when setting up the mixed basis
+MB_emin = -1.E10        # only core states with energy above MB_emin are considered when setting up MB basis 
+MB_emax = 20.0          # LO orbitals with energy higher MB_emax are excluded when setting up MB basis 
+
+LOmax = $lomax          # the LOMAX used in WIEN2k(lapw1,nmr) 
+
+%MixBasis               # Mixed basis parameters
+0.75                    # Q_mb  
+3    |    1.E-4  |  0   # lmbmax  | wftol  | lblmax 
+%
+
+%BareCoul               # Bare Coulomb interaction
+2.0  |  1.E-15
+%
+
+EOF
+
+
+#
+# Add information about vorb into gw.inp 
+#
+
+  if($?orb) then 
+    print '--- set vorb ---'
+    set natorb=`AWK '{if (NR == 2) { print $1 }; }' $file.indm$cmplx`
+    print "  number of atoms to have  vorb=" $natorb
+
+    echo '# Input for vorb' >>$gwinp 
+    echo '%Vorb'  >>$gwinp
+    echo $natorb >> $gwinp
+    set iatorb=0
+    while ( $iatorb < $natorb )
+      @ iatorb ++
+      echo 'iatorb' $iatorb
+      @ line = 2 + $iatorb
+      AWK -v line=$line  '{if (NR == line ) { printf("%2d |  %2d  |  %2d  \n",$1,$2,$3) }; }' $file.indm$cmplx >>$gwinp
+    end   
+    echo '%' >>$gwinp
+  endif
+
+  if($?hf) then 
+    echo "lhybrid = T        #  starting from hybrid functional calculations">> $gwinp
+  endif 
+
+#
+# write k-mesh information to the gw.inp 
+#
+  # get the number of valence electron electrons 
+  set nvel=`AWK 'NR == 2 {print $2}' $file.in2$cmplx`  
+
+  set shx=`AWK '{if (NR == 1) { print $2 }; }' $file.klist`
+  set shy=`AWK '{if (NR == 1) { print $3 }; }' $file.klist`
+  set shz=`AWK '{if (NR == 1) { print $4 }; }' $file.klist`
+  set shdiv=`AWK '{if (NR == 1) { print $5 }; }' $file.klist`
+  set nkx=`head -n 1 $file.klist | cut -c 86-88`
+  set nky=`head -n 1 $file.klist | cut -c 89-91`
+  set nkz=`head -n 1 $file.klist | cut -c 92-94`
+
+  cat << EOF >>$gwinp 
+nvel = $nvel                  # the number of valence electrons
+
+%kmesh 
+ $nkx | $nky | $nkz           # the number of k-points along each axis
+ $shx | $shy | $shz | $shdiv  # shift from k=0 (in integer coordidate) and their common division
+%
+EOF
+
+
+# 
+# In more recent versions of wien2k, core wave functions are not written to files by default, so it is necessary to 
+# run x lcore to creat case.corewf 
+#
+ gap2_w2kset -o inc -f $file 
+
+ switch($sp)
+ case 0: 
+   exec lcore; breaksw
+ case 1:
+   exec lcore -up; breaksw 
+ case 2: 
+   exec lcore -up
+   exec lcore -dn 
+   breaksw
+ endsw 
+
+#
+# The file that contains core eigen-energies *.scfc may include redudant information related to 
+# core force which should be cleaned before the gw code can work properly
+#
+
+  print '--------------------'
+  print '-   clean *.scfc   -'
+  print '--------------------' 
+
+  foreach ext ( scfc$sptag )
+    mv -f $file.$ext $file.$ext.tmp
+
+    AWK 'BEGIN {skip = 0}  \
+         $1 == "CORE-FORCE" {skip=1; next} \
+         skip == 1  {skip=2; next}  \
+         skip == 2  {skip=0; next}  \
+         skip == 0  {print $0} ' $file.$ext.tmp > $file.$ext
+    rm -f $file.$ext.tmp
+  end
+
+
+#
+# Move files to the directory for gw calculation 
+  print
+  print "--- Copy files ---"
+  print 
+
+  print "Directory for gw calculation: $gwdir"
+  mkdir -p $gwdir
+  cp $gwinp $gwdir 
+  cp $file.struct $gwdir
+  cp $file.in1$cmplx $gwdir/$file.in1
+
+  switch($sp) 
+  case 0:
+    cp -f $file.r2v $gwdir/$file.vxc
+    cp -f $file.vsp $gwdir
+    cat $file.inc $file.scfc $file.corewf >$gwdir/$file.core
+    breaksw
+  case 1: 
+    cp -f $file.r2v $gwdir/$file.vxc
+    cp -f $file.vspup $gwdir/$file.vsp
+    cat $file.inc $file.scfcup $file.corewfup >$gwdir/$file.core
+    if($?orb) cp $file.vorbup $gwdir/$file.vorb
+    breaksw
+  case 2: 
+    cat $file.r2v $file.r2vdn > $gwdir/$file.vxc 
+    cat $file.vspup $file.vspdn > $gwdir/$file.vsp
+    cat $file.inc $file.scfcup $file.scfcdn $file.corewfup  $file.corewfdn > $gwdir/$file.core
+    if($?orb) cat $file.vorbup $file.vorbdn > $gwdir/$file.vorb
+  endsw
+
+  # energy and vector files
+  switch($sp)
+  case 0:
+    cp -f $file.energy$hf_tag $gwdir/$file.energy 
+    cp -f $SCRATCH/$file.vector$hf_tag    $gwdir/$SCRATCH/$file.vector
+    breaksw
+  case 1:
+    cp -f $file.energy${hf_tag}up $gwdir/$file.energy
+    cp -f $SCRATCH/$file.vector${hf_tag}up  $gwdir/$file.vector
+    breaksw
+  case 2:
+    cp -f $SCRATCH/$file.vector${hf_tag}up  $gwdir/$SCRATCH/$file.vectorup
+    cp -f $SCRATCH/$file.vector${hf_tag}dn  $gwdir/$SCRATCH/$file.vectordn
+    cp -f $file.energy${hf_tag}up $gwdir/$file.energyup
+    cp -f $file.energy${hf_tag}dn $gwdir/$file.energydn
+    breaksw
+  endsw
+
+  if($?hf) then 
+    cat $file.gw >> $gwdir/$file.vxc
+  endif 
+
+  # files related to CRPA
+  if($wf_method == 1 ) then
+    echo ' Copy' $file'.projcrpa to' $gwdir'/' $file'.pln '
+    cp -f $file.projcrpa $gwdir/$file.pln
+    cp -f $file.indmftpr $gwdir
+    cp -f $file.outdmftpr  $gwdir
+  else if($wf_method == 2) then
+    cp -f $file.inwf ${file}_hr.dat $file.hk $gwdir
+    switch($sp)
+    case 0:
+      cp -f $file.chk $file.wout $gwdir; breaksw
+    case 1: 
+      cp -f $file.chkup $file.woutup $gwdir/$file.chk; breaksw
+    case 2:
+      cp -f $file.chkup $file.chkdn $file.woutup $file.woutdn $gwdir; breaksw
+    endsw 
+  endif 
+
+  # recover some lapw input files that have been changed by this shell script 
+recover:
+  print
+  print '--- Recover SCF files ---'
+  print
+ 
+  foreach ext ( $bakuplist )
+    if ( -e $file.${ext}_scf ) then  
+      print " recover " $file.$ext
+      mv -f  $file.$ext  $file.${ext}_gw 
+      mv -f  $file.${ext}_scf  $file.$ext
+    endif 
+  end
+
+  if($error) then 
+    goto error
+  else
+    goto done 
+
+error:
+  echo "Error in " 
+  tail -n 1 $outfile  
+  exit 1
+
+done:
+  echo "Successful!"
+  exit 0
+
+help:
+  cat <<EOF 
+      Usage: `basename $0` [options]
+        Options:
+        -b                # set batch mode, supress the interactive step 
+        -c                # wave functions are complex (no inversion symmetry present)
+        -d <gwdir>        # directory to run the gw calculations 
+        -emin <emin>      # emin in *.in1 and *.in2
+        -emax <emax=1e3>  # emax in *.in1, the defaul: using all available states 
+        -f <file>         # Casename ame 
+        -fc               # prepare for a frozen-core calculations
+                          #   case.inc-gw has to be created before this initialization 
+        -h,--help         # write help and exit 
+        -hf <0/1>         # set whether using hybrid functionals as the starting point
+                          #  hf == 0, using the one-shot (perterbative) hybrid functional approach
+                          #     use this option, it is necessary to prepare input files needed for HF 
+                          #  hf == 1, on top of self-consistent hybrid calculations 
+        -iopk <0/1>       # option to control which k-mesh is used for generating r2v
+                          #  0  -- Use SCF k-mesh for r2v
+                          #  1  -- Use GW k-mesh for r2v (default)
+        -kshift           # using shifted k-mesh 
+        -lom10            # use the version of lapw1 and nmr with LOMAX = 10
+        -nkp <nkp>        # Number of k-points for GW, if set 0, k-mesh will 
+                            be generated in the interactive mode, this might be necessary  
+                            if you are using new versions of wien2k   
+        -newin1 <newin1>  # -1  -- edit case.in1 on the fly
+                          # -2  -- generate new case.in1 by calling 'gap2_newin1 <newin1_opt>'
+                          #  0  -- generate new case.in1 by calling 'x_nmr_lapw -mode in1 <newin1_opt>'
+                          # >0  -- generate new case.in1 by calling 'x_nmr_lapw -mode in1 -nodes <newin1> <newin1_opt>'
+                         
+        -newin1opt <"newin1_opt">  
+                          #   option to be transfered to gap2_newin1 or x_nmr_lapw
+                          #   check available options by "gap2_newin1 -h" or "x_nmr_lapw -h"   
+        -newin1test       # run "x_nmr_lapw -mode testval" after running "x_nmr_lapw -mode in1"
+
+        -orb              # LDA+U based GW calculations add -orb for lapw1 calculations 
+
+        -p <nproc>        # using parallel mode to run lapw1 
+        -R                # set the recover mode (used when the script is interupted unexpectedly) 
+        -s <0/1/2>      # Initialize for spin polarized gw 
+                          # 0 --  spin-unpolarized 
+                          # 1 --  spin unpolarized gw calculations but starting from sp lapw calculations  
+                          # 2 --  spin-polarized calculation
+        -sv  <0/1/2>      # control how to use symmetry when generating k-mesh used for GW calculations 
+                             0 --  k in BZ without using any symmetry 
+                             1 --  k in IBZ, but not adding inversion symmetry (for complex cases)
+                             2 --  k in IBZ and adding inversion symmetry if applicable   
+                            WARNING: option 1 seems to work now except for systems with the body-center(B)-type structure , 
+                                     but still needs some caution. The option 2 is definitely not working
+
+        -t <task> 
+               
+        -w <wf_method>      # CPRA: control how to obtain Wannier projectors
+                             1 -- use dmftproj 
+                             2 -- use MLWF obtained by wannier90+wien2wannier
+
+        -win <proj bot top>  # the basic input parameters to generate the WF projectors 
+                            proj -- a string defining the projections in the form "atom1:orb1;atom2:orb2", where orb can be the following 
+                              "s/p/d/f"   -- d/f orbital in the cubic spherical harmonic 
+                              "ds/fs"     -- d/f orbitals in the sphericalharmonics representatioin
+                              "dt2g/deg"  -- the t2g/eg manifold of the d orbitals  
+                            bot top -- indicate the range of bands considered for WF 
+                              wf_method=1 the lower and upper energy bound (in eV) w.r.t. the Fermi energy    
+                              wf_method=2 band indices for bottom and top bands   
+                            if '-win ...' is not present, WF projectors are generated in the default way.
+                             for wf_method==1, it is assumed that case.indmftpr is already prepared
+                             for wf_method==2, crpa_w2w is run interactively
+EOF
+  exit 1

@@ -1,0 +1,429 @@
+#!/bin/csh -f
+# a wrapper script to run wien2wannier90 related calculations  
+
+unalias rm
+setenv SCRATCH .
+
+set fullname  = $0
+set bindir = $fullname:h
+set w2kdir = $WIENROOT 
+set name  = $fullname:t 	#name of this script-file
+
+set logfile = :log
+set tmp   = (:$fullname)	#temporary files
+
+
+#---> functions & subroutines
+alias	testinput	'if (! -e \!:1 || -z \!:1) goto \!:2'
+alias	teststatus	'if ($status) goto error'
+alias	teststop	'if (\!:1 == $stopafter ) goto stop;'\
+			'if (-e stop) goto stop'
+alias	output		'set date = `date +"(%T)"`;'\
+			'printf ">   %s\t%s " "\!:*" "$date" ;'\
+			'printf "\n>   %s\t%s " "\!:*" "$date" >> $dayfile'
+
+alias	exec		'($w2kdir/x_lapw -f $file \!:*) ;'\
+			'teststatus'
+
+alias	total_exec	'output \!:*;'\
+			'exec  \!:*'
+
+alias	exec2		'(\!:*) ;'\
+			'teststatus'
+
+alias	total_exec2	'output \!:*;'\
+			'exec2  \!:*'
+
+alias KGEN $bindir/gap2_kgen
+alias INITWANN $bindir/gap2_initwann
+alias print 'echo  \!:* | tee -a $outfile '
+
+  #alias editor vi
+  if($?EDITOR) then
+    alias editor '$EDITOR'
+  else
+    alias editor vi
+  endif
+
+  #---> default parameters
+  set stopafter
+  set sp=0
+  set nproc=1
+  set para 
+  set orb
+  set nkp=0
+
+  unset help	
+  unset postproc
+
+  #---> handling of input options
+  echo ">   ($name) options: $argv"	>> $logfile
+  alias sb 'shift; breaksw'	#definition used in switch
+
+  while ($#argv)
+    switch ($1)
+    case -[H|h]:
+      set help; sb
+    case -f:
+      shift; set file=$1:q;  sb  
+    case -nkp:
+      shift; set nkp=$1; sb
+    case -s:
+      shift; set sp=$1; sb
+    case -st:
+      shift; set start=$1; sb 
+    case -ex:
+      shift; set stopafter=$1; sb 
+    case -win:
+      set win;
+      shift; set wf_proj  = $1
+      shift; set wf_bot  = $1
+      shift; set wf_top  = $1
+      sb 
+    case -orb:
+      set orb'-orb'; sb 
+
+    case -lom10:
+      set lom10; set lom10_flag='-lom10'; sb 
+
+    case -p:
+      shift; set nproc=$1; set para='-p'; sb 
+    case -pp:
+      shift; set postproc=$1; sb 
+    default: 
+      echo "ERROR: option $1 does not exist!!"; sb
+    endsw
+  end
+  if ($?help) goto help
+
+#
+# check case name 
+#
+  set wdir=`pwd`
+  if !($?file) then
+    set file=$wdir:t
+  endif
+  if !(-e $file.struct ) then
+    echo " ERROR: Current directory does not have $file.struct!"
+    goto error
+  endif
+
+  set outfile = $file.outw2w 
+  echo "Running the script: $name $argv"     > $outfile 
+  print "Case name:" $file
+  if !(-e $file.struct ) then
+    echo " ERROR: Current directory does not have $file.struct!"
+    goto error
+  endif
+
+#
+# check complex
+#
+  print  
+  print "-----> check complex..."
+  if( ( -e $file.in1 ) && (-e $file.in1c ) ) then
+    print "  WARNING: both *.in1 and *.in1c file exists"
+    if ( -z $file.in1 ) then
+      print "  WARNING: *.in1 has zero size!"
+      rm -f $file.in1
+    endif 
+
+    if ( -z $file.in1c ) then
+      print "  WARNING: *.in1c has zero size!"
+      rm -f $file.in1c
+    endif 
+  endif 
+    
+  if ( -e $file.in1c ) then
+    set cmplxflag='-c'
+    set cmplx
+    print ' => complex '
+  else
+    set cmplxflag=''
+    unset cmplx
+    print ' => real '
+  endif
+  print "-----> check complex done... "
+
+  set dayfile = $file.dayfile_w2w	#main output-file
+				#initalization of input-files
+  printf "\n\n    start \t(%s) " "`date`"	> $dayfile
+
+  if( $sp > 0 ) then 
+    set sptag = 'up'
+  else
+    set sptag 
+  endif 
+
+  if ($?start) then 
+    goto $start
+  endif 
+
+vector:
+  print 
+  print "****************** vector ********************"
+  print  
+
+  # check parallelization setup
+
+  KGEN -f $file -nkp $nkp
+
+  if( $nproc > 1 ) then
+    if ( -e .machines ) then
+      mv -f .machines .machines.old
+    endif
+
+    print " Running lapw1 in a parallelized way"  
+    print " -- create .machines file"
+
+
+    echo  '# .machines for crpa_init' > .machines
+    setenv USE_REMOTE 0
+    set host=`hostname `
+    set i=1
+    while ($i <= $nproc )
+      echo -n '1:' >> .machines
+      @ i1 = $i + 1
+      @ i2 = $i1 - 1
+      echo "$host " >> .machines
+      set i=$i1
+    end
+    echo '' >> .machines
+    echo 'granularity:1' >>.machines
+    echo 'extrafine:1' >>.machines
+    echo 'lapw2_vector_split:1 ' >>.machines
+  endif
+
+  print "-----> run lapw1 to generate KS vectors..."
+
+  switch($sp)
+  case 0:
+    exec $cmplxflag $para lapw1
+    if($nproc > 1) then
+      exec joinvec  $optcmplx
+    endif
+    breaksw
+  case 1:
+    exec -up $cmplxflag $orb $para lapw1
+
+    if($nproc > 1) then
+      join_vectorfiles -up $optcmplx $file $nproc
+    endif
+    breaksw
+
+  case 2:
+    exec -up $cmplxflag $orb $para lapw1
+    exec -dn $cmplxflag $orb $para lapw1
+    if($nproc > 1) then
+      exec joinvec  $optcmplx -up
+      exec joinvec  $optcmplx -dn
+    endif
+    breaksw
+  default:
+    print "ERROR: wrong option for spin"
+    exit 1
+    breaksw
+  endsw
+
+  print  "-----> lapw1 done..."
+  print  
+
+  if($stopafter == 'kgen') goto stop_now 
+
+inwf:
+  print 
+  print "****************** inwf ********************"
+  print 
+  print "-----> preparation of $file.inwf, input files for w2w:" 
+  if($?win) then 
+    INITWANN -f $file -w 2 -r $wf_bot $wf_top -p $wf_proj  
+    print "=> $file.inwf:"
+    cat $file.inwf
+    print 
+  else
+    total_exec2 write_inwf $file
+    print  "-----> check whether initial projections have the same character as the bands of interest" 
+    editor $file.inwf
+  endif
+
+  if($stopafter == 'inwf') goto stop_now 
+
+win:
+  print  
+  print "****************** win ********************"
+  print  
+  cp $file.klist $file.klist_w90
+
+  if ( (-e $file.win) && !($?win) ) then
+    print "-----> found old win file" 
+    print "-----> use old file or rerun write_win(o/r)?"
+    set b=($<) inwf
+    if ($b == 'o') then 
+      goto w90pp
+    endif
+    total_exec2 write_win -f $file 
+    print "-----> in case of disentanglement: define frozen energy window if required" 
+    editor $file.win
+  else
+    total_exec2 write_win -f $file  
+  endif
+
+  editor $file.win 
+
+  if($stopafter == 'win') goto stop_now 
+
+w90pp:
+  print
+  print "****************** w90pp ********************"
+  print 
+
+  print "-----> wannier90.x: wannier90.x computes kmesh..." 
+  x_lapw wannier90 -pp  
+
+  print "-----> wannier90.x done"
+  if( $stopafter == 'w90pp') goto stop_now 
+
+w2w:
+  print  
+  print "****************** w2w **********************"
+  print 
+
+  print 
+  print "-----> run w2w to generate case.mmn, case.amn and case.eig"
+
+  if ( -e $file.qtl$sptag-dos ) then
+    print "  Extract Fermi energy from DOS output"
+    set efer=`grep "FERMI ENERGY=" $file.qtl${sptag}-dos | awk '{print $8}'`
+  else
+    print "  Extract Fermi energy from SCF output"
+    set efer=`grep ":FER" $file.scf | tail -n 1 | awk '{print $NF}'`
+  endif
+  print "E_Fermi = " $efer
+
+  switch($sp) 
+  case 0: 
+    echo  $efer > $file.fermi 
+    x_lapw w2w $cmplxflag; breaksw
+  case 1:
+    echo  $efer > $file.fermiup
+    x_lapw w2w $cmplxflag -up ; breaksw
+  case 2:
+    echo  $efer > $file.fermiup
+    x_lapw w2w $cmplxflag -up  
+    echo  $efer > $file.fermidn
+    x_lapw w2w $cmplxflag -dn ; breaksw
+  endsw 
+    
+#  echo "-----> run shift_energy to harmonize the Fermi energies between w2k and w90" 
+#  total_exec2 shift_energy $file
+
+  print "-----> run w2w  done... "
+  if($stopafter == 'w2w') goto stop_now
+
+w90:
+  print
+  print "****************** w90 ********************"
+  print 
+  print "-----> run wannier90.x ..."
+
+  if( $sp == 0 ) then 
+    x_lapw wannier90  
+  else if( $sp == 1 ) then 
+    x_lapw wannier90 -up
+  else if( $sp == 2 ) then 
+    x_lapw wannier90 -up
+    x_lapw wannier90 -dn
+  endif 
+
+  print "-----> wannier90.x done..." 
+
+pp:
+
+  print "------> Convert KS Hamiltoian in the k-depenent Wannier basis"
+  x_lapw -f $file convham 
+
+  if !($?postproc) goto stop
+  print 
+  print  "**************** postprocessing  *************"
+  print 
+
+  switch($postproc)
+  case 'plot':
+    print "-----> plot Wannier functions ..."
+    print "-> call write_wplotdef:"
+    write_wplotdef $file 
+
+    print "-> call write_wplotin:"
+    write_wplotin $file
+   
+    # read the number of Wannier functions from case.inwf 
+    set nw=`awk '{if (NR == 3) { print $2 }; }' $file.inwf`
+
+    set iw=0 
+    while ( $iw <= $nw ) 
+      @ iw ++
+      print " prepare plot files for  Wannier function $iw ......."
+      if($?cmplx) then 
+        wplotc wplot.def $iw
+      else
+        wplotr wplot.def $iw
+      endif 
+    end 
+    
+    print "-> call xsfAll.sh "
+    xsfAll.sh $file
+
+    print "Now you can plot the WF files by  using xcrysden --xsf ${file}_m.xsf.gz"
+    breaksw
+  case 'intpl':  # interpolation 
+    print "ERROR: the interpolation option is still not implemented yet!"
+
+    breaksw 
+  endsw
+  
+  
+stop:					#normal exit
+  printf "%s\n\n" "$name finished" 	>> $dayfile
+  printf "\n   stop\n"			>> $dayfile
+  exit 0 
+
+error:					#error exit	
+  printf "\n   stop error\n"		>> $dayfile
+  exit 1
+
+stop_now:
+  print "Stop after $stopafter"
+  exit 0 
+
+help:					#help exit 
+  cat << theend 
+PROGRAM:	$0
+
+PURPOSE:	a wrapper script to run wien2wannier including 
+                   - initialisation of the wien2wannier interface
+                   - prepares all input files
+                   - run wannier90.x 
+  USAGE:	$name [FLAGS]
+  FLAGS:
+    -h/-H       # help
+    -ex <exit>  # exit from  (kgen/inwf/win/w90pp/w2w/w90) 
+    -st <start> # start from (vector/inwf/win/w90pp/w2w/w90/pp)
+    -f  <file>  # the case name 
+    -nkp <nk>   # the number of k-points (if not defined, using existing vector files) 
+    -p <nproc>  # run lapw1 in the parallel mode 
+    -s <sp> 	# whether spin-polarized calculations 
+                #  0 -> spin-unpolarized ( ==> run_lapw ) 
+                #  1 -> runsp_c_lapw or runafm_lapw 
+                #  2 -> runsp_lapw 
+    -win <proj nbot ntop>  
+                # the basic input parameters to generate the WF projectors 
+                # proj -- a string defining the projections 
+                # nbot,ntop -- the range of KS bands used to generate WFs
+    -pp <postproc> # postprocessing, currently support plot/...
+		
+theend
+
+exit 1
+
+
+

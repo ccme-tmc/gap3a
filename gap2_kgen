@@ -1,0 +1,154 @@
+#!/bin/tcsh -f
+
+# This shell script generate k-mesh used for GW calculation   
+
+set current_dir=`pwd`
+set name=`basename $0`
+set fullname=$0
+set bindir=$fullname:h
+
+# Get options
+echo 
+echo '----------------------------------------------------'
+echo "*                  $name                           *"
+echo '----------------------------------------------------'
+alias sb "shift; breaksw"
+alias KGEN $bindir/src_kgen/kgen 
+
+set if_shift=0
+set if_longout=1
+set nkp=1000
+set kmesh 
+unset addinv
+
+unset error
+unset sym 
+
+while ($#argv)
+  switch ($1:q)
+  case -addinv:
+    set addinv; sb
+  case -s:
+    set sym; sb
+  case -f:
+    shift; set file=$1; sb
+  case -nkp:
+    shift; set nkp=$1
+    if ($nkp == -1) then
+      shift; set kmesh=$1; shift; set kmesh=($kmesh $1); shift; set kmesh=($kmesh $1)
+      echo "k-mesh:" $kmesh 
+    endif
+    sb 
+
+  case -shift: 
+    set if_shift=1; sb 
+  case -h:
+    goto help
+  default:
+    echo "Internal error: unsupported option" $1
+    goto error
+  endsw
+end
+
+# set default vaule of the filename to the name of the working directory
+
+  if !($?file) then
+    set file=$current_dir:t
+  endif
+
+  if !($?sym) then 
+    echo "-- generate k-points without symmetry"
+    echo ' - generate struct file without symmetry'
+    mv -f $file.struct $file.struct.sym # make a copy of the original struct file
+
+# Generate a new struct file with only the identity symmetry
+
+    awk '{if(index($0,"NUMBER OF SYMMETRY OPERATIONS")){exit}else{print $0}}' $file.struct.sym > $file.struct
+    cat <<EOF >> $file.struct
+   1       NUMBER OF SYMMETRY OPERATIONS
+ 1 0 0 0.0000000
+ 0 1 0 0.0000000
+ 0 0 1 0.0000000
+       1
+EOF
+
+  endif 
+
+  # Check if the lattice has inversion symmetry (the input for kgen is different
+  echo " - check whether inversion symmetry present "
+  set if_inv=`awk -v inv=0 '{if(index($0,"-1 0 0 0.000000")){getline;if(index($0,"0-1 0 0.000000")){getline;if(index($0,"0 0-1 0.000000")){inv=1}}}};END{print inv}' $file.struct`
+
+  if ($if_inv) then 
+    echo " -- inversion symmetry present"
+    set if_addinv
+  else 
+    echo " -- no inversion symmetry present" 
+    if ( $?sym && $?addinv ) then
+      set if_addinv=1
+    else
+      set if_addinv=0
+    endif
+  endif
+
+set def=kgen.def 
+cat << theend > $def
+8,'$file.klist',     'unknown','formatted',0    
+15,'$file.kgen',      'unknown','formatted',0      
+66,'$file.outputkgen','unknown','formatted',0
+20,'$file.struct',    'old','formatted',0
+theend
+
+  if ($nkp == 0 ) then 
+    KGEN $def
+  else if ( $nkp == -1 ) then
+    echo "k-mesh:" $kmesh 
+    KGEN $def  <<EOF
+$if_addinv
+0
+$if_longout
+$kmesh 
+$if_shift
+EOF
+
+  else 
+
+    KGEN $def  <<EOF
+$if_addinv
+$nkp
+$if_longout
+$if_shift
+EOF
+  
+  endif 
+
+  if ( $status != 0 ) then
+    echo "Fail to generate " $file.klist " with gap2_kgen"
+    set error
+  endif 
+
+  if !($?sym) then 
+    mv -f $file.struct.sym $file.struct
+  endif 
+
+  if($?error) goto error
+
+  exit 0
+
+error:
+  echo "ERROR in gap2_kgen"
+  exit 1
+
+help:
+  cat <<EOF 
+    Usage: $name [options] 
+     Options:"
+       -addinv      # whether add inversion symmetry 
+                    # (only the "-s" flag is on and the system has no inversion symmetry) 
+       -f <file>,   # filename 
+       -nkp <nkp>   # Number of k-points, if 0, "x kgen " will be run interactively  
+       -s           # Use symmetries to generate the k-points
+       -shift       # use shift for k-points when allowed
+       -h           # write help and exit 
+EOF
+
+  exit 1

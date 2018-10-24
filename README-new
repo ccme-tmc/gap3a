@@ -1,0 +1,112 @@
+gap2d (2016-July 19 -     ) 
+  New features to be implemented in this version 
+  1) [  ] Godby-Needs Generalized plasmon pole model [  ]
+  2) [  ] Contour deformation (CD) approach for frequency dependence 
+  3) [  ] Interface with a DMFT code 
+  4) [  ] 
+
+gap2c (2013 Oct -  2016 June)
+  New features: 
+  1) interfacing with Wannier90 
+  2) constrained RPA for Hubbard U 
+  3) support with arbitary number of local orbitals (LO) for each l-channel and for l upto to lomax
+
+2010, Nov. 15
+  correct a bug in w2k_readcore regarding the support for old core file 
+
+2010, Aug 04:  start gwxv2 
+  1. Change the way to handle Minm matrix, three options are provided, controlled by iop_minm
+      iop_minm 
+        = 0 -- calculate Minm on the fly and discard it immediately
+        = 1 -- precalculate in the beginning, and then store them in the minm files (one for each q-point) 
+               read them when they are needed 
+        = 2 -- similar to 1 but at the beginning, try to reuse Minm that are already calculated in previous calculations 
+  2. Provide an option to do frozen-core calculations, but different from the previous treatment, the frozen core calculation 
+
+     is setup at the init_gwx stage, allowing more flexible FC calculations. 
+     when running init_gwx, the option "-fc" will evoke a FC initialization. The actual FC mode is customized by editting 
+     case.inc interactively.  (experimental)  
+
+2010, April 26
+  1. add the option to use the truncated Coulomb interaction 
+     This is controled by two parameters defined in the module "barcoul"
+       iop_coul = 0 -- standard treatment without truncation 
+                = 1 -- use the truncated Coulomb interaction (Spencer and Alavi, Phys. Rev. B 77, 193110(2008))
+     main adjustments to include this option include 
+    1) parameters related structure constants are now included in the module "barcoul"
+       also some small subroutines related to structure constants are now also defined in the module barcoul
+    2) init_barcoul(iq) with iq=0 is used to perform some q-independent initialization (including those related to 
+      the structure constants (sigma matrix)
+       init_barcoul(iq) for iq>0 is used to perform q-dependent initialization 
+
+    3) calcstrcnst.f90: the calculation of the structure constant (calcstrcnst.f90) 
+
+    4) calcbarc.f90
+    
+    5) setbarcev.f90
+      the special treatment related to q=0 is effective only when iop_coul == 0
+
+    6) calcselfx.f90 
+      the special treatment related to q=0 is effective only when iop_coul == 0     
+
+
+2010, March 07
+  1. the use of symmetric vectors (KS wavefunctions only in IBZ are needed, as controlled by lsymvector, 
+     has been checked. Some corrections have been made to the subroutine readvector, and apparently 
+     it is working well with non-symmorphic cases, as tested in Si, but the reason for the changes 
+     that have been made are not fully understood, and further tests are clearly needed.
+    
+
+gwx (GW eXtended): 
+  1.  This version aims to interface with both WIEN2k and EXCITING;
+     Subroutines with prefix w2k_ are used for interfacing with wien2k
+     subroutines with prefix exc_ are used for interfacing with exciting 
+
+  2. I/O files are dealt with in a one-by-one way instead of using original def file
+     All I/O files are assumed to start with the prefix <case> 
+
+  3. For the interface with wien2k, necessary data are read from the following files
+      struct -- original wien2k struct
+      in1    -- original wien2k in1(c)
+      vxc    -- vxc data (including vorb) which is concatation of r2v(up/dn) 
+      vorb   -- LDA+U correction for xc potential, which is concatation of vorb(up/dn) in WIEN2k output
+      core   -- core states energy and wave functions, a concatation of scfc[up/dn] and corewf[up/dn]
+      vsp    -- spherical radial wave functions, a concatation of vsp(up/dn) 
+      energy[up/dn] -- KS energys 
+      vector[up/dn] -- KS vectors  
+   4. Main output files
+       case.outgw -- master output 
+       case.outmb -- output for mixed basis 
+       case.eqpH<qpe_flag>
+       case.eqpeV<qpe_flag>
+       case.selfe<qpe_flag> 
+
+Version 2: 
+  New features: 
+    (1) New tasks: 
+       Task='scgw0'  - Energy-only self-consitent GW0  Task='scgw0' 
+            'vxcnn'  - Calculate vxcnn only
+            'ldau'   - perturbative LDA+U using given wave functions and vorb 
+
+    (2) Analytical continuation by Pade's Approximation (PA), controlled by
+         iopac = 0 ( =1 for the origional multiple fitting procedure)
+
+    (3) New options for the calculations of quasiparticle energy controlled by 
+       iopes = 0 - Perturbative without Fermi energy shift 
+               1 - Perturbative with Fermi energy shift 
+               2 - Iterative with Fermi energy shift (the original default option) 
+               3 - Iterative without Fermi energy shift 
+
+    (4) the shell script run_dos now can be used to plot the GW density of states 
+       using fine k-mesh by Fourier interpolation. 
+       To use this function, run in the scf working directory 
+          run_dos -gw -gwdir <gw working directory>  ...
+       please use run_dos -h to know other command line options 
+  
+ 
+Main changes of the code: 
+
+   (1) The subroutines related to the calculation of selfenergy are extensively 
+       reorganized to implement scgw0
+
+   (2) expand_evec.f90: use zgemm for the calculation of alfa, beta and gama

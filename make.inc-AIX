@@ -1,0 +1,43 @@
+#------------------------------------------------------------------------------#
+#                             IBM AIX on Garcching                             #               
+#------------------------------------------------------------------------------#
+
+ LAPACK = -L/afs/rzg/@sys/lib -llapack-essl_P5 -lessl
+
+# use a local version of lapack
+# LAPACK = -L./lapack_lapw -llapack_lapw
+
+ FC = xlf90 
+ MPIFC = mpxlf90 
+ CC = xlc
+ CFLAGS =  -q64
+
+ DOPTS = -g -qflttrap=zerodivide:invalid:overflow:enable -C -qflttrap -qextchk -qsigtrap -qinitauto  -WF,-DDEBUG
+ OOPTS = -O3 -qstrict -qinitauto
+ FFLAGS = -q64 -qsuffix=cpp=f90  -WF,-DF2003 $(OOPTS)
+
+ MPIFFLAGS = $(FFLAGS) -WF,-DMPI
+ MPITAG = mpi
+
+ LDFLAGS = $(LAPACK) -static \
+           -brename:.oct_parse_block_double,.oct_parse_block_double_   \
+           -brename:.oct_parse_double,.oct_parse_double_               \
+           -brename:.oct_parse_int,.oct_parse_int_                     \
+           -brename:.oct_parse_block_int,.oct_parse_block_int_         \
+           -brename:.oct_parse_block_int_new,.oct_parse_block_int_new_         \
+           -brename:.oct_parse_isdef,.oct_parse_isdef_                 \
+           -brename:.oct_parse_block_string,.oct_parse_block_string_   \
+           -brename:.oct_parse_init,.oct_parse_init_                   \
+           -brename:.oct_parse_input,.oct_parse_input_                 \
+           -brename:.oct_parse_string,.oct_parse_string_               \
+           -brename:.yyparse_new,.yyparse_new_ \
+           -brename:.yyerror,.yyerror_ \
+           -brename:.yylex,.yylex_
+
+ USEMOD = -I
+ YACC = yacc
+ AR     = ar -X 64 
+ ARFLAGS= crv
+ RANLIB   = ar  -X 64 sr
+
+

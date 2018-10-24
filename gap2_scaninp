@@ -1,0 +1,176 @@
+#!/bin/bash 
+# a bash script used to scan parameters in gw.inp
+
+gwx=gap2c-mpi.x 
+scan="all"
+wdir=`pwd`
+inp_dir="inp"
+out_file="$wdir/summary.dat"
+nproc=8
+ev_values=(0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.8 1.0)
+blm_values=(2 3 4 5 6) 
+lmb_values=(0 -1 -2) 
+Q_values=(0.5 0.6 0.7 0.8 1.0)
+
+debug=0
+
+function help_info()
+{
+    cat <<EOF
+Usage: `basename $0` [options] 
+ options: 
+   -h                                      	# print help information 
+   -D                                     	# running the script in the debug (empty run) mode 
+   -i <inp_dir=$inp_dir>                        # indicate the name of the directory where input files are stored
+   -o <out_file=summary.dat> 			# the output file to collect main results
+   -p <nproc=$nproc>                            # the number of processes for parallel running 
+   -x <gwx=$gwx>                                # the name of the GW code              
+   -v <="ev blm lmb Q">  			# indicate which parameters to be scanned, 
+   -v <v_name=v_vals>    # set the variable with a set of values seperated by ','
+       v_name:barcevtol/emaxpol/eminpol/mb_Q/mb_lblm,mb_lmbm
+
+   -ev <ev_values="${ev_values[*]}">  		# the values of barcevtol to be scanned 
+   -blm <blm_values="${blm_values[*]}">		# the values of mb_blmax to be scanned 
+   -lmb <lmb_values="${lmb_values[*]}">		# the values of mb_lmbmax to be scanned 
+   -Q <Q_values="${Q_values[*]}"> 		# the values of mb_Q to be scanned 
+EOF
+
+}
+
+while [[ "$1" = -* ]] 
+do
+  case $1 in
+     -h) help_info; exit 0 ;;
+     -D) debug=1; shift ;; 
+     -s) scan="$2"; shift  ;;
+     -p) nproc=$2; shift ;;
+     -o) out_file=("$2"); shift ;;
+     -ev) ev_values=("$2"); shift ;; 
+     -blm) blm_values=("$2"); shift ;;
+     -lmb) lmb_values=("$2"); shift ;;
+     -Q)  Q_values=("$2"); shift ;;
+     *) echo "$0: invalid option $1 ignored." >&2 ;;
+  esac 
+  shift 
+done 
+
+l_ev=0
+l_blm=0
+l_lmb=0
+l_Q=0
+if [ "$scan" = "all" ]; then 
+  l_ev=1; l_blm=1; l_lmb=1; l_Q=1
+else
+  for i in $scan
+  do 
+    if [ "$i" = "ev" ]; then 
+      l_ev=1
+    elif [ "$i" = "blm" ]; then
+      l_blm=1
+    elif [ "$i" = "lmb" ]; then
+      l_lmb=1
+    elif [ "$i" = "Q" ]; then
+      l_Q=1
+    fi 
+  done 
+fi
+
+
+function show_info()
+{
+  echo "Runing $dname ..."
+  if [ $debug = "1" ]; then  
+    continue 
+  fi 
+}
+
+function read_results() 
+{
+   EgGW=`grep ":BandGap_GW " *.outgw | awk '{print $3}'`
+   dVBM=`grep ':DeltaE_QP'   *.outgw | head -n 1 | awk '{print $4}'`
+   matsize1=`grep 'Old/New basis set size'  *.outgw | head -n 1 | awk '{print $8}'`
+   matsize2=`grep 'Old/New basis set size'  *.outgw | tail -n 1 | awk '{print $8}'`
+   echo $dname $EgGW $dVBM $matsize1 $matsize2  | tee -a $out_file 
+   return
+}
+
+function run_job()
+{
+  if [ ! -f *.eqpeV_GW ]; then 
+    mpirun -np $nproc $gwx; rm -rf ./tmp
+  fi 
+  read_results
+} 
+
+# scan barcevtool
+if [ $l_ev = "1" ]; then
+  echo "Scan the values for barcevtool:" ${ev_values[*]}
+
+  for x in ${ev_values[*]}
+  do
+    dname="ev$x"
+    show_info 
+    cp -r $inp_dir $dname 
+
+    cd $dname 
+    pg_set -v "barcevtol=$x" 
+    run_job 
+    cd ..
+  done
+fi
+
+
+# scan for blm
+if [ $l_blm = "1" ]; then
+
+  echo "Scan the values for MB_blmax:" ${blm_values[*]} 
+  for x in ${blm_values[*]} 
+  do 
+    dname="lblm$x"
+    show_info 
+
+    cp -r $inp_dir $dname 
+    cd $dname 
+    pg_set -v "mb_lblm=$x"
+
+    run_job  
+    cd ..
+  done 
+fi 
+
+
+# scan for lmb
+if [ $l_lmb = "1" ]; then
+  echo "Scan the values for MB_lmbmax:" ${lmb_values[*]} 
+
+  for x in ${lmb_values[*]}
+  do
+    dname="lmb$x"
+    show_info
+
+    cp -r $inp_dir $dname
+    cd $dname
+    pg_set -v "mb_lmbm=$x"
+
+    run_job 
+    cd ..
+  done
+fi 
+
+# scan for mb_Q
+if [ $l_Q = "1" ]; then
+  echo "Scan the values for MB_Q:" ${Q_values[*]} 
+  for x in ${Q_values[*]} 
+  do 
+    dname="q$x"
+    show_info 
+
+    cp -r $inp_dir $dname 
+    cd $dname 
+    pg_set -v "mb_Q=$x"
+
+    run_job 
+    cd ..
+  done 
+fi 
+
