@@ -7,6 +7,7 @@ src_*/*.mod
 src_dmftproj/dmftproj.x
 src_kgen/kgen
 
+make.inc
 .seq
 .para
 src_modules/.para
