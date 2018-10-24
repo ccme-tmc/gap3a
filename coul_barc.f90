@@ -29,7 +29,7 @@
       integer :: im,jm,iipw,ipw
       integer :: lwork,rwsize
       real(8),    allocatable :: rwork(:)   ! workspace array for the diagonalization subroutine
-      complex(8), allocatable :: work(:)    ! workspace array for  the diagonalization subroutine
+      complex(8), allocatable :: work(:)    ! workspace array for the diagonalization subroutine
 
 !! debug 
       integer :: ierr 

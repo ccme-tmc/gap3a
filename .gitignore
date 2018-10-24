@@ -1,7 +1,12 @@
 # binaries
 *.o
+*.mod
+*.pyc
+*__genmod.*
 src_*/*.o
 src_*/*.mod
+src_*/*.pyc
+src_*/*__genmod.*
 *.a
 *.x
 src_dmftproj/dmftproj.x

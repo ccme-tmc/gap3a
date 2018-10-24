@@ -174,87 +174,87 @@
 !       Calculate the contributions to sigm for m falling the mst..mend block 
 !
         subroutine sub_calcselfc_blk(mst,mend) 
-        implicit none 
-        integer,intent(in):: mst, mend
+            implicit none 
+            integer,intent(in):: mst, mend
 
-        integer:: iom,ie1,imu,inu,cst,cend
-        integer:: ncount,ierr,utype,usiz
-        real(8):: time1,time2
-        complex(8), allocatable :: mwm_p(:,:,:,:)
-        complex(8), allocatable :: rbuf(:,:,:,:)
+            integer:: iom,ie1,imu,inu,cst,cend
+            integer:: ncount,ierr,utype,usiz
+            real(8):: time1,time2
+            complex(8), allocatable :: mwm_p(:,:,:,:)
+            complex(8), allocatable :: rbuf(:,:,:,:)
 
-        if(mst.gt.mend) return 
-        allocate(minm(matsiz,mst:mend,ibgw:nbgw),stat=ierr)
-        call errmsg(ierr.ne.0,sname,"fail to allocate minm")
+            if(mst.gt.mend) return 
+            allocate(minm(matsiz,mst:mend,ibgw:nbgw),stat=ierr)
+            call errmsg(ierr.ne.0,sname,"fail to allocate minm")
 
-        if(mend.le.nbmax) then
-          call get_minm(iop_minm,'nm',minm,ibgw,nbgw,mst,mend,ik,iq,isp)
-        elseif(mst.gt.nbmax) then
-          cst=mst-nbmax; cend=mend-nbmax
-          call get_minm(iop_minm,'nc',minm,ibgw,nbgw,cst,cend,ik,iq,isp)
-        else
-          do ie1=ibgw,nbgw 
-            call get_minm(iop_minm,'nm',minm(:,mst:nbmax,ie1),ie1,ie1, &
-     &            mst, nbmax, ik,iq,isp)
+            if(mend.le.nbmax) then
+              call get_minm(iop_minm,'nm',minm,ibgw,nbgw,mst,mend,ik,iq,isp)
+            elseif(mst.gt.nbmax) then
+              cst=mst-nbmax; cend=mend-nbmax
+              call get_minm(iop_minm,'nc',minm,ibgw,nbgw,cst,cend,ik,iq,isp)
+            else
+              do ie1=ibgw,nbgw 
+                call get_minm(iop_minm,'nm',minm(:,mst:nbmax,ie1),ie1,ie1, &
+     &                mst, nbmax, ik,iq,isp)
 
-            cst=1; cend = mend-nbmax 
-            call get_minm(iop_minm,'nc',minm(:,nbmax+1:mend,ie1),ie1,ie1,&
-     &            cst, cend,ik,iq,isp)
-          enddo
-        endif
+                cst=1; cend = mend-nbmax 
+                call get_minm(iop_minm,'nc',minm(:,nbmax+1:mend,ie1),ie1,ie1,&
+     &                cst, cend,ik,iq,isp)
+              enddo
+            endif
 
-        if(myrank_row.eq.0) then
-          allocate(mwm(mst:mend,ibgw:nbgw,ibgw:nbgw,nomeg),stat=ierr)
-          call errmsg(ierr.ne.0,sname,"fail to allocate mwm")
-        endif
+            if(myrank_row.eq.0) then
+              allocate(mwm(mst:mend,ibgw:nbgw,ibgw:nbgw,nomeg),stat=ierr)
+              call errmsg(ierr.ne.0,sname,"fail to allocate mwm")
+            endif
     
-        if(nproc_row.eq.1.or.nomeg.eq.1) then 
-          do iom=1,nomeg
-            call sub_calcmwm(mwm(mst:mend,ibgw:nbgw,ibgw:nbgw,iom), &
-     &                   mst,mend,iom)
-          enddo ! iom
+            if(nproc_row.eq.1.or.nomeg.eq.1) then 
+              do iom=1,nomeg
+                call sub_calcmwm(mwm(mst:mend,ibgw:nbgw,ibgw:nbgw,iom), &
+     &                       mst,mend,iom)
+              enddo ! iom
        
 !! parallel in terms of frequency points has been used 
 #ifdef MPI  
-        else 
-          allocate(rbuf(mst:mend,ibgw:nbgw,ibgw:nbgw,nomeg)) 
-          allocate(mwm_p(mst:mend,ibgw:nbgw,ibgw:nbgw,iom_first:iom_last))
+            else 
+              allocate(rbuf(mst:mend,ibgw:nbgw,ibgw:nbgw,nomeg)) 
+              allocate(mwm_p(mst:mend,ibgw:nbgw,ibgw:nbgw,iom_first:iom_last))
 
-          do iom=iom_first,iom_last
-            call sub_calcmwm(mwm_p(:,:,:,iom),mst,mend,iom)
-          enddo ! iom
+              do iom=iom_first,iom_last
+                call sub_calcmwm(mwm_p(:,:,:,iom),mst,mend,iom)
+              enddo ! iom
 
-          !!* collect data from all processes in the same group 
-          ncount=iom_last-iom_first+1
-          usiz=(nbgw-ibgw+1)**2*(mend-mst+1)
-          call MPI_Type_contiguous(usiz,MPI_DOUBLE_COMPLEX,utype,ierr)
-          call MPI_Type_commit(utype,ierr)
-          call MPI_GatherV(mwm_p,ncount,utype,rbuf,iom_cnts,iom_dspl,utype,&
-     &                     0,mycomm_row,ierr)
-          if(myrank_row.eq.0) then 
-            do iom=1,nomeg
-              do inu=ibgw,nbgw 
-                do imu=ibgw,nbgw 
-                  mwm(:,imu,inu,iom)=rbuf(:,imu,inu,iom) 
+              !!* collect data from all processes in the same group 
+              ncount=iom_last-iom_first+1
+              usiz=(nbgw-ibgw+1)**2*(mend-mst+1)
+              call MPI_Type_contiguous(usiz,MPI_DOUBLE_COMPLEX,utype,ierr)
+              call MPI_Type_commit(utype,ierr)
+              call MPI_GatherV(mwm_p,ncount,utype,rbuf,iom_cnts,iom_dspl,utype,&
+     &                         0,mycomm_row,ierr)
+              if(myrank_row.eq.0) then 
+                do iom=1,nomeg
+                  do inu=ibgw,nbgw 
+                    do imu=ibgw,nbgw 
+                      mwm(:,imu,inu,iom)=rbuf(:,imu,inu,iom) 
+                    enddo 
+                  enddo
                 enddo 
-              enddo
-            enddo 
-          endif 
-          call MPI_Type_free(utype,ierr)
+              endif 
+              call MPI_Type_free(utype,ierr)
 
-          deallocate(rbuf,mwm_p)
+              deallocate(rbuf,mwm_p)
 #endif
-        endif  
-        deallocate(minm)
+            endif  
+            deallocate(minm)
 
-        if(myrank_row.eq.0) then
-          if(isxc.eq.0) then
-            call sub_calc_freqconvl(mst,mend)
-          elseif(isxc.eq.2) then
-            call sub_calc_cohsex(mst,mend)
-          endif
-          deallocate(mwm)
-        endif
+            if(myrank_row.eq.0) then
+              if(isxc.eq.0) then
+                call sub_calc_freqconvl(mst,mend)
+              elseif(isxc.eq.2) then
+                call sub_calc_cohsex(mst,mend)
+              endif
+              deallocate(mwm)
+            endif
 
         end subroutine 
 
@@ -263,35 +263,35 @@
 !     calculate correlation self-energy by the frequency convolution   #
 !======================================================================#
         subroutine sub_calc_freqconvl(m0,m1)
-        implicit none 
-        integer, intent(in):: m0, m1
+            implicit none 
+            integer, intent(in):: m0, m1
  
-        integer :: imu,inu,ie2,iom,jom,icg,iat,ic
-        real(8)    :: omg
-        real(8)    :: enk2
-        complex(8) :: scmn  ! acumlated sum over ie2
-        complex(8) :: wint(nomeg)
+            integer :: imu,inu,ie2,iom,jom,icg,iat,ic
+            real(8)    :: omg
+            real(8)    :: enk2
+            complex(8) :: scmn  ! acumlated sum over ie2
+            complex(8) :: wint(nomeg)
 
-        do inu = ibgw, nbgw       !* Loop over bands ie1
-          do imu = ibgw, nbgw 
-            do iom = 1, nomeg    !* Loop over frequencies for analytical continuation
-              omg=omega(iom)
-              do ie2 = m0,m1
-                if(ie2.gt.nbmax) then 
-                  icg=ie2-nbmax
-                  iat=corind(1,icg)
-                  ic=corind(3,icg)
-                  enk2=eigcore(ic,iat,isp)
-                else 
-                  enk2=bande(ie2,jrk,isp)
-                endif 
-                wint=mwm(ie2,imu,inu,1:nomeg)
-                call freq_convl(iom,nomeg,omg,enk2,wint,omega,womeg,scmn) 
-                sc(imu,inu,iom) = sc(imu,inu,iom) + scmn
-              enddo
-            enddo ! iom 
-          enddo ! inu
-        enddo ! imu
+            do inu = ibgw, nbgw       !* Loop over bands ie1
+              do imu = ibgw, nbgw 
+                do iom = 1, nomeg    !* Loop over frequencies for analytical continuation
+                  omg=omega(iom)
+                  do ie2 = m0,m1
+                    if(ie2.gt.nbmax) then 
+                      icg=ie2-nbmax
+                      iat=corind(1,icg)
+                      ic=corind(3,icg)
+                      enk2=eigcore(ic,iat,isp)
+                    else 
+                      enk2=bande(ie2,jrk,isp)
+                    endif 
+                    wint=mwm(ie2,imu,inu,1:nomeg)
+                    call freq_convl(iom,nomeg,omg,enk2,wint,omega,womeg,scmn) 
+                    sc(imu,inu,iom) = sc(imu,inu,iom) + scmn
+                  enddo
+                enddo ! iom 
+              enddo ! inu
+            enddo ! imu
         end subroutine 
 
 !======================================================================#
@@ -299,72 +299,72 @@
 !======================================================================#
 
         subroutine sub_calc_cohsex(m0,m1)
-        implicit none 
-        integer,intent(in):: m0, m1
-        integer::imu,inu,ie2
-        complex(8):: scmn 
+            implicit none 
+            integer,intent(in):: m0, m1
+            integer::imu,inu,ie2
+            complex(8):: scmn 
 
-        do inu=ibgw,nbgw 
-          do imu=ibgw,nbgw
-            scmn=czero 
-            do ie2=m0,m1 
-              if(ie2.le.nhomo.or.ie2.gt.nbmax) then 
-                scmn = scmn - 0.5d0*mwm(ie2,imu,inu,1)
-              else 
-                scmn = scmn + 0.5d0*mwm(ie2,imu,inu,1)
-              endif 
-           enddo 
-           sc(imu,inu,1)=sc(imu,inu,1)+scmn
-         enddo
-       enddo 
-       end subroutine 
+            do inu=ibgw,nbgw 
+              do imu=ibgw,nbgw
+                scmn=czero 
+                do ie2=m0,m1 
+                  if(ie2.le.nhomo.or.ie2.gt.nbmax) then 
+                    scmn = scmn - 0.5d0*mwm(ie2,imu,inu,1)
+                  else 
+                    scmn = scmn + 0.5d0*mwm(ie2,imu,inu,1)
+                  endif 
+               enddo 
+               sc(imu,inu,1)=sc(imu,inu,1)+scmn
+             enddo
+            enddo 
+        end subroutine 
 !
 !     This subroutine is used as a generic interface to calculate M*W*M
 ! 
-      subroutine sub_calcmwm(xnm,m0,m1,iom)
-      implicit none 
-      integer,intent(in)::m0,m1,iom
-      complex(8),intent(out)::xnm(m0:m1,ibgw:nbgw,ibgw:nbgw)
-      integer::nmdim,imu,inu,ie2
-      real(8) :: t1,t2,coefs1,coefs2
-      complex(8):: xs
-      complex(8), allocatable:: wm(:,:,:) 
+        subroutine sub_calcmwm(xnm,m0,m1,iom)
+            implicit none 
+            integer,intent(in)::m0,m1,iom
+            complex(8),intent(out)::xnm(m0:m1,ibgw:nbgw,ibgw:nbgw)
+            integer::nmdim,imu,inu,ie2
+            real(8) :: t1,t2,coefs1,coefs2
+            complex(8):: xs
+            complex(8), allocatable:: wm(:,:,:) 
 
-      coefs2=singc2*vi4pi
-      coefs1=singc1*sqvi4pi
+            coefs2=singc2*vi4pi
+            coefs1=singc1*sqvi4pi
 
-      nmdim=nbandsgw*(m1-m0+1)
-      if(nmdim.le.0) then 
-        write(6,*) trim(sname)//":WARNING -- nmdim <=0 in sub_calcmwm"
-        return 
-      endif 
-      allocate(wm(matsiz,m0:m1,ibgw:nbgw))
-      call cpu_time(t1)
-      call zhemm('l','u',matsiz,nmdim,cone,eps(:,:,iom),matsiz,  &
-     &           minm,matsiz,czero,wm,matsiz)
+            nmdim=nbandsgw*(m1-m0+1)
+            if(nmdim.le.0) then 
+              write(6,*) trim(sname)//":WARNING -- nmdim <=0 in sub_calcmwm"
+              return 
+            endif 
+            allocate(wm(matsiz,m0:m1,ibgw:nbgw))
+            call cpu_time(t1)
+            call zhemm('l','u',matsiz,nmdim,cone,eps(:,:,iom),matsiz,  &
+     &                 minm,matsiz,czero,wm,matsiz)
 
-      do inu=ibgw,nbgw
-        do imu=ibgw,nbgw 
-          do ie2=m0,m1
-            xnm(ie2,imu,inu)=wkq*zdotc(matsiz,minm(:,ie2,imu),1,    &
-     &                         wm(:,ie2,inu),1)
-            if(iq.eq.1.and.ie2.ge.ibgw.and.ie2.le.nbgw) then   !! add singular contributions 
-              xs = coefs2*head(iom)*qpwf_coef(imu,ie2,irk,isp)      &
-     &              *conjg(qpwf_coef(inu,ie2,irk,isp))              &
-     &           + coefs1*qpwf_coef(imu,ie2,irk,isp)                &
-     &              *zdotu(matsiz,minm(:,ie2,inu),1,epsw2,1)        &
-     &           + coefs1*conjg(qpwf_coef(inu,ie2,irk,isp))         &
-     &              *zdotc(matsiz,minm(:,ie2,imu),1,epsw1,1)
-              xnm(ie2,imu,inu)=xnm(ie2,imu,inu)+xs
-            endif  
-          enddo
-        enddo
-      enddo
-      deallocate(wm)
-      call cpu_time(t2)
-      time_lapack=time_lapack+t2-t1
+            do inu=ibgw,nbgw
+              do imu=ibgw,nbgw 
+                do ie2=m0,m1
+                  xnm(ie2,imu,inu)=wkq*zdotc(matsiz,minm(:,ie2,imu),1,    &
+     &                               wm(:,ie2,inu),1)
+                  if(iq.eq.1.and.ie2.ge.ibgw.and.ie2.le.nbgw) then   !! add singular contributions 
+                    xs = coefs2*head(iom)*qpwf_coef(imu,ie2,irk,isp)      &
+     &                    *conjg(qpwf_coef(inu,ie2,irk,isp))              &
+     &                 + coefs1*qpwf_coef(imu,ie2,irk,isp)                &
+     &                    *zdotu(matsiz,minm(:,ie2,inu),1,epsw2,1)        &
+     &                 + coefs1*conjg(qpwf_coef(inu,ie2,irk,isp))         &
+     &                    *zdotc(matsiz,minm(:,ie2,imu),1,epsw1,1)
+                    xnm(ie2,imu,inu)=xnm(ie2,imu,inu)+xs
+                  endif  
+                enddo
+              enddo
+            enddo
+            deallocate(wm)
+            call cpu_time(t2)
+            time_lapack=time_lapack+t2-t1
 
-      end subroutine 
+        end subroutine 
               
       end subroutine calcselfcmn
 !EOC        

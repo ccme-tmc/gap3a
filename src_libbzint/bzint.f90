@@ -22,7 +22,6 @@
       real(8):: eta_freq=0.01   ! this is the value of the small imaginary part that 
                                 ! is needed for real frequency calculations 
 
-
       integer :: iop_bcor  = 0         ! the option to choose whether to use Bloechl correction 
                                        !  0 -- w/o  Bloechl correciton 
                                        !  1 -- with Bloechl correction  
@@ -52,81 +51,80 @@
 ! Frequency related factor 
 !
         complex(8) function freq_factor(iop,omg,edif)
-        implicit none
-        integer, intent(in):: iop   ! 2 for refreq and 3 for imfreq
-        real(8), intent(in):: omg, edif
+            implicit none
+            integer, intent(in):: iop   ! 2 for refreq and 3 for imfreq
+            real(8), intent(in):: omg, edif
 
-        if(iop.eq.2) then
-          freq_factor =  1.d0/cmplx(omg - edif,   eta_freq)  &
-     &                 - 1.d0/cmplx(omg + edif, - eta_freq)
-        elseif(iop.eq.3) then
-          freq_factor = cmplx( -2.d0*edif/(omg*omg+edif*edif), 0.d0)
-        endif
+            if(iop.eq.2) then
+              freq_factor =  1.d0/cmplx(omg - edif,   eta_freq)  &
+     &                     - 1.d0/cmplx(omg + edif, - eta_freq)
+            elseif(iop.eq.3) then
+              freq_factor = cmplx( -2.d0*edif/(omg*omg+edif*edif), 0.d0)
+            endif
         end function
 
 !
 ! Occupation 
 !
         real(8) function bzint_smear(iop,e)
-        implicit none
-        integer, intent(in):: iop   ! 0 for Fermi, 1 for Gauss
-        real(8), intent(in):: e 
-        real(8) :: wt
+            implicit none
+            integer, intent(in):: iop   ! 0 for Fermi, 1 for Gauss
+            real(8), intent(in):: e 
+            real(8) :: wt
 
-        if(iop.eq.0) then
+            if(iop.eq.0) then
 
-          if(esmear.le.0.d0) then
-            if(e.gt.0.d0) then
-              wt = 0.d0
-            else
-              wt = 1.d0
-            endif
-          else
-            if(e/esmear.gt.10.d0) then
-              wt = 0.d0
-            elseif(e/esmear.lt.-10.d0) then
-              wt = 1.d0
-            else
-              wt = FermiF(e/esmear)
-            endif
-          endif
+              if(esmear.le.0.d0) then
+                if(e.gt.0.d0) then
+                  wt = 0.d0
+                else
+                  wt = 1.d0
+                endif
+              else
+                if(e/esmear.gt.10.d0) then
+                  wt = 0.d0
+                elseif(e/esmear.lt.-10.d0) then
+                  wt = 1.d0
+                else
+                  wt = FermiF(e/esmear)
+                endif
+              endif
 
-        elseif(iop.eq.1) then
-          if(abs(e)>10.d0*esmear) then
-            wt = 0.d0
-          else
-            wt = - FermiF_d(e/esmear)/esmear 
-          endif
+            elseif(iop.eq.1) then
+              if(abs(e)>10.d0*esmear) then
+                wt = 0.d0
+              else
+                wt = - FermiF_d(e/esmear)/esmear 
+              endif
  
-        elseif(iop.eq.2) then 
-          wt = GaussF(e,esmear) 
-        endif
-        bzint_smear = wt
+            elseif(iop.eq.2) then 
+              wt = GaussF(e,esmear) 
+            endif
+            bzint_smear = wt
         end function
 
 !
 !       Fermi function
 !
         real(8) function FermiF(x)
-        real(8):: x
-        FermiF = 1.d0/(1.d0+exp(x))
+            real(8):: x
+            FermiF = 1.d0/(1.d0+exp(x))
         end function
 
 !
 !       the first derivate of the Fermi function 
 !
         real(8) function FermiF_d(x) 
-        real(8) :: x
-        FermiF_d = -1.d0*exp(x)/(1.d0+exp(x))**2
+            real(8) :: x
+            FermiF_d = -1.d0*exp(x)/(1.d0+exp(x))**2
         end function 
 !
 !       Gauss function
 !
         real(8) function GaussF(x,s)
-        real(8),intent(in):: x,s
-        real(8):: sr2pi = 2.5066282746310002
-
-        GaussF = 1.d0/(s*sr2pi)*exp(-x*x/(2.d0*s*s))
+            real(8),intent(in):: x,s
+            real(8):: sr2pi = 2.5066282746310002
+            GaussF = 1.d0/(s*sr2pi)*exp(-x*x/(2.d0*s*s))
         end function
 
       end module 
