@@ -1,3 +1,14 @@
+# binaries
 *.o
 src_*/*.o
 src_*/*.mod
+*.a
+*.x
+src_dmftproj/dmftproj.x
+src_kgen/kgen
+
+.seq
+.para
+src_modules/.para
+src_modules/.seq
+
