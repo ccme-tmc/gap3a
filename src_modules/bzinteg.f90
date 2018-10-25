@@ -89,6 +89,8 @@
           deallocate(kcw) 
         end subroutine end_bzinteg
 
+! Calculate coefficient of singular term at q->0 for exchange and
+! correlation self-energy
         subroutine set_singc_0
         use struk,   only: vi
         use kpoints, only: nqp
@@ -98,16 +100,16 @@
 
         pi2vi=pi*pi*vi
         alfa=(1.0d0/(6.0d0*pi2vi))**(1.0d0/3.0d0)
-        intf1=1.0d0/(4.0d0*pi2vi*alfa)
-        intf2=1.0d0/(4.0d0*pi2vi)*sqrt(pi/alfa)
         singc1=0.d0
         singc2=0.d0
         do iq=1,nqp
-          call genauxf(iq,singf1,singf2,alfa)
+          call genauxf(iq,alfa,singf1,singf2)
           singc1=singc1 + singf1  
           singc2=singc2 + singf2  
         enddo 
 
+        intf1=1.0d0/(4.0d0*pi2vi*alfa*alfa)
+        intf2=1.0d0/(4.0d0*pi2vi*alfa)*sqrt(pi)
         singc1=intf1-singc1
         singc2=intf2-singc2
         singc=singc2

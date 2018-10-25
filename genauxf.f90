@@ -3,7 +3,7 @@
 ! !ROUTINE: genauxf
 !
 ! !INTERFACE: 
-      subroutine genauxf(iq,f1,f2,alfa)
+      subroutine genauxf(iq,alfa,f1,f2)
 
 ! !DESCRIPTION:
 !
@@ -32,6 +32,7 @@
       implicit none
       
       integer(4), intent(in) :: iq    ! Index of the q-vector
+      real(8),    intent(in) :: alfa ! Parameter of the function
       
 ! !OUTPUT PARAMETERS:
 
@@ -41,7 +42,6 @@
 !                                       at iq       
       real(8),    intent(out) :: f2   ! Vaule of the auxiliary function F_2
 !                                       at iq       
-      real(8),    intent(out) :: alfa ! Parameter of the function
       
 ! !LOCAL VARIABLES:
 
@@ -59,7 +59,9 @@
 ! !REVISION HISTORY:
 !
 ! Created 23.06.05 by RGA.
-! Last modified Nov 2006 by RGA
+!         Nov 2006 by RGA
+!      24 Oct 2018 by ZMY:
+!               change alfa as input instead of output
 !
 !EOP
 !BOC
@@ -69,7 +71,7 @@
       f1=0.0d0
       f2=0.0d0
       ipwin=1
-      alfa=(1.0d0/(6.0d0*pi*pi*vi))**(1.0d0/3.0d0)
+      !alfa=(1.0d0/(6.0d0*pi*pi*vi))**(1.0d0/3.0d0)
       if(iq.eq.1) ipwin=2 
 !
 !     Loop over G-vectors
@@ -83,7 +85,8 @@
 !       Calculate the length of G+q squared 
 !
         modgpq=gqleng(igl,iq)*gqleng(igl,iq)
-        expagpq=exp(-alfa*modgpq)
+        !expagpq=exp(-alfa*modgpq)
+        expagpq=exp(-alfa*alfa*modgpq)
 !
 !       Accumulate the terms into f1 and f2
 !
