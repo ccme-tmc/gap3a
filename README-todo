@@ -1,0 +1,7 @@
+1. Anisotropy
+  - Use the primitive BZ of the supercell for averaging
+
+2. Subgrid points near Gamma
+  - parameters
+    - integer q0_div(3)
+

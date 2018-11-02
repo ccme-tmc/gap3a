@@ -17,9 +17,9 @@
 
         character(len=10)::  progname = 'GAP 2.0'
         character(len=20) :: gwinp="gw.inp"      !! name of the main input file  
-        character(len=20) :: gwout="gw.out"      !! name of the main output file  
+        character(len=20) :: gwout="gw.out"      !! name of the main input file  
         character(len=10) :: taskname       !! name of the running task 
-        character(len=20)::  casename       !! name of the case to be calculated, 
+        character(len=20)::  casename        !! name of the case to be calculated, 
                                             !! all input and output file will start with this name 
         character(len=120):: scrdir= './'   !! scratch directory
         character(len=120):: scrfn          !! the prefix for scratch files 

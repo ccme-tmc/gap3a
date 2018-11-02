@@ -128,12 +128,12 @@
       implicit none 
       integer,intent(in):: iop   
 
-      integer:: i, ie,isp,irk,nom
-      integer:: nktot 
+      integer :: i, ie,isp,irk,nom
+      integer :: nktot 
 
-      real(8):: w0 
-      character(20)::sname="init_selfenergy"
-      real(8),parameter:: pi=3.14159265358979
+      real(8) :: w0 
+      character(20) ::sname="init_selfenergy"
+      real(8), parameter :: pi=3.14159265358979
 
       if(iop_sxc_sc.eq.0) then  ! full GW
         nom = nomeg

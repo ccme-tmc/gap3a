@@ -49,7 +49,7 @@
 !---------------------------------------
 !       Initializations
 !---------------------------------------
-      progname = 'GAP 2.0e'
+      progname = 'GAP 2.0c'
       call init_mpi()
       call cpu_time(tstart)
 
