@@ -17,7 +17,7 @@
       use freq,       only: nomeg
       use kpoints,    only: nkp,nirkp,get_kvec
       use selfenergy, only: sigc,sigc_q,sigx,sigx_q,sigm,info_sxc
-      use task,       only: casename,savdir,fid_outgw
+      use task,       only: casename,savdir
       
       implicit none
      
@@ -116,8 +116,7 @@
 
         read(fid,100,iostat=ierr) iq_in 
         if(ierr.ne.0 .or. iq_in.ne.iq ) then 
-          !write(6,*) "WARNING: inconsistent iq!" 
-          write(fid_outgw,*) "WARNING: inconsistent iq!" 
+          write(6,*) "WARNING: inconsistent iq!" 
           close(fid) 
           return 
         endif 
@@ -129,8 +128,7 @@
 
         if(lerr) then 
           ierr = 1 
-          !write(6,*) "WARNING: inconsistent data in "//trim(fname)
-          write(fid_outgw,*) "WARNING: inconsistent data in "//trim(fname)
+          write(6,*) "WARNING: inconsistent data in "//trim(fname)
           close(fid) 
           return 
         endif 
@@ -180,8 +178,7 @@
       if(io.eq.'w'.or.io.eq.'W') then
         open(unit=fid,file=fname,action='write',iostat=ierr)
         if(ierr.ne.0) then 
-          !write(6,*) "WARNING: fail to open "//trim(fname)
-          write(fid_outgw,*) "WARNING: fail to open "//trim(fname)
+          write(6,*) "WARNING: fail to open "//trim(fname)
           return 
         endif  
 

@@ -3,13 +3,13 @@
       use eigenvec,   only: vfunit
       use task,       only: iop_scratch,fid_outdbg,fid_outmb,&
      &                   fid_outmom,fid_outkpt,fid_outqp,&
-     &                   savdir, fid_outgw
+     &                   savdir
       use modmpi 
       
       implicit none 
       integer :: isp 
 
-      write(fid_outgw,*) "delete scratch files"
+      write(6,*) "delete scratch files"
 
       if(iop_scratch.eq.1.or.(iop_scratch.eq.2.and.myrank.eq.0)) then
         close(vfunit,status='delete')
@@ -21,10 +21,10 @@
       close(fid_outqp)
 
 #ifdef MPI
-      write(fid_outgw,*) "Process #",myrank," finished!"
+      write(6,*) "Process #",myrank," finished!"
       wtime2=MPI_WTIME()
-      write(fid_outgw,11) wtime2-wtime1
+      write(6,11) wtime2-wtime1
 11    format('Total wall time',40x,f16.2,' seconds')
 #endif 
-      close(fid_outgw) 
+      close(6) 
       end subroutine

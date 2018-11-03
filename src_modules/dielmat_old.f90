@@ -7,7 +7,6 @@
 !
       module dielmat
       use constants,  only: sqrt3
-      use task, only: fid_outgw
       implicit none 
       
 ! !PUBLIC VARIABLES:
@@ -28,28 +27,14 @@
 
       complex(8), allocatable :: head(:)       ! the head of the dielectric matrix
       complex(8), allocatable :: eps(:,:,:) ! the dielectric matrix
-      target eps 
       complex(8), allocatable :: epsw1(:,:)    ! the vertical   wing of the dielectric matrix  
       complex(8), allocatable :: epsw2(:,:)    ! the horizontal wing of the dielectric matrix
       complex(8), allocatable :: emac(:,:)     ! the macroscopic dielectric function  
                                                !   emac(1,:) -- without local field effect
                                                !   emac(2,:) -- with    local field effect 
-      ! Quantities related to anisotropy 
-      integer :: iop_aniso = -1                 ! control whether to consider the anisotropy of dielectric function around Gamma
-                                                ! -1 -- use q0_eps
-      complex(8), pointer :: vec_u_ani(:,:,:)       ! vector U(matsiz, 3, nomega)
-      complex(8), pointer :: vec_a_ani(:,:,:)       ! vector S(matsiz, 3, nomega)
-      complex(8), pointer :: ten_l_ani(:,:,:)       ! tensor L(3, 3, nomega)
-      complex(8), pointer :: ten_p_ani(:,:,:)       ! tensor P(3, 3, nomega)
-      complex(8), pointer :: ten_a_ani(:,:,:)       ! tensor A(3, 3, nomega)
-      ! Following quantities should be determined by a Lebedev-Laikov grid
-      integer :: nq0 = 0                        ! number of q0 for angular integration
-      real(8), pointer :: q0_sph(:,:)           ! similar to q0_eps, (3:nq0)
-      real(8), pointer :: w_q0_sph(:)           ! weight of q0, (nq0)
-
-      complex(8), pointer :: head_q0(:,:)       ! the head (nq0,nomega) for q0 
-
+      target eps 
       character(len=2) :: bandtype             ! 'KS' or 'GW' energies used for the dielectric function 
+
 !
 ! Variables related to constrained RPA. They may be defined in a seperate module in the future  
 !
@@ -63,7 +48,6 @@
                                                ! for some analysis 
       integer,private:: ierr
       logical,private:: ldbg=.false.
-
       contains
       
       subroutine init_dielmat(iq,iomfirst,iomlast)
@@ -88,23 +72,6 @@
         allocate(head(iomfirst:iomlast),&
      &           mask_eps(numn:nbmaxpol,nomx+ncg_p),                       &
      &           stat=ierr)
-        if(ierr.ne.0) then
-          write(fid_outgw,*) "init_dielmat: Fail to allocate head"
-          stop
-        endif
-        if(iop_aniso.ne.-1)then
-          allocate(vec_u_ani(matsiz,3,iomfirst:iomlast), &
-     &             vec_a_ani(matsiz,3,iomfirst:iomlast), &
-     &             ten_l_ani(3,3,iomfirst:iomlast),      &
-     &             ten_p_ani(3,3,iomfirst:iomlast),      &
-     &             ten_a_ani(3,3,iomfirst:iomlast),      &
-     !&             head_q0(nq0, iomfirst:iomlast),       &
-     &             stat=ierr)
-          if(ierr.ne.0) then
-            write(fid_outgw,*) "init_dielmat: Fail to allocate aniso"
-            stop
-          endif
-        endif
         head = czero
         mask_eps = 1.0
         return 
@@ -115,15 +82,14 @@
      &         stat=ierr)
 
       if(ierr.ne.0) then
-        write(fid_outgw,*) "init_dielmat: Fail to allocate eps"
+        write(6,*) "init_dielmat: Fail to allocate eps"
         stop
       endif
       eps = czero
       mask_eps = 1.0
 
       if(iq.eq.1) then 
-      ! TODO why iq=1 need head and epsw1/2?
-        if(ldbg) write(fid_outgw,*) trim(sname)//": allocate head etc"
+        if(ldbg) write(6,*) trim(sname)//": allocate head etc"
         allocate(head(iomfirst:iomlast),                                &
      &           epsw1(matsiz,iomfirst:iomlast),                        &
      &           emac(2,iomfirst:iomlast),                              &

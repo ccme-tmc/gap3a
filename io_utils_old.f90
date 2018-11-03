@@ -164,28 +164,23 @@
       end subroutine 
 
       subroutine DBGMSG(lprt,msg)
-      use task, only: fid_outgw
       logical::lprt
       character(len=*) msg
 
       if(lprt) then
-        !write(6,*)  trim(msg)
-        write(fid_outgw,*)  trim(msg)
+        write(6,*)  trim(msg)
       endif
       end subroutine
 
       subroutine errmsg(lerr,sname,msg)
-      use task, only: fid_outgw
       use modmpi, only: end_mpi 
       implicit none 
       logical,intent(in):: lerr
       character(len=*) sname,msg
 
       if(lerr) then
-        !write(6,*) "FATAL ERROR in ",sname
-        !write(6,*) '----',trim(msg)
-        write(fid_outgw,*) "FATAL ERROR in ",sname
-        write(fid_outgw,*) '----',trim(msg)
+        write(6,*) "FATAL ERROR in ",sname
+        write(6,*) '----',trim(msg)
 
 #ifdef MPI
         call end_mpi 
@@ -198,13 +193,10 @@
 
       subroutine outerr(sname,msg)
       use modmpi, only: end_mpi 
-      use task, only: fid_outgw
       implicit none 
       character(len=*) sname,msg
-      !write(6,*) "FATAL ERROR in ",sname
-      !write(6,*) '----',trim(msg)
-      write(fid_outgw,*) "FATAL ERROR in ",sname
-      write(fid_outgw,*) '----',trim(msg)
+      write(6,*) "FATAL ERROR in ",sname
+      write(6,*) '----',trim(msg)
 
 #ifdef MPI
       call end_mpi
@@ -215,16 +207,13 @@
 
       subroutine errmsg0(ierr,sname,msg)
       use modmpi, only: end_mpi
-      use task, only: fid_outgw
       implicit none
       integer,intent(in):: ierr
       character(len=*) sname,msg
 
       if(ierr.ne.0) then
-        !write(6,*) "FATAL ERROR in ",sname
-        !write(6,*) '----',trim(msg)," ierr=",ierr
-        write(fid_outgw,*) "FATAL ERROR in ",sname
-        write(fid_outgw,*) '----',trim(msg)," ierr=",ierr
+        write(6,*) "FATAL ERROR in ",sname
+        write(6,*) '----',trim(msg)," ierr=",ierr
 
 #ifdef MPI
         call end_mpi
@@ -236,15 +225,12 @@
       end subroutine
 
       subroutine wrnmsg(lerr,sname,msg)
-      use task, only: fid_outgw
       logical,intent(in):: lerr
       character(len=*) sname,msg
 
       if(lerr) then
-        !write(6,*) "WARNING in ",sname
-        !write(6,*) '----',trim(msg)
-        write(fid_outgw,*) "WARNING in ",sname
-        write(fid_outgw,*) '----',trim(msg)
+        write(6,*) "WARNING in ",sname
+        write(6,*) '----',trim(msg)
       endif
       end subroutine
 

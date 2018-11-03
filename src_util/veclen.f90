@@ -26,6 +26,7 @@ real(8) function veclen(vec)
 
     veclen = vec(1)**2 + vec(2)**2 + vec(3)**2
     veclen = sqrt(veclen)
+    return
 
 end function veclen
 ! EOC

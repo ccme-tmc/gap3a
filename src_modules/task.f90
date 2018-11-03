@@ -15,16 +15,23 @@
         integer :: nmax_sc = 10               !! Maximum number of self-consistent iterations 
         real(8) :: eps_sc = 1.0d-3            !! convergence for self-consistent 
 
-        character(len=10)::  progname = 'GAP 2.0'
-        character(len=20) :: gwinp="gw.inp"      !! name of the main input file  
-        character(len=20) :: gwout="gw.out"      !! name of the main output file  
+        character(len=10) :: progname = 'GAP 2.0'
         character(len=10) :: taskname       !! name of the running task 
-        character(len=20)::  casename       !! name of the case to be calculated, 
+        character(len=20) :: casename       !! name of the case to be calculated, 
+        character(len=120) :: scrdir= './'  !! scratch directory
+        character(len=120) :: scrfn         !! the prefix for scratch files 
+        character(len=120) :: savdir="."    !! the name for the directory used to save restart data 
+        character(len=120) :: save_prefix   !! the prefix for files to be saved 
                                             !! all input and output file will start with this name 
-        character(len=120):: scrdir= './'   !! scratch directory
-        character(len=120):: scrfn          !! the prefix for scratch files 
-        character(len=120):: savdir="."     !! the name for the directory used to save restart data 
-        character(len=120):: save_prefix    !! the prefix for files to be saved 
+        ! file names for various input and output
+        character(len=20),parameter :: f_inp="gw.inp"      !! name of the input file for parameters
+        character(len=20),parameter :: f_log="gw.log"      !! name of the log file for parameters
+        character(len=20) :: f_outgw        !! main output 
+        character(len=20) :: f_outmom       !! moment matrix
+        character(len=20) :: f_outdbg       !! debug
+        character(len=20) :: f_outmb        !! mixed basis
+        character(len=20) :: f_outqp        !! quasiparticle
+        character(len=20) :: f_outkpt       !! kpoint mesh
 
         character(2):: spflag(2)            !! spin flag ['up'/'dn',''] used for I/O files
         integer :: iop_scratch = 2     ! control how to use the scratch space
@@ -65,12 +72,14 @@
 
 !
 ! set a set of file IDs to be used for global I/O
-        integer,parameter ::fid_outgw   = 6,  & ! general output 
-     &                      fid_outmb   = 7,  & ! mixed basis    
-     &                      fid_outmom  = 8,  & ! momentum matrix
-     &                      fid_outdbg  = 9,  & ! general debug info
-     &                      fid_outkpt  =10,  & ! k-point and bzint
-     &                      fid_outqp   =11     ! quasi-particle output
+        integer,parameter :: fid_outgw     =  6,  & ! general output 
+     &                       fid_outmb     =  7,  & ! mixed basis    
+     &                       fid_outmom    =  8,  & ! momentum matrix
+     &                       fid_outdbg    =  9,  & ! general debug info
+     &                       fid_outkpt    = 10,  & ! k-point and bzint
+     &                       fid_outqp     = 11,  & ! quasi-particle output
+     &                       fid_inp       = 21,  & ! input file
+     &                       fid_log       = 22     ! log file
 
 !EOP
 ! 

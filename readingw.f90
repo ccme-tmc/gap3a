@@ -14,22 +14,22 @@
 ! !USES:
  
       use bands,     only: nspin,fspin,emingw,emaxgw,ibgw,nbgw, &
-     &                      iop_metallic,spinmom,band_scissor,       &
-     &                      emaxpol,eminpol,emaxsc,eminsc,efermi
+     &                     iop_metallic,spinmom,band_scissor,       &
+     &                     emaxpol,eminpol,emaxsc,eminsc,efermi
       use barcoul,   only: barcevtol,rcut_coul,stctol,&
-     &                      iop_coul_x,iop_coul_c,iop_coulvm
+     &                     iop_coul_x,iop_coul_c,iop_coulvm
 
       use bzint,     only: iop_bzint,iop_bzintq,n_gauq,eta_freq,     &
-     &                      ztol_sorteq,tol_taylor,tol_unphys_weight,   &
-     &                      esmear,nomg_ht,omgmax_ht,ztol_vol,iop_bcor 
-
+     &                     ztol_sorteq,tol_taylor,tol_unphys_weight,   &
+     &                     esmear,nomg_ht,omgmax_ht,ztol_vol,iop_bcor 
       use core,      only: core_ortho,iop_core
       use constants, only: hev,pi
       use crpa,      only: iop_pln_phase,wf_centers_new,nlorb_wf,  &
      &                     tol_shift_centers 
       use dielmat,   only: q0_eps,wt_excl,noc_excl,nun_excl,ioc_excl,  &
-     &                      iun_excl,iop_mask_eps,occ_win,unocc_win,&
-     &                      iop_drude,omega_plasma,iop_epsw,eta_head 
+     &                     iun_excl,iop_mask_eps,occ_win,unocc_win,   &
+     &                     iop_drude,omega_plasma,iop_epsw,eta_head,  &
+     &                     iop_aniso, nq0
       use eigenvec,  only: lsymvector,lcmplx
       use fouri,     only: rmax
       use freq,      only: omegmax,nomeg,nomeg_blk,iop_fgrid,omegmin,   &
@@ -45,10 +45,11 @@
      &                     iop_esgw0,iop_gw0
       use struk,     only: nat
       use xcpot,     only: lvorb,natorb,iatorb,nlorb,lorb,vorb,&
-     &                      dmorb,iop_vxc,lhybrid
-      use task,      only: taskname,casename,gwinp,gwout,&
-     &                lrestart,spflag,iop_dftpkg,iop_scratch,savdir, &
-     &                progname,l_usesavedminm,l_save_dielmat
+     &                     dmorb,iop_vxc,lhybrid
+      use task,      only: taskname,casename,f_inp,f_log,f_outgw, &
+     &                     lrestart,spflag,iop_dftpkg,iop_scratch,savdir,&
+     &                     progname,l_usesavedminm,l_save_dielmat,&
+     &                     fid_outgw, fid_log, fid_inp
       use liboct_parser
 ! !LOCAL VARIABLES:      
       implicit none
@@ -94,69 +95,96 @@
       character(20):: blk_vorb  = "Vorb" 
       character(20):: blk_wann  = "Wannier" 
       character(80):: default_casename
-      character(80):: stdout="gw.log"
+      !character(80):: stdout="gw.log"
       character(len=10),external::Int2Str
 
 !EOP
 !BOC
-      open(6,file=stdout,action='write')  
-      open(999,file=gwinp,iostat=ierr,action='read') 
+      !open(6,file=stdout,action='write')  
+      !open(fid_log,file=f_log,action='write')  
+      !open(999,file=gwinp,iostat=ierr,action='read') 
+      open(fid_inp,file=f_inp,iostat=ierr,action='read') 
       call errmsg(ierr.ne.0,sname,"Fail to open main input file")
-      close(999)
+      close(fid_inp)
 
-      write(6,'(a)') "Main input from "//trim(gwinp)   
+      !write(6,'(a)') "Main input from "//trim(gwinp)   
+      !write(fid_log,'(a)') "Main input from "//trim(f_inp)
+      !close(fid_log)
 
 !
 ! initialize the liboct_parser and open the input file 
 !
-      ierr = loct_parse_init(stdout)
+      !ierr = loct_parse_init(stdout)
+      ierr = loct_parse_init(f_log)
       if(ierr .ne. 0) then
-         write(6,'(a)') '*** Fatal Error (description follows)'
-         write(6,'(2x,a)') 'Error initializing liboct'
-         write(6,'(2x,a)') 'write permissions in this directory?'
+         !write(6,'(a)') '*** Fatal Error (description follows)'
+         !write(6,'(2x,a)') 'Error initializing liboct'
+         !write(6,'(2x,a)') 'write permissions in this directory?'
+         write(*,'(a)') '*** Fatal Error (description follows)'
+         write(*,'(2x,a)') 'Error initializing liboct'
+         write(*,'(2x,a)') 'write permissions in this directory?'
          call outerr(sname,"")
       end if
 
-      ierr = loct_parse_input(gwinp)
+      ierr = loct_parse_input(f_inp)
       if(ierr .ne. 0) then
-        write(6,'(a)') '*** Fatal Error ***'
-        write(6,'(2x,a)') 'Error initializing liboct'
-        write(6,'(2x,a)') 'Can not open input file!'
-        write(6,'(2x,a)') 'Please provide an input file with name inp'
+        !write(6,'(a)') '*** Fatal Error ***'
+        !write(6,'(2x,a)') 'Error initializing liboct'
+        !write(6,'(2x,a)') 'Can not open input file!'
+        !write(6,'(2x,a)') 'Please provide an input file with name inp'
+        write(*,'(a)') '*** Fatal Error ***'
+        write(*,'(2x,a)') 'Error initializing liboct'
+        write(*,'(2x,a)') 'Can not open input file!'
+        write(*,'(2x,2a)') 'Please provide an input file with name',f_inp
         call outerr(sname,"")
       endif
-      call boxmsg(6,'*',"GW Program : "//trim(progname))
 
-      call linmsg(6,'-',sname) 
+      ! Read in casename to initialize file names of IO
       call loct_parse_string('CaseName','gw',casename)
-      write(6,100) "CaseName: "//casename
-
-      call loct_parse_int("UseScratch",2,iop_scratch)
-      if(iop_scratch.eq.0)then
-        write(6,*) " -- Do not use scratch space"
-      else if (iop_scratch.eq.1) then
-        write(6,*) " -- Use different scratch files for different proc."
-      else
-        write(6,*) " -- Use same scratch files for different proc."
-      endif
-
+      !write(6,100) "CaseName: "//casename
       !! check whether the case name matches the files in the current directory
       call check_file(trim(casename)//".struct",ierr) 
-      call errmsg(ierr.ne.0,sname,trim(casename)//".struct not found!")
+      call errmsg(ierr.ne.0, sname, trim(casename)//".struct not found!")
+
+      f_outgw=trim(casename)//".outgw"
+      open(fid_outgw,file=f_outgw,action='write') 
+      !call boxmsg(6,'*',"GW Program : "//trim(progname))
+      call boxmsg(fid_outgw,'*',"GW Program : "//trim(progname))
+      write(fid_outgw,'(a)') "Main input from "//trim(f_inp)
+      !call linmsg(6,'-',sname) 
+      call linmsg(fid_outgw,'-',sname) 
+
+      write(fid_outgw,100) "CaseName: "//casename
+      call loct_parse_int("UseScratch",2,iop_scratch)
+      if(iop_scratch.eq.0)then
+        !write(6,*) " -- Do not use scratch space"
+        write(fid_outgw,*) " -- Do not use scratch space"
+      else if (iop_scratch.eq.1) then
+        !write(6,*) " -- Use different scratch files for different proc."
+        write(fid_outgw,*) " -- Use different scratch files for different proc."
+      else
+        !write(6,*) " -- Use same scratch files for different proc."
+        write(fid_outgw,*) " -- Use same scratch files for different proc."
+      endif
 
       call loct_parse_string('SavDir','tmp',savdir)
-      write(6,100) "SavDir: "//trim(savdir)
+      !write(6,100) "SavDir: "//trim(savdir)
+      write(fid_outgw,100) "SavDir: "//trim(savdir)
 
+      !close(fid_log)
       call io_initfiles
+      close(fid_outgw)
 
-      gwout=trim(casename)//".outgw"
       if(myrank.eq.0) then
-        close(6) 
-        open(6,file=gwout,position='append')
+        !close(6) 
+        !open(6,file=gwout,position='append')
+        open(fid_outgw,file=f_outgw,position='append')
       else 
-        close(6) 
-        stdout = trim(savdir)//'/'//trim(stdout)//'-p'//trim(int2str(myrank))
-        open(6,file= stdout,action='write') 
+        !close(6) 
+        !stdout = trim(savdir)//'/'//trim(stdout)//'-p'//trim(int2str(myrank))
+        !open(6,file= stdout,action='write') 
+        f_outgw = trim(savdir)//'/'//trim(f_outgw)//'-p'//trim(int2str(myrank))
+        open(fid_outgw,file=f_outgw ,action='write') 
       endif  
 !
 !     set the DFT package used to generate Kohn-Sham inputs
@@ -165,14 +193,17 @@
 
       !! Read the task to calculate
       call loct_parse_string('Task','gw',taskname)
-      write(6,100) "Task: "//taskname
+      !write(6,100) "Task: "//taskname
+      write(fid_outgw,100) "Task: "//taskname
 
         
       call loct_parse_logical('Restart',.false.,lrestart) 
       if(lrestart) then 
-        write(6,100) "Restart= .TRUE. (Restart from previous run"
+        !write(6,100) "Restart= .TRUE. (Restart from previous run"
+        write(fid_outgw,100) "Restart= .TRUE. (Restart from previous run"
       else  
-        write(6,100) "Restart= .FALSE.(Start a new calculation)"
+        !write(6,100) "Restart= .FALSE.(Start a new calculation)"
+        write(fid_outgw,100) "Restart= .FALSE.(Start a new calculation)"
       endif 
 
       call loct_parse_logical("UseSavedMinm",.true.,l_UseSavedMinm)
@@ -184,14 +215,19 @@
 !
       call loct_parse_int("nspin",1,nspin)
       if(nspin.ne.1 .and. nspin.ne.2) then 
-        write(6,100) "Wrong options for nspin"
-        write(6,100) "  nspin=1 --- spin-unpolarized caculations"
-        write(6,100) "       =2 --- spin-polarized caculations"
-        write(6,100) "  -- set to the default value (nspin=1)"
+        !write(6,100) "Wrong options for nspin"
+        !write(6,100) "  nspin=1 --- spin-unpolarized caculations"
+        !write(6,100) "       =2 --- spin-polarized caculations"
+        !write(6,100) "  -- set to the default value (nspin=1)"
+        write(fid_outgw,100) "Wrong options for nspin"
+        write(fid_outgw,100) "  nspin=1 --- spin-unpolarized caculations"
+        write(fid_outgw,100) "       =2 --- spin-polarized caculations"
+        write(fid_outgw,100) "  -- set to the default value (nspin=1)"
         nspin=1
       endif 
       fspin=2/nspin 
-      write(6,101) "nspin:",nspin
+      !write(6,101) "nspin:",nspin
+      write(fid_outgw,101) "nspin:",nspin
       if(nspin.eq.2) then
         spflag(1)='up'
         spflag(2)='dn'
@@ -210,9 +246,11 @@
 ! 
       call loct_parse_logical("SymVector",.false.,lsymvector)
       if(lsymvector) then 
-        write(6,100) " Use symmetrized eigenvector file"
+        !write(6,100) " Use symmetrized eigenvector file"
+        write(fid_outgw,100) " Use symmetrized eigenvector file"
       else 
-        write(6,100) " Use non-symmetrized eigenvector file"
+        !write(6,100) " Use non-symmetrized eigenvector file"
+        write(fid_outgw,100) " Use non-symmetrized eigenvector file"
       endif 
 
 !
@@ -232,10 +270,13 @@
 !
 ! Block size used for Minm matrix operations
 !
-      write(6,100) "Options related to Minm:"
-      call loct_parse_int("Minm_mblksiz",48,mblksiz)
-      write(6,101) "block size for m-index(mblksiz):",mblksiz
-!      write(6,*) "  whether scratch minm (iop_minm):",iop_minm
+      !write(6,100) "Options related to Minm:"
+      !write(fid_outgw,100) "Options related to Minm:"
+      !call loct_parse_int("Minm_mblksiz",48,mblksiz)
+      !write(6,101) "block size for m-index(mblksiz):",mblksiz
+      !write(fid_outgw,101) "block size for m-index(mblksiz):",mblksiz
+      !write(6,*) "  whether scratch minm (iop_minm):",iop_minm
+      !write(fid_outgw,*) "  whether scratch minm (iop_minm):",iop_minm
 
 !
 ! Read the energy cut-off for polarization matrix and correlation selfenergies 
@@ -258,11 +299,14 @@
 ! Is the input WIEN2K vector complex or not 
 !
       call loct_parse_logical("ComplexVector",.false.,lcmplx) 
-      write(6,100) "Complex or real KS vectors?"
+      !write(6,100) "Complex or real KS vectors?"
+      write(fid_outgw,100) "Complex or real KS vectors?"
       if(lcmplx) then 
-        write(6,100) " -- Complex Vector"
+        !write(6,100) " -- Complex Vector"
+        write(fid_outgw,100) " -- Complex Vector"
       else 
-        write(6,100) " -- Real Vector"
+        !write(6,100) " -- Real Vector"
+        write(fid_outgw,100) " -- Real Vector"
       endif 
 
       
@@ -308,23 +352,28 @@
         call loct_parse_block_int(blk_bzint,0,0,iop_bzint)
         call loct_parse_block_int(blk_bzint,0,1,iop_bzintq)
         if(iop_bzintq.eq.0) then 
-          write(6,*) "  q-BZint by analytic weights"
+          !write(6,*) "  q-BZint by analytic weights"
+          write(fid_outgw,*) "  q-BZint by analytic weights"
 
         elseif(iop_bzintq.eq.-1) then  !! numerical integration
-          write(6,*) "  q-BZint by numerical weights"
+          !write(6,*) "  q-BZint by numerical weights"
+          write(fid_outgw,*) "  q-BZint by numerical weights"
 
         elseif(iop_bzintq.eq.-2) then 
 
-          write(6,*) "  q-BZint by Hilbert transform (HT) approach"
+          !write(6,*) "  q-BZint by Hilbert transform (HT) approach"
+          write(fid_outgw,*) "  q-BZint by Hilbert transform (HT) approach"
           call loct_parse_block_int(blk_bzint,1,0,nomg_ht)
           call loct_parse_block_float(blk_bzint,1,1,omgmax_ht)
 
         elseif(iop_bzintq.eq.1) then 
 
-          write(6,*) "  q-BZint by simple summation with smearing"
+          !write(6,*) "  q-BZint by simple summation with smearing"
+          write(fid_outgw,*) "  q-BZint by simple summation with smearing"
 
         else
-          write(6,*) "ERROR: unsupported option for iop_bzintq!"
+          !write(6,*) "ERROR: unsupported option for iop_bzintq!"
+          write(fid_outgw,*) "ERROR: unsupported option for iop_bzintq!"
           stop
         endif 
       else
@@ -344,7 +393,8 @@
       call loct_parse_float("EFermi",1.0d4,efermi) 
       if(efermi.lt.1.e2) then 
         EFermi = EFermi*0.50
-        write(6,200) "Read Fermi energy from the gw input:",efermi 
+        !write(6,200) "Read Fermi energy from the gw input:",efermi 
+        write(fid_outgw,200) "Read Fermi energy from the gw input:",efermi 
       endif   
 !
 !     Parametars to do "insulating" calculations from a metallic
@@ -371,8 +421,10 @@
         case ('nofreq')
           iop_freq = 0 
           if((taskname.eq.'gwsc'))then
-            write(6,100)"WARNING: fdep=nofreq inconsistent with 'gwsc'"
-            write(6,100)'   -- change to default value:imfreq'
+            !write(6,100)"WARNING: fdep=nofreq inconsistent with 'gwsc'"
+            !write(6,100)'   -- change to default value:imfreq'
+            write(fid_outgw,100)"WARNING: fdep=nofreq inconsistent with 'gwsc'"
+            write(fid_outgw,100)'   -- change to default value:imfreq'
             fdep='imfreq'
             iop_freq = 3
           endif  
@@ -381,12 +433,15 @@
         case ('imfreq','IMFREQ')
           iop_freq = 3 
         case default  
-          write(6,100) "WARNING: unsupported option for fdep!"
-          write(6,100) "--Taking default value: imfreq"
+          !write(6,100) "WARNING: unsupported option for fdep!"
+          !write(6,100) "--Taking default value: imfreq"
+          write(fid_outgw,100) "WARNING: unsupported option for fdep!"
+          write(fid_outgw,100) "--Taking default value: imfreq"
           fdep='imfreq'
           iop_freq = 3 
       end select  
-      write(6,100) "fdep="//trim(fdep) 
+      !write(6,100) "fdep="//trim(fdep) 
+      write(fid_outgw,100) "fdep="//trim(fdep) 
 
 !
 ! Parameters for Fourier interpolation
@@ -454,9 +509,12 @@
           call loct_parse_block_float(blk_epsmask,2,1,unocc_win(2))
           occ_win   = occ_win/HeV             ! converted to Ha unit 
           unocc_win = unocc_win/HeV
-          write(6,*) "The energy window to mask the eps matrix:"
-          write(6,'(A,2F12.6)') "Occ. States:  ",occ_win(:)
-          write(6,'(A,2F12.6)') "Unocc. States:",unocc_win(:)
+          !write(6,*) "The energy window to mask the eps matrix:"
+          !write(6,'(A,2F12.6)') "Occ. States:  ",occ_win(:)
+          !write(6,'(A,2F12.6)') "Unocc. States:",unocc_win(:)
+          write(fid_outgw,*) "The energy window to mask the eps matrix:"
+          write(fid_outgw,'(A,2F12.6)') "Occ. States:  ",occ_win(:)
+          write(fid_outgw,'(A,2F12.6)') "Unocc. States:",unocc_win(:)
         endif 
       endif 
 !
@@ -500,8 +558,10 @@
       endif
 !
       if(nomeg_blk.gt.nomeg .or.nomeg_blk.le.0 ) then 
-        write(6,100) "WARNING: nomeg_blk is out of range!"
-        write(6,100) " -- use the default(==nomeg) instead"
+        !write(6,100) "WARNING: nomeg_blk is out of range!"
+        !write(6,100) " -- use the default(==nomeg) instead"
+        write(fid_outgw,100) "WARNING: nomeg_blk is out of range!"
+        write(fid_outgw,100) " -- use the default(==nomeg) instead"
         nomeg_blk=nomeg
       endif 
 
@@ -509,7 +569,8 @@
         nomeg=1
         omegmax=0.d0
       endif 
-      write(6,103) iop_fgrid,nomeg,omegmax
+      !write(6,103) iop_fgrid,nomeg,omegmax
+      write(fid_outgw,103) iop_fgrid,nomeg,omegmax
 
 !
 !     MPI 
@@ -542,7 +603,8 @@
         k0shift(1:3)=0
         k0shift(4)=1
       endif
-      write(6,'(a,7i5)') "k-mesh: (nkx,nky,nkz,deltak)=",&
+      !write(6,'(a,7i5)') "k-mesh: (nkx,nky,nkz,deltak)=",&
+      write(fid_outgw,'(a,7i5)') "k-mesh: (nkx,nky,nkz,deltak)=",&
      &  nkdivs,k0shift
 
 !
@@ -562,7 +624,8 @@
       endif 
 
       if(npol_ac.eq.0) then
-        write(6,100) "The input npol_ac == 0: use default npol_ac setup"
+        !write(6,100) "The input npol_ac == 0: use default npol_ac setup"
+        write(fid_outgw,100) "The input npol_ac == 0: use default npol_ac setup"
         if(iop_ac.eq.1) then
           npol_ac=2
         else
@@ -571,27 +634,38 @@
       endif
       npar_ac=2*npol_ac
       if(nomeg.lt.npar_ac) then
-        write(6,100)'WARNING: not enough freq for analytic continuation'
-        write(6,*)'  - npar_ac .gt. nomeg'
-        write(6,*)'  - npar_ac,nomeg=',npar_ac,nomeg
-        write(6,*)'  - reset npar_ac =nomeg'
+        !write(6,100)'WARNING: not enough freq for analytic continuation'
+        !write(6,*)'  - npar_ac .gt. nomeg'
+        !write(6,*)'  - npar_ac,nomeg=',npar_ac,nomeg
+        !write(6,*)'  - reset npar_ac =nomeg'
+        write(fid_outgw,100)'WARNING: not enough freq for analytic continuation'
+        write(fid_outgw,*)'  - npar_ac .gt. nomeg'
+        write(fid_outgw,*)'  - npar_ac,nomeg=',npar_ac,nomeg
+        write(fid_outgw,*)'  - reset npar_ac =nomeg'
         npar_ac=nomeg
         npol_ac=npar_ac/2
       endif 
 
-      write(6,*) '- Nr. of poles used in analytic continuation:',npol_ac
-      write(6,*) '- Option for calculating selfenergy(iop_es): ',iop_es
+      !write(6,*) '- Nr. of poles used in analytic continuation:',npol_ac
+      !write(6,*) '- Option for calculating selfenergy(iop_es): ',iop_es
+      write(fid_outgw,*) '- Nr. of poles used in analytic continuation:',npol_ac
+      write(fid_outgw,*) '- Option for calculating selfenergy(iop_es): ',iop_es
       if(iop_es.eq.0) then 
-        write(6,*) "  -- perturbative calculation"
+        !write(6,*) "  -- perturbative calculation"
+        write(fid_outgw,*) "  -- perturbative calculation"
       else 
-        write(6,*) "  -- iterative calculation"
+        !write(6,*) "  -- iterative calculation"
+        write(fid_outgw,*) "  -- iterative calculation"
       endif 
 
-      write(6,*) '- Option of analytic continuation (iop_ac):',iop_ac
+      !write(6,*) '- Option of analytic continuation (iop_ac):',iop_ac
+      write(fid_outgw,*) '- Option of analytic continuation (iop_ac):',iop_ac
       if(iop_ac.eq.1) then 
-        write(6,*) "  -- RGN method(Rojas, Godby and Needs)"
+        !write(6,*) "  -- RGN method(Rojas, Godby and Needs)"
+        write(fid_outgw,*) "  -- RGN method(Rojas, Godby and Needs)"
       else 
-        write(6,*) "  -- Pade's approximation "
+        !write(6,*) "  -- Pade's approximation "
+        write(fid_outgw,*) "  -- Pade's approximation "
       endif
 
       ! whether shift the Fermi energy during self-consistent GW0 
@@ -622,19 +696,26 @@
         wftol = 1.D-4
       endif
 
-      write(6,*)'Mixed basis parameters'
-      write(6,*)'Interstitial: Maximum |G| of ipw in rkmax units'
-      write(6,104) kmr
-      write(6,*)'MT-Spheres: Maximum l, Linear dependence tolerance'
-      write(6,205) lmbmax, wftol
+      !write(6,*)'Mixed basis parameters'
+      !write(6,*)'Interstitial: Maximum |G| of ipw in rkmax units'
+      !write(6,104) kmr
+      !write(6,*)'MT-Spheres: Maximum l, Linear dependence tolerance'
+      !write(6,205) lmbmax, wftol
+      write(fid_outgw,*)'Mixed basis parameters'
+      write(fid_outgw,*)'Interstitial: Maximum |G| of ipw in rkmax units'
+      write(fid_outgw,104) kmr
+      write(fid_outgw,*)'MT-Spheres: Maximum l, Linear dependence tolerance'
+      write(fid_outgw,205) lmbmax, wftol
 
       call loct_parse_int("nspin_mb",1,nspin_mb) 
       if(nspin.eq.2 ) then
-        write(6,*) " MixBasis option for the spin-polarized case:" 
+        !write(6,*) " MixBasis option for the spin-polarized case:" 
+        write(fid_outgw,*) " MixBasis option for the spin-polarized case:" 
         if(nspin_mb.eq.1) then 
-          write(6,*) " use only spin-up radial func."
+          !write(6,*) " use only spin-up radial func."
+          write(fid_outgw,*) " use only spin-up radial func."
         else 
-          write(6,*) " use only both up and dn radial func."
+          write(fid_outgw,*) " use only both up and dn radial func."
         endif 
       endif 
 
@@ -652,10 +733,12 @@
 !  %<blk_vorb> 
       ierr=loct_parse_isdef(blk_vorb) 
       if(ierr.eq.1) then 
-        write(6,*) " Option for Vorb"
+        !write(6,*) " Option for Vorb"
+        write(fid_outgw,*) " Option for Vorb"
         call loct_parse_block_int(blk_vorb,0,0,natorb)
         if(natorb.gt.0) then 
-          write(6,*) "  GW Calculations based on LDA+U"
+          !write(6,*) "  GW Calculations based on LDA+U"
+          write(f_outgw,*) "  GW Calculations based on LDA+U"
           lvorb = .true. 
           allocate(iatorb(natorb),nlorb(natorb),lorb(2,natorb), &
      &             vorb(-3:3,-3:3,2,natorb,nspin),              &
@@ -694,7 +777,8 @@
       iop_coul_tmp = iop_coul_x
 
 !      if(iop_coul.ne.0.and.iop_coulvm.eq.0) then
-!        write(6,*) "WARNING: For truncated/screened Coulumb interaction,&
+!        !write(6,*) "WARNING: For truncated/screened Coulumb interaction,&
+!        write(fid_outgw,*) "WARNING: For truncated/screened Coulumb interaction,&
 !     & Coulomb matrix must be calculated by the plane-wave expansion&
 !     & scheme (i.e. iop_coulvm=1)!"
 !        iop_coulvm = 1
@@ -702,13 +786,23 @@
 
       call loct_parse_float("rcut_coul",-1.0d0,rcut_coul)
 
-      write(6,100) 'Parameters for Coulomb matrix:'
-      write(6,200) "  Maximum |G| in kmr units = ",pwm
-      write(6,200) "  Error tolerance for struc. const = ",stctol
-      write(6,101) "  Coulomb interaction for exchange",   iop_coul_x 
-      write(6,101) "  Coulomb interaction for correlation",iop_coul_c 
+      !! Set parameters for anisotropy
+      call loct_parse_int("iop_aniso", -1, iop_aniso)
+      call loct_parse_int("nq0", 0, nq0)
+      
 
-      write(6,*)'------------------------------------------------------'
+      !write(6,100) 'Parameters for Coulomb matrix:'
+      !write(6,200) "  Maximum |G| in kmr units = ",pwm
+      !write(6,200) "  Error tolerance for struc. const = ",stctol
+      !write(6,101) "  Coulomb interaction for exchange",   iop_coul_x 
+      !write(6,101) "  Coulomb interaction for correlation",iop_coul_c 
+      !write(6,*)'------------------------------------------------------'
+      write(fid_outgw,100) 'Parameters for Coulomb matrix:'
+      write(fid_outgw,200) "  Maximum |G| in kmr units = ",pwm
+      write(fid_outgw,200) "  Error tolerance for struc. const = ",stctol
+      write(fid_outgw,101) "  Coulomb interaction for exchange",   iop_coul_x 
+      write(fid_outgw,101) "  Coulomb interaction for correlation",iop_coul_c 
+      write(fid_outgw,*)'------------------------------------------------------'
       
    10 format(a4,' or ',a4,' ---> ',a)
    11 format(a5,' or ',a5,' ---> ',a)

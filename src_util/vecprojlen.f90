@@ -22,7 +22,7 @@ real(8) function vecprojlen(vec, ref, projtype)
     real(8), dimension(3),intent(in) :: vec ! the vector to be projected
     real(8), dimension(3),intent(in) :: ref ! the vector to be projected against
     character(len=4),intent(in) :: projtype
-    real(8) :: reflen, vrdot, projlen, vecperp(3)
+    real(8) :: refdir(3), vrddot, vecperp(3)
 
 ! External functions
     real(8), external :: veclen
@@ -34,17 +34,19 @@ real(8) function vecprojlen(vec, ref, projtype)
 !
 ! EOP
 ! BOC
-    reflen = veclen(ref)
-
-    vrdot = vec(1)*ref(1) + vec(2)*ref(2) + vec(3)*ref(3)
-    projlen = abs(vrdot)/reflen
+    refdir(:) = ref(:)/veclen(ref)
+    vrddot = vec(1)*refdir(1) + vec(2)*refdir(2) + vec(3)*refdir(3)
 
     if(projtype=="perp") then
-        vecperp(1:3) = vec(1:3) - ref(1:3)*projlen
+        vecperp(1:3) = vec(1:3) - refdir(1:3)*vrddot
         vecprojlen = veclen(vecperp)
+    elseif(projtype=="para") then
+        vecprojlen = abs(vrddot)
     else
-        vecprojlen = projlen
+        vecprojlen = abs(vrddot)
     endif
+
+    return
 
 end function vecprojlen
 ! EOC

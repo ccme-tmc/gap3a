@@ -1,9 +1,9 @@
 include ../make.inc 
 .SUFFIXES:      .f90
 
-OBJS= task.o acfd.o angintegrals.o bands.o barcoul.o bzinteg.o constants.o core.o crpa.o dielmat.o eigenvec.o fouri.o freq.o   \
+OBJS= acfd.o   angintegrals.o bands.o barcoul.o bzinteg.o constants.o core.o crpa.o dielmat.o eigenvec.o fouri.o freq.o   \
       hfexch.o kmeshintp.o  kpoints.o lapack.o  lapwlo.o lebedev_laikov.o minmmat.o mixbasis.o  modmpi.o  modules.o  mommat.o    \
-      param.o prodfun.o radwf.o reallocate.o  recipvec.o rspevec.o selfenergy.o struk.o  \
+      param.o prodfun.o radwf.o reallocate.o  recipvec.o rspevec.o selfenergy.o struk.o task.o  \
       xcpot.o   
       
 # objects that are needed in both sequential and parallel version 

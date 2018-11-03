@@ -189,7 +189,7 @@
 
             call mpi_set_range(nproc_3rd,myrank_3rd,m_l-m_f+1,m_f,ie2_f,ie2_l)
   
-            nmdim = (ie2_l-ie2_f+1)*(ie1_l-ie1_f+1)  
+            nmdim = (ie2_l-ie2_f+1)*(ie1_l-ie1_f+1) ! all possible n-m combinations
 
             allocate(tmat(1:matsiz,nmdim),& 
      &               pm(nmdim),& 

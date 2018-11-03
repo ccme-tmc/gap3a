@@ -19,7 +19,7 @@
       use recipvec,  only: ngk
       use selfenergy, only: sigx,sigc,sacpar,npar_ac,iop_es,iop_ac,      &
      &                      selfc,selfx,znorm,vxcnn
-      use task,      only: casename, fid_outgw
+      use task,      only: casename
       
        
 ! !LOCAL VARIABLES:
@@ -142,8 +142,7 @@
               endif 
             endif 
           endif 
-          !write(6,'(a,f10.4)') ":DeltaE_QP(VBM) [eV] = ",degwvm*hev
-          write(fid_outgw,'(a,f10.4)') ":DeltaE_QP(VBM) [eV] = ",degwvm*hev
+          write(6,'(a,f10.4)') ":DeltaE_QP(VBM) [eV] = ",degwvm*hev
 
           evmks = evmks*hev
           evmgw = evmgw*hev
@@ -237,8 +236,7 @@
                 degwvm = eqp(nv2,ikvm(1),2) - bande0(nv2,ikvm(1),2)
               endif 
             endif 
-            !write(6,'(a,f10.4)') ":DeltaE_QP(VBM) [eV] = ",degwvm*hev
-            write(fid_outgw,'(a,f10.4)') ":DeltaE_QP(VBM) [eV] = ",degwvm*hev
+            write(6,'(a,f10.4)') ":DeltaE_QP(VBM) [eV] = ",degwvm*hev
           endif 
 
           evmks = evmks*hev

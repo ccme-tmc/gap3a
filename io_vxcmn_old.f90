@@ -15,7 +15,7 @@
       use xcpot,       only: vorbnn,lvorb
       use bands,       only: ibgw,nbgw,nspin
       use kpoints,     only: nkp,nirkp,get_kvec
-      use task,        only: casename, fid_outgw
+      use task,        only: casename
       implicit none
 
       character,intent(in):: io   ! 'r'/'w' (read/write)
@@ -64,8 +64,7 @@
         if(io.eq.'r'.or.io.eq.'R') then 
           open(unit=fid,file=fn_vxc,action='read',status='old',iostat=ierr)
           if(ierr.ne.0) then 
-            !write(6,*) "WARNING in io_vxc: Fail to open vxcmn file"
-            write(fid_outgw,*) "WARNING in io_vxc: Fail to open vxcmn file"
+            write(6,*) "WARNING in io_vxc: Fail to open vxcmn file"
             istat=1
             return 
           endif 
@@ -74,8 +73,7 @@
           lerr=nsp_in.ne.nspin.or.nkp_in.ne.nktot.or.ibgw_in.gt.ibgw &
      &       .or.nbgw_in.lt.nbgw
           if(lerr) then 
-            !write(6,*) "WARNING in io_vxc: inconsistency occurs"
-            write(fid_outgw,*) "WARNING in io_vxc: inconsistency occurs"
+            write(6,*) "WARNING in io_vxc: inconsistency occurs"
             istat = 1
             close(fid) 
             return 
@@ -122,8 +120,7 @@
           open(unit=fid,file=fn_vxc,action='read',status='old',iostat=ierr)
           
           if(ierr.ne.0) then 
-            !write(6,*) "WARNING in io_vxc: Fail to open to vxcnn file"
-            write(fid_outgw,*) "WARNING in io_vxc: Fail to open to vxcnn file"
+            write(6,*) "WARNING in io_vxc: Fail to open to vxcnn file"
             istat=1
             return 
           endif 
@@ -133,8 +130,7 @@
      &     .or.nbgw_in.lt.nbgw
 
           if(lerr) then 
-            !write(6,*) "WARNING in io_vxc: inconsistency occurs"
-            write(fid_outgw,*) "WARNING in io_vxc: inconsistency occurs"
+            write(6,*) "WARNING in io_vxc: inconsistency occurs"
             istat = 1
             close(fid)
             return 

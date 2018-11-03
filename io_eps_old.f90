@@ -2,7 +2,7 @@
       use dielmat,    only: head,epsw1,epsw2,eps
       use constants,  only: size_cmplx,size_int
       use mixbasis,   only: matsiz
-      use task,       only: savdir,casename,fid_outgw
+      use task,       only: savdir,casename
       use modmpi,     only: myrank 
       implicit none 
       character,intent(in):: io !! 'r/w/m'
@@ -26,11 +26,9 @@
 !      endif 
 
       if(io.eq.'w' .or. io.eq.'W') then 
-        !write(6,*) 'Write the eps matrix to ',fn
-        write(fid_outgw,*) 'Write the eps matrix to ',fn
+        write(6,*) 'Write the eps matrix to ',fn
       elseif(io.eq.'r' .or. io.eq.'R') then 
-        !write(6,*) 'Read the eps matrix from ',fn
-        write(fid_outgw,*) 'Read the eps matrix from ',fn
+        write(6,*) 'Read the eps matrix from ',fn
       endif 
 
       msg="Fail to open "//trim(fn)//" for direct access: "//io  
@@ -47,8 +45,7 @@
 
         read(fid,rec=1) matsiz
         close(fid) 
-        !write(6,*) "matsiz from "//trim(fn),matsiz 
-        write(fid_outgw,*) "matsiz from "//trim(fn),matsiz 
+        write(6,*) "matsiz from "//trim(fn),matsiz 
         return 
       endif 
 
@@ -73,8 +70,7 @@
           endif 
           if(ierr.ne.0) then 
             call wrnmsg(.true.,sname,msg_w) 
-            !write(6,*) "iom, ierr=",iom, ierr 
-            write(fid_outgw,*) "iom, ierr=",iom, ierr 
+            write(6,*) "iom, ierr=",iom, ierr 
             close(fid) 
             return 
           endif 
@@ -98,8 +94,7 @@
           endif 
           if(ierr.ne.0) then
             call wrnmsg(.true.,sname,msg_r)
-            !write(6,*) "ierr=",ierr 
-            write(fid_outgw,*) "ierr=",ierr 
+            write(6,*) "ierr=",ierr 
             close(fid)
             return
           endif
