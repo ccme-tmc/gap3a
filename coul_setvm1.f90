@@ -13,7 +13,8 @@
 !
 ! !USES:
      
-      use barcoul,    only: vmat,iop_coul,rcut_coul
+      use barcoul,    only: vmat,iop_coul,rcut_coul, &
+      &                     zcut_coul,acut_coul,bcut_coul
       use constants,  only: cone, czero, fourpi,twopi
       use kpoints,    only: qlist, idvq
       use recipvec,   only: indgq, indgqlen, gqleng, ngqbarc
@@ -71,13 +72,15 @@
         qgl = gqleng(indgqlen(ipw,iq),iq)
         if(iop_coul.eq.-1) then 
           ev = fourpi/(qgl*qgl)
-        elseif(iop_coul.eq.3) then 
+        elseif(iop_coul.eq.0) then 
           if(qgl.lt.1.0d-10) then 
             ev = twopi*rcut_coul**2
           else 
             ev = fourpi/(qgl*qgl)*(1.d0-cos(qgl*rcut_coul))
           endif 
-        elseif(iop_coul.eq.4) then 
+        ! TODO iop_coul.eq.1
+        ! TODO iop_coul.eq.2
+        elseif(iop_coul.eq.3) then 
           ev = fourpi/(qgl*qgl+ks_tf2)
         endif 
  

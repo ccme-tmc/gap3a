@@ -5,3 +5,7 @@
 
 2018.10.24
   1. Backup old `make.inc`s. TODO: make.inc-Linux options
+
+2018.11.3
+  1. Remove `Lebedev-laikov.f90` in `src_util`
+  2. Add `veclen.f90` and `vecprojlen.f90` in `src_util`
