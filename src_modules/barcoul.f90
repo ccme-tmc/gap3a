@@ -11,10 +11,12 @@
 ! !PUBLIC VARIABLES:
       implicit none 
       integer :: iop_coul       ! option to coulumb potential  
-                                !  0 -- standard bare Coulomb interaction 
-                                !  1 -- truncated Coulomb interaction with truncation radius being rcut_coul
-                                !  2 -- Thomas-Fermi screened Coulomb interaction 
-                                !  3 -- erfc-screened Coulomb interaction 
+                                ! -1 -- standard bare Coulomb interaction 
+                                !  0 -- truncated Coulomb interaction with truncation radius being rcut_coul
+                                !  1 -- truncated Coulomb interaction for 1D system
+                                !  2 -- truncated Coulomb interaction for 2D system
+                                !  3 -- Thomas-Fermi screened Coulomb interaction 
+                                !  4 -- erfc-screened Coulomb interaction 
       integer :: iop_coul_x     ! option to coulumb potential for exchange  
       integer :: iop_coul_c     ! option to coulumb potential for correlation 
 
@@ -27,9 +29,11 @@
       real(8) :: barcevtol=-1.d-10        ! tolenrance to choose basis functions from bare Coulomb matrix eigenvectors 
       real(8) :: barcevtol2=0.001d0       ! barc eigenvectors that whose overlap with the G=0 plane wave   
                                           ! is larger than this value is kept for new basis set (used for iopmbq0 == 2 )
-      real(8) :: rcut_coul= -1.0d0          ! truancation radius for the bare Coulomb interaction 
+      real(8) :: rcut_coul= -1.0d0        ! truancation radius for the bare Coulomb interaction (for 0D)
+      real(8) :: acut_coul= -1.0d0        ! truancation radius for the bare Coulomb interaction (for 1D)
+      real(8) :: bcut_coul= -1.0d0        ! truancation radius for the bare Coulomb interaction (for 1D)
+      real(8) :: zcut_coul= -1.0d0        ! truancation radius for the bare Coulomb interaction (for 2D)
                                           ! if negative, set the default value in terms of the cell size  
-      
       real(8),allocatable::barcev(:)      ! Eigenvalues of bare Coulomb matrix 
       real(8),allocatable::barcevsq(:)    ! square root of eigenvalues of bare Coulomb matrix 
     

@@ -53,7 +53,7 @@
 
       vmat(:,:)=czero
 
-      if(iop_coul.eq.4) ks_tf2 = (1.d0/rcut_coul)**2
+      if(iop_coul.eq.2) ks_tf2 = (1.d0/rcut_coul)**2
 
       if(iop.eq.0) then 
         pow = 1.0
@@ -62,22 +62,22 @@
       endif 
 
       ipin=1
-      if(iq.eq.1.and.iop_coul.eq.-1)then
+      if(iq.eq.1.and.iop_coul.eq.0)then
         ipin=2
         tmat(1:mbsiz,1)=czero
       endif
 
       do ipw=ipin,ngqbarc(iq)
         qgl = gqleng(indgqlen(ipw,iq),iq)
-        if(iop_coul.eq.-1) then 
+        if(iop_coul.eq.0) then 
           ev = fourpi/(qgl*qgl)
-        elseif(iop_coul.eq.3) then 
+        elseif(iop_coul.eq.1) then 
           if(qgl.lt.1.0d-10) then 
             ev = twopi*rcut_coul**2
           else 
             ev = fourpi/(qgl*qgl)*(1.d0-cos(qgl*rcut_coul))
           endif 
-        elseif(iop_coul.eq.4) then 
+        elseif(iop_coul.eq.2) then 
           ev = fourpi/(qgl*qgl+ks_tf2)
         endif 
  

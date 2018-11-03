@@ -122,7 +122,7 @@
       call bz_calcqdepw(iq)  
 
       ! first calculate momentum matrix and the head
-      if(iq.eq.1.and.iop_coul_c.eq.0) then
+      if(iq.eq.1.and.iop_coul_c.eq.-1) then
         call init_mommat(1,nomax,numin,nbmaxpol,nirkp,nspin)
 
         if(iop_mommat.eq.0) then
@@ -210,7 +210,7 @@
 
             !! Calculate pm(ie12) = pm(ie1,ie2) = p_{ie1,ie2}/(e_2-e_1)
             !! Needed for the wings
-            if(iq.eq.1.and.iop_coul_c.eq.0) then
+            if(iq.eq.1.and.iop_coul_c.eq.-1) then
               ie12=0
               do ie1=ie1_f,ie1_l       ! the index for occ. states
                 do ie2=ie2_f,ie2_l     ! the index for unocc. states. 
@@ -247,7 +247,7 @@
               call zgemm('n','c',matsiz,matsiz,nmdim,coef,tmat,matsiz, &
      &            minm,matsiz,cone,eps(:,:,iom),matsiz)   
 
-              if(iq.eq.1.and.iop_coul_c.eq.0) then 
+              if(iq.eq.1.and.iop_coul_c.eq.-1) then 
                 call zgemv('n',matsiz,nmdim,coef,tmat,matsiz,pm,1,czero,wtmp,1)
                 epsw1(:,iom)=epsw1(:,iom)+wtmp
                 if(iop_freq.eq.2) then !! real freq 
@@ -296,7 +296,7 @@
          enddo
       endif
 
-      if(iq.eq.1.and.iop_coul_c.eq.0) then
+      if(iq.eq.1.and.iop_coul_c.eq.-1) then
         call end_mommat
       endif 
 
@@ -314,7 +314,7 @@
           call mpi_bcast(eps, matsiz**2*nomg, mpi_double_complex,0, &
      &                  mycomm_ra3,ierr)
 
-          if(iq.eq.1.and.iop_coul_c.eq.0) then
+          if(iq.eq.1.and.iop_coul_c.eq.-1) then
             call mpi_bcast(head, nomg, mpi_double_complex,0, &
      &                   mycomm_ra3,ierr)
             call mpi_bcast(epsw1, matsiz*nomg, mpi_double_complex,0, &
@@ -401,7 +401,7 @@
         call cpu_time(time2)
         time_lapack=time_lapack+time2-time1
 
-        if(iq.eq.1.and.iop_coul_c.eq.0) then  !!  Gamma point 
+        if(iq.eq.1.and.iop_coul_c.eq.-1) then  !!  Gamma point 
           call cpu_time(time1)
 
           if(iop_freq.eq.2) then
@@ -435,7 +435,7 @@
 
        ! iop == 2, inveps-1 is calculated  
         if(iop.eq.2) then
-          if(iq.eq.1.and.iop_coul_c.eq.0) head(iom)=head(iom)-cone
+          if(iq.eq.1.and.iop_coul_c.eq.-1) head(iom)=head(iom)-cone
           do im=1,matsiz
             eps(im,im,iom)=eps(im,im,iom)-cone
           enddo

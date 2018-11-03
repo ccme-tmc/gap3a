@@ -65,6 +65,7 @@
       integer:: l     ! the azimutal quatum number
       integer:: lind  ! l value for which mixopt is read.
       integer:: irow
+      integer:: iop_coul_tmp
 
       integer iarg,iargc
 
@@ -687,8 +688,10 @@
 
       !! set the trancation radius for the bare Coulomb interaction, needed for finite systems
       call loct_parse_int  ("iop_coulvm",  0,iop_coulvm )
-      call loct_parse_int  ("iop_coul_x",  0,iop_coul_x )
-      call loct_parse_int  ("iop_coul_c",  0,iop_coul_c )
+      call loct_parse_int  ("iop_coul_x", -1,iop_coul_x )
+      call loct_parse_int  ("iop_coul_c", -1,iop_coul_c )
+
+      iop_coul_tmp = iop_coul_x
 
 !      if(iop_coul.ne.0.and.iop_coulvm.eq.0) then
 !        write(6,*) "WARNING: For truncated/screened Coulumb interaction,&

@@ -12,12 +12,11 @@
 !
 ! !USES:
 
-      use barcoul,    only: vmat,ev,barcvm,barcev,barcevsq,rcut_coul,im_g0,&
-     &                      iop_coul
+      use barcoul,    only: vmat,ev,barcvm,barcev,barcevsq,rcut_coul,im_g0
       use constants,  only: cone, czero, imag, pi,twopi,fourpi 
       use mixbasis,   only: mbsiz,matsiz,wi0
       use recipvec,   only: ngq
-      use task,       only: fid_outdbg
+      use task,       only: fid_outdbg, fid_outgw
 !
 ! !INPUT PARAMETERS: 
 
@@ -48,20 +47,19 @@
 !BOC
 
       if(ldbg) call linmsg(6,'-','coul_setev')
-      iop_coul = icoul
 
 !
 !    Reduce the basis size by choosing eigenvectors of barc with eigenvalues larger than 
 !    evtol
 !
-      if(ldbg) write(6,'(a,e12.4)') " Choose eigenvectors of bare Coulomb matrix &
+      if(ldbg) write(fid_outgw,'(a,e12.4)') " Choose eigenvectors of bare Coulomb matrix &
     & with eigenvalues larger than evtol=",evtol
 !
 !     Construct new basis set by removing all eigenvectors 
 !     with eigenvalues smaller than evtol  
 !
       rc2inv = 1.d0/rcut_coul**2
-      if(iop_coul.gt.0) write(6,*) "rc2inv=",rc2inv 
+      if(icoul.gt.-1) write(fid_outgw,*) "rc2inv=",rc2inv 
 
       im_kept = 1
       matsiz=mbsiz
@@ -87,11 +85,11 @@
           endif
         enddo
         if(ldbg) then 
-          write(6,*)'- Maximum singular eigenvector ###'
-          write(6,100) immax,test2,ev(immax)
+          write(fid_outgw,*)'- Maximum singular eigenvector ###'
+          write(fid_outgw,100) immax,test2,ev(immax)
         endif 
 
-        if(icoul.eq.0) then         !! bare Coulomb interaction 
+        if(icoul.eq.-1) then         !! bare Coulomb interaction 
           if(im_kept(immax).eq.1) then 
             im_kept(immax) = 0
             matsiz = matsiz-1
@@ -108,11 +106,11 @@
 
 
 
-      write(6,*) "  - Old/New basis set size =",mbsiz,matsiz    
+      write(fid_outgw,*) "  - Old/New basis set size =",mbsiz,matsiz    
       allocate(barcvm(mbsiz,matsiz),                  &
-     &         barcev(matsiz),                        &
-     &         barcevsq(matsiz),                      &
-     &         stat=ierr)
+      &        barcev(matsiz),                        &
+      &        barcevsq(matsiz),                      &
+      &        stat=ierr)
       call errmsg(ierr.ne.0,sname,"Fail to allocate barcvm etc.")
       barcvm = 0.d0 
       barcev = 0.d0 
@@ -122,38 +120,39 @@
       do jm=1,mbsiz 
         if(im_kept(jm).eq.1) then 
           im=im+1
-
-          if(icoul.gt.0) then 
-            !! reset eigenvalues for icoul > 0 (truncated/screened Coulomb interaction)
+          ! We cannot decompose qgeff to q_para and q_perp.
+          ! We should not rely on this kind of update for 1D 2D
+          if(icoul.gt.-1) then 
+            !  ! TODO how im_g0 is set for icoul = -1
+            !! reset eigenvalues for icoul > -1 (truncated/screened Coulomb interaction)
             if(iq.eq.1.and.jm.eq.immax) then 
-              if(icoul.eq.1) then       !! truncated Coulomb interaction
+              if(icoul.eq.0) then     !! truncated Coulomb interaction for 0D
                 ev_new = twopi*rcut_coul**2
-              elseif(icoul.eq.2) then   !! Thomas-Fermi screened Coulomb interaction
+              elseif(icoul.eq.3) then !! Thomas-Fermi screened Coulomb interaction
                 ev_new = fourpi*rcut_coul**2
-              elseif(icoul.eq.3) then   !! erfc-screened Coulomb interaction
+              elseif(icoul.eq.4) then !! erfc-screened Coulomb interaction
                 ev_new = pi*rcut_coul**2
               endif
               im_g0 = im 
             else 
               qgeff = sqrt(fourpi/ev(jm))
-              if(icoul.eq.1) then 
+              if(icoul.eq.0) then 
                 ev_new = ev(jm)*(1.d0-cos(qgeff*rcut_coul))
-              elseif(icoul.eq.2) then 
-                ev_new = fourpi/(qgeff**2+rc2inv)
               elseif(icoul.eq.3) then 
+                ev_new = fourpi/(qgeff**2+rc2inv)
+              elseif(icoul.eq.4) then 
                 ev_new = ev(jm)*(1.d0-exp(-(qgeff*rcut_coul/2.0)**2))
               endif 
               if(ldbg) write(fid_outdbg,'(a,i5,4f12.6)') "i,ev,ev_new,qg",&
-      &                 im,ev(jm),ev_new,qgeff,cos(qgeff*rcut_coul)  
+             &           im,ev(jm),ev_new,qgeff,cos(qgeff*rcut_coul)  
             endif 
           else 
             ev_new = ev(jm)
-          endif 
-  
+          endif ! icoul.gt.-1
           barcev(im)=ev_new 
           barcevsq(im)=sqrt(barcev(im))
           barcvm(:,im)=vmat(:,jm)*barcevsq(im) 
-        endif 
-      enddo   
+        endif ! im_kept(jm).eq.1
+      enddo ! jm  
 
       end subroutine 
