@@ -22,7 +22,7 @@
       use dielmat,   only: bandtype,c0_head,emac,init_dielmat,end_dielmat
       use freq,      only: nomeg
       use mommat,    only: iop_mommat
-      use task,      only: taskname,casename, fid_outgw, fid_outdbg
+      use task,      only: taskname,casename
       use modmpi 
       use liboct_parser
       
@@ -85,8 +85,8 @@
       call errmsg(ierr.ne.0,sname,"Fail to allocate emac_a")
 
       if(bandtype .eq. 'QP') then 
-        write(fid_outgw,*) "task_emac: GW-RPA using interpolated QP energies "
-        write(fid_outgw,*) "   !!! This feature not fully tested "
+        write(6,*) "task_emac: GW-RPA using interpolated QP energies "
+        write(6,*) "   !!! This feature not fully tested "
         return 
         call kip_readeqp
         call kip_readenk          !* Read the eigenenergies from the Wien2k "case.energy" file
@@ -95,7 +95,7 @@
 
       if(iop_emac.eq.2.and.metallic) then 
         call calcplasmon(wpl,iop_sym) 
-        write(fid_outgw,'(a,f12.4)')"Plasmon frequency (eV):",wpl*hev
+        write(6,'(a,f12.4)')"Plasmon frequency (eV):",wpl*hev
         return 
       endif 
 
@@ -104,7 +104,7 @@
         call init_mixbasis(iq) 
         call init_barcoul(iq)
       
-        write(fid_outgw,*) "task_emac: coul_barc"
+        write(6,*) "task_emac: coul_barc"
         call coul_barc(iq)
         call coul_setev(iq,barcevtol,iop_coul_c)
       endif 
@@ -124,14 +124,14 @@
           !! set the parallelization over frequency
           call mpi_set_range(nproc_col,myrank_col,nom_blk,iom_blk, &
      &        iom0,iom1,iomcnt,iomdsp)
-          write(fid_outgw,*) "iom0,iom1=",iom0,iom1 
+          write(6,*) "iom0,iom1=",iom0,iom1 
           nom_p = iom1 - iom0 + 1
           call init_dielmat(iq,iom0,iom1)
 
           call calceps(iq,iom0,iom1,iop_sym,-1,1,.false.)
 
           if(nproc_col.gt.1) then
-            write(fid_outgw,*) sname//":collect emac data for different freq"
+            write(6,*) sname//":collect emac data for different freq"
 #ifdef MPI
             call MPI_Type_contiguous(2,MPI_DOUBLE_COMPLEX,rstype,ierr)
             call MPI_Type_commit(rstype,ierr)
@@ -154,20 +154,20 @@
       endif
 
       if(myrank_row.eq.0.and.myrank_col.eq.0) then 
-        if(metallic) write(fid_outgw,'(a,f12.4)')"Plasmon frequency (eV):",sqrt(c0_head)*hev
-        write(fid_outgw,*) sname//" write out emac data "
+        if(metallic) write(6,'(a,f12.4)')"Plasmon frequency (eV):",sqrt(c0_head)*hev
+        write(6,*) sname//" write out emac data "
 
         if(iop_emac.eq.1) then 
           fname=trim(casename)//".emac_"//bandtype
           open(unit=999,file=fname,action='write')
           write(999,10)
           write(999,11)
-          write(fid_outgw,10)
-          write(fid_outgw,11)
+          write(6,10)
+          write(6,11)
 
           do iom=1,nomeg
             write(999,12) omega(iom)*hev,emac_a(1:2,iom),dimag(-1.d0/emac_a(2,iom))
-            write(fid_outgw  ,12) omega(iom)*hev,emac_a(1:2,iom),dimag(-1.d0/emac_a(2,iom))
+            write(6  ,12) omega(iom)*hev,emac_a(1:2,iom),dimag(-1.d0/emac_a(2,iom))
           enddo ! iom
 
         else
@@ -175,12 +175,12 @@
           open(unit=999,file=fname,action='write')
           write(999,20)
           write(999,21)
-          write(fid_outgw,20)
-          write(fid_outgw,21)
+          write(6,20)
+          write(6,21)
 
           do iom=1,nomeg
             write(999,22) omega(iom)*hev,emac_nlf(iom),dimag(-1.d0/emac_nlf(iom))
-            write(fid_outgw  ,22) omega(iom)*hev,emac_nlf(iom),dimag(-1.d0/emac_nlf(iom))
+            write(6  ,22) omega(iom)*hev,emac_nlf(iom),dimag(-1.d0/emac_nlf(iom))
           enddo ! iom
         endif
         close(999)

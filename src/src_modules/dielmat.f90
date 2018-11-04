@@ -27,7 +27,7 @@
       real(8):: eta_head = 0.01
 
       complex(8), allocatable :: head(:)       ! the head of the dielectric matrix
-      complex(8), allocatable :: eps(:,:,:) ! the dielectric matrix
+      complex(8), allocatable :: eps(:,:,:)    ! the dielectric matrix
       target eps 
       complex(8), allocatable :: epsw1(:,:)    ! the vertical   wing of the dielectric matrix  
       complex(8), allocatable :: epsw2(:,:)    ! the horizontal wing of the dielectric matrix
@@ -37,17 +37,17 @@
       ! Quantities related to anisotropy 
       integer :: iop_aniso = -1                 ! control whether to consider the anisotropy of dielectric function around Gamma
                                                 ! -1 -- use q0_eps
-      complex(8), pointer :: vec_u_ani(:,:,:)       ! vector U(matsiz, 3, nomega)
-      complex(8), pointer :: vec_a_ani(:,:,:)       ! vector S(matsiz, 3, nomega)
-      complex(8), pointer :: ten_l_ani(:,:,:)       ! tensor L(3, 3, nomega)
-      complex(8), pointer :: ten_p_ani(:,:,:)       ! tensor P(3, 3, nomega)
-      complex(8), pointer :: ten_a_ani(:,:,:)       ! tensor A(3, 3, nomega)
+      complex(8), pointer :: vec_u_ani(:,:,:)   ! vector U(3, matsiz nomega)
+      complex(8), pointer :: vec_a_ani(:,:,:)   ! vector a(3, matsiz, nomega)
+      complex(8), pointer :: ten_l_ani(:,:,:)   ! tensor L(3, 3, nomega)
+      complex(8), pointer :: ten_p_ani(:,:,:)   ! tensor P(3, 3, nomega)
+      complex(8), pointer :: ten_a_ani(:,:,:)   ! tensor A(3, 3, nomega)
       ! Following quantities should be determined by a Lebedev-Laikov grid
       integer :: nq0 = 0                        ! number of q0 for angular integration
-      real(8), pointer :: q0_sph(:,:)           ! similar to q0_eps, (3:nq0)
+      real(8), pointer :: q0_sph(:,:)           ! similar to q0_eps, (3, nq0)
       real(8), pointer :: w_q0_sph(:)           ! weight of q0, (nq0)
 
-      complex(8), pointer :: head_q0(:,:)       ! the head (nq0,nomega) for q0 
+      complex(8), pointer :: head_q0(:,:)       ! the head (nq0, nomega) for q0 
 
       character(len=2) :: bandtype             ! 'KS' or 'GW' energies used for the dielectric function 
 !

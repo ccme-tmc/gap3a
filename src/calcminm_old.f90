@@ -50,7 +50,7 @@
       integer :: irm     ! index for the radial mixed basis functions of each atom.a
       integer :: iv1,iv2 ! index for the (L)APW basis  functions (excluding core states).
       integer :: l1      ! l-quantum number of the (L)APW eigenfunction at k
-      integer :: l2      ! l-quantum number of the (L)APW eigenfunction at k' = k - q
+      integer :: il2,l2  ! l-quantum number of the (L)APW eigenfunction at k' = k - q
       integer :: m1      ! m-quantum number of the (L)APW eigenfunction at k 
       integer :: m2      ! m-quantum number of the (L)APW eigenfunction at k' = k - q
       integer :: l2min   ! Lowest allowed value of lambda = | bl - l2 |

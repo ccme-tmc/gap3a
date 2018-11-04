@@ -29,7 +29,8 @@
      &                       iop_mommat
       use selfenergy,  only: qpwf_coef
       use struk,       only: nat,vi
-      use task,        only:casename,time_lapack,time_eps,l_save_dielmat
+      use task,        only: casename,time_lapack,time_eps,l_save_dielmat, &
+     &                       fid_outgw, fid_outdbg
       use modmpi
 
 ! !INPUT PARAMETERS:
@@ -79,7 +80,6 @@
 
       real(8),parameter :: sqr3=1.732050807568877294d0
 
- 
 !
 !EOP
 !BOC
@@ -90,10 +90,10 @@
       if(lread) then 
         call io_eps('r',iq,iom_f,iom_l,ierr)
         if(ierr.eq.0) then 
-          write(6,*) "Restart mode: read eps from files"
+          write(fid_outgw,*) "Restart mode: read eps from files"
           return 
         else 
-          write(6,*) "WARNING: fail to read eps from files"
+          write(fid_outgw,*) "WARNING: fail to read eps from files"
         endif 
       endif 
 !
@@ -135,7 +135,7 @@
 
       ! set the parallelization over k (within the row)
       call mpi_set_range(nproc_row,myrank_row,nktot,1,ik_f,ik_l)
-      write(6,*) "calceps: myrank_row,ik_f,ik_l =",myrank_row,ik_f,ik_l
+      write(fid_outgw,*) "calceps: myrank_row,ik_f,ik_l =",myrank_row,ik_f,ik_l
 
       coefw = 2.0d0*sqrt(pi*vi)
       do isp=1,nspin  
@@ -159,20 +159,22 @@
 
           !! set the local array for band energies  
           allocate(enk(ncg_p + nbmaxpol))
+          ! set core state energy part
           do icg=1,ncg_p       
             iat = corind(1,icg)
             ic  = corind(3,icg)
             enk(icg) = eigcore(ic,iat,isp) 
-          enddo 
+          enddo
+          ! set valence band energy part
           enk(ncg_p+1:ncg_p+nbmaxpol) = bande(1:nbmaxpol,irk,isp) 
 
           !! find the index for the band whose energy is higher than eminpol  
-          ie1_l = nvbm + ncg_p
+          ie1_l = ncg_p + nvbm 
           do ie1=1,ie1_l
             ie1_f = ie1
             if(enk(ie1) > eminpol) exit 
           enddo  
-          if(ldbg) write(6,*) " ie1_f=",ie1_f 
+          if(ldbg) write(fid_outgw,*) " ie1_f=",ie1_f 
 
           !! set mask_eps that defines the transitions to be skipped 
           call crpa_setmask(irk,jrk,isp) 
@@ -180,7 +182,7 @@
           !!  determine the number of blocks used in minm operation 
           nblk=max((nbmaxpol-ncbm+1)/mblksiz,1) 
 
-          if(ldbg) write(6,*) "nblk=",nblk 
+          if(ldbg) write(fid_outgw,*) "nblk=",nblk 
 
           do iblk=1,nblk                     !! loop over m-blocks in Minm
             m_f = ncbm+(iblk-1)*mblksiz
@@ -278,7 +280,7 @@
 
 #ifdef MPI 
       if(nproc_ra3.gt.1) then 
-        write(6,*) "Collect eps: myrank_ra3=",myrank_ra3,"comm=",mycomm_ra3
+        write(fid_outgw,*) "Collect eps: myrank_ra3=",myrank_ra3,"comm=",mycomm_ra3
         call mpi_sum_array(0,eps,matsiz,matsiz,nomg,mycomm_ra3)
         if(iq.eq.1) then
           call mpi_sum_array(0,epsw1,matsiz,nomg,mycomm_ra3)
@@ -310,7 +312,7 @@
 
 #ifdef MPI 
         if(nproc_ra3.gt.1) then
-          write(6,*) "bcast eps: myrank_ra3=",myrank_ra3
+          write(fid_outgw,*) "bcast eps: myrank_ra3 = ",myrank_ra3
           call mpi_bcast(eps, matsiz**2*nomg, mpi_double_complex,0, &
      &                  mycomm_ra3,ierr)
 
@@ -342,7 +344,7 @@
 
       if(iq.ne.1) return 
       if(metallic) then
-        write(6,'(a,f12.4)')"Plasmon frequency (eV):",sqrt(c0_head)*hev
+        write(fid_outgw,'(a,f12.4)')"Plasmon frequency (eV):",sqrt(c0_head)*hev
       endif
       open(unit=99,file=trim(casename)//".emac",action='write')
 

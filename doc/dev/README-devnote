@@ -1,0 +1,4 @@
+2018.11.4
+  1. `calceps.f90`
+    `enk` has dimension `ncg_p+nbmaxpol`, which is core states plus total bands (for polarization)
+    

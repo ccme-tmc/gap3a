@@ -34,7 +34,9 @@
 #
 include ./make.inc
 
-version = 2e
+vernum = 3
+verdiv = a
+version = $(vernum)$(verdiv)
 PACKNAME = gap$(version)
 S_EXECNAME = gap$(version).x
 P_EXECNAME = gap$(version)-mpi.x  
@@ -42,7 +44,7 @@ DESTDIR = .
 S_EXEC = $(DESTDIR)/$(S_EXECNAME)
 P_EXEC = $(DESTDIR)/$(P_EXECNAME)
 
-SCRIPTS = gap${version}_init gap2_analy gap2_bandanaly gap2_gwnvf gap2_initwann gap2_kgen gap2_newin1 gap2_save gap2_utils.py gap2_w2kset gap2_w2w gap2_scaninp 
+SCRIPTS = gap${version}_init gap$(vernum)_analy gap$(vernum)_bandanaly gap$(vernum)_gwnvf gap$(vernum)_initwann gap$(vernum)_kgen gap$(vernum)_newin1 gap$(vernum)_save gap$(vernum)_utils.py gap$(vernum)_w2kset gap$(vernum)_w2w gap$(vernum)_scaninp 
 
 BZDIR= ./src_libbzint
 LIBBZ = ./libbzint.a
@@ -85,21 +87,21 @@ SP_OBJS = calcemac_nlf.o calceps.o calcgw0.o calcscgw0.o calcescgw.o \
           scgw_check_conv.o scgw_set_restart.o scgw_update_bande.o \
           task_acfd.o task_crpa.o task_emac.o task_eps.o task_gw.o task_gwsc.o task_gw2wann.o task_mwm.o  
 
-OBJS =  $(SP_OBJS)        \
+OBJS =  $(SP_OBJS) \
         bandanaly.o \
         bz_calcqdepw.o bz_setiksym.o bz_setkiw.o bz_setkmesh.o \
         calcecrpa.o calceffmass.o calceqp.o   \
-          calcexhf.o calcgcoef.o calchead.o calcjlam.o  calcloabc.o\
-          calcmmatvv.o calcmmatcc.o calcmmatcv.o \
-          calcminm.o calcminc.o calcmicm.o calcmicc.o calcmommat.o  calcmwm.o \
-          calcplasmon.o calcqpwf_dmat.o calcrwf.o  coul_calcsing.o      \
-          calcvhmn.o  calcvorbnn.o calcudot.o calcu.o    \
+        calcexhf.o calcgcoef.o calchead.o calcjlam.o  calcloabc.o\
+        calcmmatvv.o calcmmatcc.o calcmmatcv.o \
+        calcminm.o calcminc.o calcmicm.o calcmicc.o calcmommat.o  calcmwm.o \
+        calcplasmon.o calcqpwf_dmat.o calcrwf.o  coul_calcsing.o      \
+        calcvhmn.o  calcvorbnn.o calcudot.o calcu.o    \
         calc_spectfun_nk.o calc_spectfun.o \
         coul_barcq0.o coul_barc.o coul_setvm0.o coul_setvm1.o coul_mpwmix.o coul_mpwipw.o coul_setev.o coul_strcnst.o coul_wmix0.o  \
         crpa_calcmill.o crpa_calcumat.o crpa_calcvmat.o crpa_check_unitary.o crpa_output.o \
-           crpa_readpln.o crpa_readw2w.o crpa_setmask.o \
-        diagipw.o      \
-        expand_evec.o    \
+        crpa_readpln.o crpa_readw2w.o crpa_setmask.o \
+        diagipw.o \
+        expand_evec.o \
         fourintp.o freq_convl.o freq_intpl_ac.o freq_set_fgrid.o \
         genauxf.o gendjmm.o getcgcoef.o getdjmm.o get_minm.o      \
         int1ipw.o intipw.o intstipw.o \
@@ -111,16 +113,16 @@ OBJS =  $(SP_OBJS)        \
         prep_ang_int.o \
         radmesh.o readvector.o rint13.o rot1tosph.o rotate.o rotdef.o     \
         scgw_herm_sxc.o \
-        set_lapwcoef.o     \
-          set_ipw.o      set_ksref.o  set_lapwlo.o  \
-          set_minm.o   set_mixbasis.o set_struct.o  \
-          setkk0index.o  setkpg.o     setlocmixind.o           \
-          setrindex.o   symmom.o \
+        set_lapwcoef.o \
+        set_ipw.o      set_ksref.o    set_lapwlo.o  \
+        set_minm.o     set_mixbasis.o set_struct.o  \
+        setkk0index.o  setkpg.o       setlocmixind.o \
+        setrindex.o   symmom.o \
         task_acont.o task_chkbz.o \
-          task_coul.o      \
-          task_ldau.o task_nvf.o  task_ppgw.o \
-          testbarc.o threeylm.o      \
-          trans_minm.o   trans_vector.o trans_vmn.o trilinear.o \
+        task_coul.o \
+        task_ldau.o task_nvf.o  task_ppgw.o \
+        testbarc.o  threeylm.o \
+        trans_minm.o   trans_vector.o trans_vmn.o trilinear.o \
         unrotate.o update_vector.o \
         w2k_calcuxcu.o w2k_genvectorf.o  w2k_readenergy.o  w2k_readstruct.o  \
         w2k_readvxc.o  w2k_writeklist.o  w2k_calcvxcmn.o   w2k_calcvxcnn.o  w2k_readeband.o w2k_readcore.o \
@@ -208,14 +210,14 @@ keep_para_files:
 #
 pack: 
 	mkdir -p ../$(PACKNAME)
-	$(MAKE) packsrc
-	$(MAKE) packdoc
-	$(MAKE) packtest
-	$(MAKE) packexamples
+	$(MAKE) prepsrc
+	$(MAKE) prepdoc
+	$(MAKE) preptest
+	$(MAKE) prepexamples
 	tar -czvf ../$(PACKNAME).tgz ../$(PACKNAME)
 	rm -rf ../$(PACKNAME)
 
-packsrc:
+prepsrc:
 	mkdir -p ../$(PACKNAME)/src
 	cp -rf *.f90 makefile make.inc* $(SCRIPTS) ../$(PACKNAME)/src
 	mkdir -p ../$(PACKNAME)/src/$(KGENDIR); cd $(KGENDIR); cp *.f makefile README ../../$(PACKNAME)/$(KGENDIR); cd .. 
@@ -226,18 +228,18 @@ packsrc:
 	mkdir -p ../$(PACKNAME)/src/$(UTILDIR); cd $(UTILDIR); cp *.f90 *.f makefile ../../$(PACKNAME)/$(UTILDIR); cd .. 
 	mkdir -p ../$(PACKNAME)/src/$(PARSERDIR); cd $(PARSERDIR); cp *.f90 *.c *.h *.in *.y makefile ../../$(PACKNAME)/$(PARSERDIR); cd .. 
 
-packdoc:
+prepdoc:
 	mkdir -p ../$(PACKNAME)/doc
 	cp ../doc/README* ../$(PACKNAME)/doc
 
-packtest:
+preptest:
 	mkdir -p ../$(PACKNAME)/test
 	cp ../test/* ../$(PACKNAME)/test
 
 
-packexamples:
+prepexamples:
 	mkdir -p ../$(PACKNAME)/examples
-	cp ../examples
+	cp ../examples/* ../$(PACKNAME)/examples
 
 #..............................................................................
 #

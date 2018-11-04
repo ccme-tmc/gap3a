@@ -9,3 +9,8 @@
 2018.11.3
   1. Remove `Lebedev-laikov.f90` in `src_util`
   2. Add `veclen.f90` and `vecprojlen.f90` in `src_util`
+  3. Add auxiliary vectors and tensors for anisotropy in `dielmat.f90`
+
+2018.11.4
+  1. Standarize directory structure. Change version name to `3.0a`
+  2. 

@@ -36,7 +36,7 @@
       integer :: nbands_x            ! number of bands considered in the summation for the exch. self-energies 
 
       real(8)  :: eminsc,emaxsc          ! the energy range for the calculation of the correlation selfenergy 
-      real(8)  :: eminpol,emaxpol        ! Energy range for polarization matrix calculations 
+      real(8)  :: eminpol, emaxpol       ! Energy range for polarization matrix calculations 
       real(8)  :: emingw,emaxgw          ! The energy range of the bands to which GW corrections are going to be calculated 
       real(8)  :: spinmom                ! spin momentum per unit cell 
      

@@ -15,7 +15,7 @@
         integer :: nmax_sc = 10               !! Maximum number of self-consistent iterations 
         real(8) :: eps_sc = 1.0d-3            !! convergence for self-consistent 
 
-        character(len=10) :: progname = 'GAP 2.0'
+        character(len=10) :: progname
         character(len=10) :: taskname       !! name of the running task 
         character(len=20) :: casename       !! name of the case to be calculated, 
         character(len=120) :: scrdir= './'  !! scratch directory
