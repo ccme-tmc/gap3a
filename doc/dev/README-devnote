@@ -11,9 +11,12 @@
   1. Change version name to `3.0a`
 
 2018.11.5
-  1. convert to complex(8) instead of default complex(4) in 
-    - `freq_factor`
+  1. convert to complex(8) instead of default complex(4) when using cmplx()
+    - `freq_factor` in `bzint`
 	- `sub_bzintq_0`
 	- `freq_intpl_ac`
 	- `scgw_herm_sxc`
 	- `task_acont`
+	- `acpatrd`, `calcacfreq`, `getsac`,`setsac` in `src_acfreq`
+  2. `iop_coul.gt.0` to `iop_coul.gt.-1` in `calcminm`
+  3. move anisotropy-related quantites to a new module file `anisotropy.f90`

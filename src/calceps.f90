@@ -246,6 +246,7 @@
               enddo  
 
               call cpu_time(time1)
+              ! TODO is coulomb interacton included in minm?
               call zgemm('n','c',matsiz,matsiz,nmdim,coef,tmat,matsiz, &
      &            minm,matsiz,cone,eps(:,:,iom),matsiz)   
 

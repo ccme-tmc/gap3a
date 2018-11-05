@@ -13,43 +13,43 @@
 
 ! !USES:
  
-      use bands,     only: nspin,fspin,emingw,emaxgw,ibgw,nbgw, &
-     &                     iop_metallic,spinmom,band_scissor,       &
-     &                     emaxpol,eminpol,emaxsc,eminsc,efermi
-      use barcoul,   only: barcevtol,rcut_coul,stctol,&
-     &                     iop_coul_x,iop_coul_c,iop_coulvm
+      use bands,       only: nspin,fspin,emingw,emaxgw,ibgw,nbgw, &
+     &                       iop_metallic,spinmom,band_scissor,   &
+     &                       emaxpol,eminpol,emaxsc,eminsc,efermi
+      use barcoul,     only: barcevtol,rcut_coul,stctol,&
+     &                       iop_coul_x,iop_coul_c,iop_coulvm
 
-      use bzint,     only: iop_bzint,iop_bzintq,n_gauq,eta_freq,     &
-     &                     ztol_sorteq,tol_taylor,tol_unphys_weight,   &
-     &                     esmear,nomg_ht,omgmax_ht,ztol_vol,iop_bcor 
-      use core,      only: core_ortho,iop_core
-      use constants, only: hev,pi
-      use crpa,      only: iop_pln_phase,wf_centers_new,nlorb_wf,  &
-     &                     tol_shift_centers 
-      use dielmat,   only: q0_eps,wt_excl,noc_excl,nun_excl,ioc_excl,  &
-     &                     iun_excl,iop_mask_eps,occ_win,unocc_win,   &
-     &                     iop_drude,omega_plasma,iop_epsw,eta_head,  &
-     &                     iop_aniso, nq0
-      use eigenvec,  only: lsymvector,lcmplx
-      use fouri,     only: rmax
-      use freq,      only: omegmax,nomeg,nomeg_blk,iop_fgrid,omegmin,   &
-     &                     iop_freq
-      use kmeshintp, only: iop_kip,eqptag_kip 
-      use kpoints,   only: nkdivs,k0shift,nvel
-      use lapwlo,    only: lomax
-      use minmmat,   only: mblksiz
-      use mixbasis,  only: kmr,pwm,lmbmax,lblmax,wftol,nspin_mb,nlo_mb, &
-     &                     mb_ludot,mb_emin, mb_emax 
-      use modmpi,    only: myrank, nproc_row, nproc_col 
-      use selfenergy,only: npol_ac,npar_ac,iop_es,iop_ac,beta_sc,&
-     &                     iop_esgw0,iop_gw0
-      use struk,     only: nat
-      use xcpot,     only: lvorb,natorb,iatorb,nlorb,lorb,vorb,&
-     &                     dmorb,iop_vxc,lhybrid
-      use task,      only: taskname,casename,f_inp,f_log,f_outgw, &
-     &                     lrestart,spflag,iop_dftpkg,iop_scratch,savdir,&
-     &                     progname,l_usesavedminm,l_save_dielmat,&
-     &                     fid_outgw, fid_log, fid_inp
+      use bzint,       only: iop_bzint,iop_bzintq,n_gauq,eta_freq,     &
+     &                       ztol_sorteq,tol_taylor,tol_unphys_weight, &
+     &                       esmear,nomg_ht,omgmax_ht,ztol_vol,iop_bcor 
+      use core,        only: core_ortho,iop_core
+      use constants,   only: hev,pi
+      use crpa,        only: iop_pln_phase,wf_centers_new,nlorb_wf,  &
+     &                       tol_shift_centers 
+      use dielmat,     only: q0_eps,wt_excl,noc_excl,nun_excl,ioc_excl,&
+     &                       iun_excl,iop_mask_eps,occ_win,unocc_win,  &
+     &                       iop_drude,omega_plasma,iop_epsw,eta_head
+      use anisotropy,  only: iop_aniso, nq0
+      use eigenvec,    only: lsymvector,lcmplx
+      use fouri,       only: rmax
+      use freq,        only: omegmax,nomeg,nomeg_blk,iop_fgrid,omegmin,&
+     &                       iop_freq
+      use kmeshintp,   only: iop_kip,eqptag_kip 
+      use kpoints,     only: nkdivs,k0shift,nvel
+      use lapwlo,      only: lomax
+      use minmmat,     only: mblksiz
+      use mixbasis,    only: kmr,pwm,lmbmax,lblmax,wftol,nspin_mb, &
+     &                       nlo_mb, mb_ludot,mb_emin, mb_emax 
+      use modmpi,      only: myrank, nproc_row, nproc_col 
+      use selfenergy,  only: npol_ac,npar_ac,iop_es,iop_ac,beta_sc,&
+     &                       iop_esgw0,iop_gw0
+      use struk,       only: nat
+      use xcpot,       only: lvorb,natorb,iatorb,nlorb,lorb,vorb,&
+     &                       dmorb,iop_vxc,lhybrid
+      use task,        only: taskname,casename,f_inp,f_log,f_outgw, &
+     &                       lrestart,spflag,iop_dftpkg,iop_scratch, &
+     &                       savdir, progname,l_usesavedminm, &
+     &                       l_save_dielmat, fid_outgw, fid_log, fid_inp
       use liboct_parser
 ! !LOCAL VARIABLES:      
       implicit none

@@ -34,21 +34,6 @@
       complex(8), allocatable :: emac(:,:)     ! the macroscopic dielectric function  
                                                !   emac(1,:) -- without local field effect
                                                !   emac(2,:) -- with    local field effect 
-      ! Quantities related to anisotropy 
-      integer :: iop_aniso = -1                 ! control whether to consider the anisotropy of dielectric function around Gamma
-                                                ! -1 -- use q0_eps
-      complex(8), pointer :: vec_u_ani(:,:,:)   ! vector U(3, matsiz nomega)
-      complex(8), pointer :: vec_a_ani(:,:,:)   ! vector a(3, matsiz, nomega)
-      complex(8), pointer :: ten_l_ani(:,:,:)   ! tensor L(3, 3, nomega)
-      complex(8), pointer :: ten_p_ani(:,:,:)   ! tensor P(3, 3, nomega)
-      complex(8), pointer :: ten_a_ani(:,:,:)   ! tensor A(3, 3, nomega)
-      ! Following quantities should be determined by a Lebedev-Laikov grid
-      integer :: nq0 = 0                        ! number of q0 for angular integration
-      real(8), pointer :: q0_sph(:,:)           ! similar to q0_eps, (3, nq0)
-      real(8), pointer :: w_q0_sph(:)           ! weight of q0, (nq0)
-
-      complex(8), pointer :: head_q0(:,:)       ! the head (nq0, nomega) for q0 
-
       character(len=2) :: bandtype             ! 'KS' or 'GW' energies used for the dielectric function 
 !
 ! Variables related to constrained RPA. They may be defined in a seperate module in the future  
@@ -91,19 +76,6 @@
         if(ierr.ne.0) then
           write(fid_outgw,*) "init_dielmat: Fail to allocate head"
           stop
-        endif
-        if(iop_aniso.ne.-1)then
-          allocate(vec_u_ani(matsiz,3,iomfirst:iomlast), &
-     &             vec_a_ani(matsiz,3,iomfirst:iomlast), &
-     &             ten_l_ani(3,3,iomfirst:iomlast),      &
-     &             ten_p_ani(3,3,iomfirst:iomlast),      &
-     &             ten_a_ani(3,3,iomfirst:iomlast),      &
-     !&             head_q0(nq0, iomfirst:iomlast),       &
-     &             stat=ierr)
-          if(ierr.ne.0) then
-            write(fid_outgw,*) "init_dielmat: Fail to allocate aniso"
-            stop
-          endif
         endif
         head = czero
         mask_eps = 1.0

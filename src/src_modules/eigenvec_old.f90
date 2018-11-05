@@ -3,7 +3,7 @@
 !
 ! !MODULE: eigenvec
       module eigenvec
-      use task,     only: iop_scratch, fid_outgw, fid_outdbg
+      use task,     only: iop_scratch
       implicit none
 
 ! !PUBLIC VARIABLES:      
@@ -59,11 +59,11 @@
          
 !EOP
 !BOC
-        call linmsg(fid_outgw,'-',"Init_eigenvec") 
-        write(fid_outgw,*) "Memory used for  eigenvecs: "
-        write(fid_outgw,*) "  maxngk =",maxngk 
-        write(fid_outgw,*) "  nbmax  =",nbmax
-        write(fid_outgw,*) "  Memory(KB)",nint(1.0e-3*maxngk*nbmax*64*2) 
+        call linmsg(6,'-',"Init_eigenvec") 
+        write(6,*) "Memory used for  eigenvecs: "
+        write(6,*) "  maxngk =",maxngk 
+        write(6,*) "  nbmax  =",nbmax
+        write(6,*) "  Memory(KB)",nint(1.0e-3*maxngk*nbmax*64*2) 
         ik_cur_evec = 0 
         jk_cur_evec = 0 
 
@@ -76,7 +76,7 @@
      &           betp(nbmax,nt*nt,ndf),       &
                  stat=ierr) 
         if(ierr.ne.0) then 
-          write(fid_outgw,*) "ERROR init_eigenvec: fail to allocate memory"
+          write(6,*) "ERROR init_eigenvec: fail to allocate memory"
           stop
         endif 
         if(nlomax.gt.0) then 
@@ -94,12 +94,12 @@
         if(iop_scratch.eq.0) then
           allocate(zzkall(maxngk,nbmax,nk,nspin),stat=ierr)
           if(ierr.ne.0) then
-            write(fid_outgw,*) "ERROR init_eigenvec: fail to allocate zzkall"
-            write(fid_outgw,'(a,f8.3)') " Required memory (MB)",1.d0*maxngk*nbmax*nk &
+            write(6,*) "ERROR init_eigenvec: fail to allocate zzkal"
+            write(6,'(a,f8.3)') " Required memory (MB)",1.d0*maxngk*nbmax*nk &
      &                *16/2.d0**20
             stop
           endif
-          write(fid_outgw,'(a,f8.3)') "Memory used for zzk (MB)",1.d0*maxngk*nbmax*nk &
+          write(6,'(a,f8.3)') "Memory used for zzk (MB)",1.d0*maxngk*nbmax*nk &
      &                *16/2.d0**20
 
         endif

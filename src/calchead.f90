@@ -24,6 +24,9 @@
       use dielmat,     only: head,c0_head,q0_eps,mask_eps,iop_drude,&
      &                       omega_plasma,eta_head 
       use struk,       only: vi
+      use task,        only: fid_outgw
+      use anisotropy
+
       implicit none
       integer,intent(in):: ikfirst,iklast
       integer,intent(in):: iomfirst,iomlast
@@ -75,6 +78,7 @@
 !TODO: 
 !  -- Add and check the treatment of metallic systems 
 !
+      if(iop_aniso.ne.-1) call init_aniso(iomfirst,iomlast)
 
       if(ldbg) call linmsg(6,'-',sname)
       do isp=1,nspin 
@@ -99,13 +103,13 @@
 
           coef=4.0d0*pi*vi*kwt*fspin
 
-          if(ldbg) write(6,*) " - coef=",coef
+          if(ldbg) write(fid_outgw,*) " - coef=",coef
 !
 !         the part related to metallic systems
 !
           if(metallic) then 
-            if(ldbg) write(6,*) " - intraband transition"
-            if(ldbg) write(6,*) " - ncbm,nvbm=",ncbm,nvbm 
+            if(ldbg) write(fid_outgw,*) " - intraband transition"
+            if(ldbg) write(fid_outgw,*) " - ncbm,nvbm=",ncbm,nvbm 
             do ie=ncbm,nvbm 
               pnmkq2=sum(abs(mmatvv(1:3,ie,ie,irk,isp))**2)/3.d0
               c0_head=c0_head+coef*kwfer(ie,irk,isp)*pnmkq2*mask_eps(ie,ie+ncg_p)
@@ -116,7 +120,7 @@
 !
           if(iop_core.eq.0)then
 
-            if(ldbg) write(6,*) " - core states"
+            if(ldbg) write(fid_outgw,*) " - core states"
 
             do icg=1,ncg_p
               iat=corind(1,icg)
@@ -143,7 +147,7 @@
 !
 !     Valence-valence
 !
-          if(ldbg) write(6,*) " - normal band states"
+          if(ldbg) write(fid_outgw,*) " - normal band states"
           ie12=0
           do ie2=ncbm,nbmaxpol
             do ie1=1,nvbm
@@ -157,7 +161,7 @@
               if(edsq.lt.1.0d-20)then
                 termvv(ie12) = czero  
                 if(ldbg) then 
-                  write(6,*) "#Check: nearly degenerate bands: kcw=", & 
+                  write(fid_outgw,*) "#Check: nearly degenerate bands: kcw=", & 
      &              kcw(ncg_p+ie1,ie2,ik,1,isp)
                 endif 
  
@@ -194,12 +198,12 @@
 
       !! add the plasmon contributions
       if(metallic.and.iop_drude.eq.1) then
-        write(6,*) " Intraband contribution!"
-        write(6,'(a,f12.4)')" Calc. plasmon freq. (eV):",sqrt(c0_head)*hev
+        write(fid_outgw,*) " Intraband contribution!"
+        write(fid_outgw,'(a,f12.4)')" Calc. plasmon freq. (eV):",sqrt(c0_head)*hev
 
         if(omega_plasma.gt.0.0) then 
           wpl2 = omega_plasma**2
-          write(6,'(a,f12.6)') " Using input plasmon freq. (eV)",omega_plasma*hev
+          write(fid_outgw,'(a,f12.6)') " Using input plasmon freq. (eV)",omega_plasma*hev
         else
           wpl2 = c0_head 
         endif 
@@ -207,8 +211,8 @@
         do iom=iomfirst,iomlast
           om = omega(iom)
           if(abs(om).lt.1.e-20) then
-            write(6,*)"  WARNING - om = 0.0 is included"
-            write(6,*)"  -- set it to 1.e-20!"
+            write(fid_outgw,*)"  WARNING - om = 0.0 is included"
+            write(fid_outgw,*)"  -- set it to 1.e-20!"
             om = 1.e-20
           endif
 !old 
@@ -227,6 +231,8 @@
            
         enddo 
       endif
+
+      if(iop_aniso.ne.-1) call end_aniso
 
       end subroutine calchead
 !EOC      
