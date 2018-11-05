@@ -61,7 +61,7 @@
 
          do ip=1,npar
            iw=iwpa(ip)
-           cx(ip)=cmplx(0.d0,xin(iw),8)
+           cx(ip)=cmplx(0.d0,xin(iw))
            cy(ip)=yin(iw)
          enddo
 
@@ -86,7 +86,7 @@
        elseif(iac.eq.0) then
          do ip=1,npar
            iw=iwpa(ip)
-           comega(ip)=cmplx(0.d0,omega(iw),8)
+           comega(ip)=cmplx(0.d0,omega(iw))
          enddo
          call acpatrd(npar,z,comega,apar,fz,dfz)
        endif 

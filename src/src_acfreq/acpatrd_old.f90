@@ -27,12 +27,12 @@
       complex(8)::aa(0:npar),bb(0:npar),daa(0:npar),dbb(0:npar) 
 
       
-      aa(0)=cmplx(0.d0,0.d0,8)
+      aa(0)=cmplx(0.d0,0.d0)
       aa(1)=apar(1)
-      bb(0)=cmplx(1.d0,0.d0,8)
+      bb(0)=cmplx(1.d0,0.d0)
       bb(1)=bb(0)
-      daa(0:1)=cmplx(0.d0,0.d0,8)
-      dbb(0:1)=cmplx(0.d0,0.d0,8)
+      daa(0:1)=cmplx(0.d0,0.d0)
+      dbb(0:1)=cmplx(0.d0,0.d0)
 
       do n=2,npar
         coef=(z-zn(n-1))*apar(n)

@@ -26,13 +26,13 @@
       complex(8),intent(out):: apar(npar)   ! fitted paramters to calculate selfenergy 
      
 ! !LOCAL VARIABLES:   
-      integer :: iw,ipar!,step,ierr
+      integer :: iw,step,ipar,ierr
       integer :: iwpa(npar)
       real(8) :: varsq    ! Square root of the mean square error
       real(8)    :: xin(nomeg),anl(2*npar)      ! Values of the function
       complex(8) :: yin(nomeg)             ! Values of the function
       complex(8) :: cx(npar),cy(npar)        ! input for Pade's approximation 
-      !complex(8) :: coefs(0:npar/2)
+      complex(8) :: coefs(0:npar/2)
 
 ! !INTRINSIC ROUTINES: 
       
@@ -61,7 +61,7 @@
 
        do ipar=1,npar
          iw=iwpa(ipar)
-         cx(ipar)=cmplx(0.d0,xin(iw),8)
+         cx(ipar)=cmplx(0.d0,xin(iw))
          cy(ipar)=yin(iw)
        enddo
 
@@ -71,7 +71,7 @@
        elseif(iopac.eq.2) then 
          do ipar=1,npar
            iw=iwpa(ipar)
-           cx(ipar)=cmplx(-en,xin(iw),8)
+           cx(ipar)=cmplx(-en,xin(iw))
            cy(ipar)=yin(iw)
          enddo
          call setpatrd(npar,cx,cy,apar)

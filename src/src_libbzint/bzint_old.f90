@@ -56,10 +56,10 @@
             real(8), intent(in):: omg, edif
 
             if(iop.eq.2) then
-              freq_factor =  1.d0/cmplx(omg - edif,   eta_freq, 8)  &
-     &                     - 1.d0/cmplx(omg + edif, - eta_freq, 8)
+              freq_factor =  1.d0/cmplx(omg - edif,   eta_freq)  &
+     &                     - 1.d0/cmplx(omg + edif, - eta_freq)
             elseif(iop.eq.3) then
-              freq_factor = cmplx( -2.d0*edif/(omg*omg+edif*edif), 0.d0, 8)
+              freq_factor = cmplx( -2.d0*edif/(omg*omg+edif*edif), 0.d0)
             endif
         end function
 
@@ -68,9 +68,7 @@
 !
         real(8) function bzint_smear(iop,e)
             implicit none
-            integer, intent(in):: iop   ! 0 : Fermi,
-                                        ! 1 : Fermi derivative,
-                                        ! 2 : Gauss
+            integer, intent(in):: iop   ! 0 for Fermi, 1 for Gauss
             real(8), intent(in):: e 
             real(8) :: wt
 

@@ -3,14 +3,3 @@
   2. add a python script gap2_w2kset, which can be used to reset IPRINT to 1 in case.inc 
      so that it is not necessary to change the source of WIEN2k 
 
-2018.10.24
-  1. Backup old `make.inc`s. TODO: make.inc-Linux options
-
-2018.11.3
-  1. Remove `Lebedev-laikov.f90` in `src_util`
-  2. Add `veclen.f90` and `vecprojlen.f90` in `src_util`
-  3. Add auxiliary vectors and tensors for anisotropy in `dielmat.f90`
-
-2018.11.4
-  1. Standarize directory structure. Change version name to `3.0a`
-  2. 

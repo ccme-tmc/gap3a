@@ -19,7 +19,7 @@
       integer:: npol  ! the number of poles 
       integer:: npar  ! Number of parameters (== 2*npol)
       real(8) :: w1t(nw1)
-      complex(8):: z,dfz 
+      complex(8):: z,fz,dfz 
       complex(8):: f1t(nw1),w2c(nw2)  
       complex(8), allocatable :: apar(:)   ! fitted paramters 
       
@@ -32,20 +32,20 @@
       allocate(apar(npar))
 
       if(iop.eq.0) then 
-        z = cmplx(0.d0,w2(1),8) 
-        w2c = cmplx(0.d0,w2,8) 
+        z = cmplx(0.d0,w2(1)) 
+        w2c = cmplx(0.d0,w2) 
         w1t = w1 
         f1t = f1
         call calcacfreq(0,iac,nw1,w1t,f1t,npar,apar,z,f2(1),dfz)
       else if (iop.eq.1) then 
-        z =   cmplx(w2(1),0.d0,8) 
-        w2c = cmplx(w2,0.d0,8) 
+        z =   cmplx(w2(1),0.d0) 
+        w2c = cmplx(w2,0.d0) 
         w1t = w1 
         f1t = f1
         call calcacfreq(0,iac,nw1,w1t,f1t,npar,apar,z,f2(1),dfz)
       else 
-        z = cmplx(w2(1),0.d0,8)  
-        w2c = cmplx(w2,0.d0,8) 
+        z = cmplx(w2(1),0.d0)  
+        w2c = cmplx(w2,0.d0) 
         w1t = - w1
         f1t = conjg(f1) 
         call calcacfreq(0,iac,nw1,w1t,f1t,npar,apar,z,f2(1),dfz)

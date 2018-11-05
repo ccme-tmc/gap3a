@@ -142,10 +142,10 @@
             if(iop_freq.eq.2) then   !! real freq
               kcw(1:ncg_p+nvbm,ncbm:nbmaxpol,1:nkp,iom,isp)= &
      &          cmplx(cwpar(1:ncg_p+nvbm,ncg_p+ncbm:nmax,1:nkp,1),&
-                      cwpar(1:ncg_p+nvbm,ncg_p+ncbm:nmax,1:nkp,2),8)
+                      cwpar(1:ncg_p+nvbm,ncg_p+ncbm:nmax,1:nkp,2))
             else        !! imag freq 
               kcw(1:ncg_p+nvbm,ncbm:nbmaxpol,1:nkp,iom,isp)= & 
-     &          cmplx(cwpar(1:ncg_p+nvbm,ncg_p+ncbm:nmax,1:nkp,1),0.0,8)
+     &          cmplx(cwpar(1:ncg_p+nvbm,ncg_p+ncbm:nmax,1:nkp,1),0.0)
             endif
           enddo ! iom
 
@@ -171,7 +171,7 @@
 
             kcw(:,:,:,iom,isp) = 0.d0  
             do io=1, nomg_ht 
-              comg = cmplx(omg_ht(io),-eta,8) 
+              comg = cmplx(omg_ht(io),-eta) 
               kcw(:,:,:,iom,isp) = kcw(:,:,:,iom,isp) &
      &          + w2_ht(:,:,:,io)*(coef*comg/(comg**2-omg2))
             enddo

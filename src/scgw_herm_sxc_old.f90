@@ -60,7 +60,7 @@
             sc_ac=conjg(sigm(ie2,ie2,1:nomg))
           endif
 
-          ein=cmplx(enk,0.d0,8)
+          ein=cmplx(enk,0.d0)
           call calcacfreq(0,iop_ac,nomg,omg_ac,sc_ac,npar_ac, &
      &                apar,ein,snn,dsig)
           sc(ie2,ie2)=real(snn)
@@ -76,7 +76,7 @@
               omg_ac= - omg
               sc_ac=conjg(sigm(ie2,ie1,1:nomg))
             endif
-            ein=cmplx(enk,0.d0,8)
+            ein=cmplx(enk,0.d0)
             call calcacfreq(0,iop_ac,nomg,omg_ac,sc_ac,npar_ac, &
      &                apar,ein,smn_n,dsig)
 
@@ -88,7 +88,7 @@
               omg_ac= - omg
               sc_ac=conjg(sigm(ie2,ie1,1:nomg))
             endif
-            ein=cmplx(emk,0.d0,8)
+            ein=cmplx(emk,0.d0)
             call calcacfreq(0,iop_ac,nomg,omg_ac,sc_ac,npar_ac, &
      &                apar,ein,smn_m,dsig)
 
@@ -100,7 +100,7 @@
               omg_ac= - omg
               sc_ac=conjg(sigm(ie1,ie2,1:nomg))
             endif
-            ein=cmplx(enk,0.d0,8)
+            ein=cmplx(enk,0.d0)
             call calcacfreq(0,iop_ac,nomg,omg_ac,sc_ac,npar_ac, &
      &                apar,ein,snm_n,dsig)
 
@@ -112,7 +112,7 @@
               omg_ac= - omg
               sc_ac=conjg(sigm(ie1,ie2,1:nomg))
             endif
-            ein=cmplx(emk,0.d0,8)
+            ein=cmplx(emk,0.d0)
             call calcacfreq(0,iop_ac,nomg,omg_ac,sc_ac,npar_ac, &
      &                apar,ein,snm_m,dsig)
 

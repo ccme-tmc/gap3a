@@ -16,14 +16,14 @@
         call setwpa(nomeg,npar,omega,iwpa)
         do ip=1,npar
           iw=iwpa(ip)
-          comega(ip)=cmplx(0.d0,dsign(omega(iw),en),8)
+          comega(ip)=cmplx(0.d0,dsign(omega(iw),en))
         enddo 
         call acpatrd(npar,ein,comega,apar,sc,dsc)
       elseif(iop.eq.2) then  
          call setwpa(nomeg,npar,omega,iwpa)
          do ip=1,npar
            iw=iwpa(ip)
-           comega(ip)=cmplx(-en,dsign(omega(iw),en),8)
+           comega(ip)=cmplx(-en,dsign(omega(iw),en))
          enddo
          call acpatrd(npar,ein-en,comega,apar,sc,dsc)
       endif 
