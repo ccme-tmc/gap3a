@@ -196,7 +196,7 @@
       time_lapack=time_lapack+time2-time1    
       deallocate(mmat)
 
-      if(iop_coul.eq.-1.and.iq.eq.1) then
+      if(iop_coul.gt.0.and.iq.eq.1) then
         do ie1=nstart,nend
           do icg=cstart,cend
             minc(im_g0,icg,ie1) = 0.d0

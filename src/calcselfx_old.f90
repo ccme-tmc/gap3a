@@ -188,7 +188,7 @@
             mvm = - zdotc(matsiz,minm(:,ie2,ie1),1,minm(:,ie2,ie1),1)
             sx(ie1)=sx(ie1) + mvm*wt
 
-            if(iop_coul.eq.-1.and.iq.eq.1.and.ie1.eq.ie2.and.ie1.le.nomx) then 
+            if(iop_coul.eq.0.and.iq.eq.1.and.ie1.eq.ie2.and.ie1.le.nomx) then 
               wts = wt*nqp
               if(ldbg) write(6,*) "ie1=",ie1,"wts=",wts
               sx(ie1) = sx(ie1) - sxs2*singc2*wts

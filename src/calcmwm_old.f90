@@ -22,7 +22,7 @@
       use kpoints,    only: nqp,kqid,idikp,kpirind,weightq
       use mixbasis,   only: matsiz
       use struk,      only: vi 
-      use task,       only: time_lapack,lrestart,time_mwm, fid_outdbg
+      use task,       only: time_lapack,lrestart,time_mwm
 
 ! !INPUT PARAMETERS:
 
@@ -117,7 +117,6 @@
         allocate(wm(matsiz,mst:mend,ibgw:nbgw),stat=ierr)
         call errmsg(ierr.ne.0,sname,"fail to allocate wm")
 
-        write(fid_outdbg, *) "iop_coul = ", iop_coul
         call cpu_time(t1)
         do iom=iom_f,iom_l
           call zhemm('l','u',matsiz,nmdim,cone,eps(:,:,iom),matsiz,  &
@@ -126,7 +125,8 @@
             do ie2=mst,mend
               mwm(ie2,ie1,iom)=wkq*zdotc(matsiz,minm(:,ie2,ie1),1, &
      &           wm(:,ie2,ie1),1)
-              if(iq.eq.1.and.iop_coul.eq.-1.and.ie1.eq.ie2-ncg_c) then 
+
+              if(iq.eq.1.and.iop_coul.eq.0.and.ie1.eq.ie2-ncg_c) then 
                 mwm(ie2,ie1,iom) = mwm(ie2,ie1,iom)                     &
      &           + coefs2*head(iom)                                     &
      &           + coefs1*( zdotu(matsiz,minm(:,ie2,ie1),1,epsw2,1)     &

@@ -182,7 +182,7 @@
       call cpu_time(tend)
 
       time_minm = time_minm + tend - tstart 
-      if(iop_coul.eq.-1.and.iq.eq.1) then
+      if(iop_coul.gt.0.and.iq.eq.1) then
         do icg=cstart,cend
           do ie2=mstart,mend
             micm(im_g0,ie2,icg) = 0.d0

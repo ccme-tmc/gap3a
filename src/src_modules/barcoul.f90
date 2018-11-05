@@ -10,15 +10,15 @@
       
 ! !PUBLIC VARIABLES:
       implicit none 
-      integer :: iop_coul       ! option to coulumb potential  
-                                ! -1 -- standard bare Coulomb interaction 
-                                !  0 -- truncated Coulomb interaction with truncation radius being rcut_coul
-                                !  1 -- truncated Coulomb interaction for 1D system
-                                !  2 -- truncated Coulomb interaction for 2D system
-                                !  3 -- Thomas-Fermi screened Coulomb interaction 
-                                !  4 -- erfc-screened Coulomb interaction 
-      integer :: iop_coul_x     ! option to coulumb potential for exchange  
-      integer :: iop_coul_c     ! option to coulumb potential for correlation 
+      integer :: iop_coul = -1    ! option to coulumb potential  
+                                  ! -1 -- standard bare Coulomb interaction 
+                                  !  0 -- truncated Coulomb interaction with truncation radius being rcut_coul
+                                  !  1 -- truncated Coulomb interaction for 1D system
+                                  !  2 -- truncated Coulomb interaction for 2D system
+                                  !  3 -- Thomas-Fermi screened Coulomb interaction 
+                                  !  4 -- erfc-screened Coulomb interaction 
+      integer :: iop_coul_x = -1  ! option to coulumb potential for exchange  
+      integer :: iop_coul_c = -1  ! option to coulumb potential for correlation 
 
       integer :: iop_coulvm      ! option to control how to calculate v-matrix 
                                 !  0 -- the "standard" scheme 
