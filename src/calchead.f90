@@ -24,15 +24,16 @@
       use dielmat,     only: head,c0_head,q0_eps,mask_eps,iop_drude,&
      &                       omega_plasma,eta_head 
       use struk,       only: vi
-      use task,        only: fid_outgw
-      use anisotropy
+      use task,        only: fid_outgw, fid_outdbg
+      use anisotropy,  only: ten_p_ani, vec_u_ani, iop_aniso
+      use mixbasis,    only: matsiz
 
       implicit none
       integer,intent(in):: ikfirst,iklast
       integer,intent(in):: iomfirst,iomlast
       
 ! !LOCAL VARIABLES:
-      logical:: ldbg=.false.
+      logical:: ldbg=.true.
       character(10):: sname="calchead"
 
       integer :: icg  ! index for core states of all atoms 
@@ -42,6 +43,7 @@
       integer :: ie12 ! Joint index for (ie1,ie2) pairs for compressed storage
       integer :: ik,irk,iik ! Counter, runs over kpoints in the full and irreducible BZ
       integer :: iom       ! Counter, runs over frequencies
+      integer :: i,j,k ! Counter: Cartisian directions
       integer :: ie12max
       integer :: isp 
       integer :: nvbm,ncbm
@@ -55,12 +57,14 @@
       real(8) :: coef,pnmkq2
       complex(8):: pnmkq 
 
+      complex(8), allocatable :: p_ani_im(:,:,:),u_ani_im(:,:,:)
       complex(8), allocatable :: termcv(:),termvv(:),vwe(:),vwc(:)
 
 !
 ! !EXTERNAL ROUTINES: 
 !
-      complex(8), external :: zdotu
+      complex(8), external :: zdotu, ten_rvctrv
+      real(8), external :: veclen
 
 !
 ! !INTRINSIC ROUTINES: 
@@ -78,7 +82,6 @@
 !TODO: 
 !  -- Add and check the treatment of metallic systems 
 !
-      if(iop_aniso.ne.-1) call init_aniso(iomfirst,iomlast)
 
       if(ldbg) call linmsg(6,'-',sname)
       do isp=1,nspin 
@@ -88,6 +91,8 @@
         allocate(termvv(1:nbmaxpol*nvbm))
         allocate(vwe(1:nbmaxpol*nvbm))
         allocate(termcv(ncbm:nbmaxpol))
+        allocate(p_ani_im(3,3,ncbm:nbmaxpol))
+        allocate(u_ani_im(3,matsiz,ncbm:nbmaxpol))
         allocate(vwc(ncbm:nbmaxpol))
 
         do irk=ikfirst,iklast
@@ -113,6 +118,7 @@
             do ie=ncbm,nvbm 
               pnmkq2=sum(abs(mmatvv(1:3,ie,ie,irk,isp))**2)/3.d0
               c0_head=c0_head+coef*kwfer(ie,irk,isp)*pnmkq2*mask_eps(ie,ie+ncg_p)
+            ! TODO: anisotropy for intraband transition
             enddo 
           endif 
 !
@@ -129,19 +135,45 @@
                 edif=bande(ie2,irk,isp)-eigcore(ic,iat,isp)
                 edsq=edif*edif
 
-                !! old treatment concerning q -> 0 : averaging over three directions 
-                termcv(ie2)=(1.d0/(3.0d0*edsq))*sum(               &
-     &             abs(mmatcv(:,icg,ie2,irk,isp))**2)
-
+                if(iop_aniso.ne.-1) then
+                  !write(*,*) "use ten_p for ani"
+                  do i=1,3
+                    do j=1,3
+                      p_ani_im(i,j,ie2) = mmatcv(j,icg,ie2,irk,isp) * &
+     &                          conjg(mmatcv(i,icg,ie2,irk,isp)) / &
+     &                          cmplx(edsq,0.0D0,8)
+                    enddo
+                  enddo
+                else
+                !! two treatments are equivalent with q0_eps=(1,1,1)/\sqrt{3}
+                !! old treatment concerning q -> 0 : averaging over three directions
+     !            termcv(ie2)=(1.d0/(3.0d0*edsq))* &
+     !&                           sum(abs(mmatcv(:,icg,ie2,irk,isp))**2)
                  !! new treatment : choosing a particular direction 
-!                pnmkq=sum(mmatcv(1:3,icg,ie2,irk,isp)*q0_eps(1:3))
-!                termcv(ie2)=fspin*abs(pnmkq)**2/edsq
+                  pnmkq=sum(mmatcv(1:3,icg,ie2,irk,isp)*q0_eps(1:3))
+                  termcv(ie2)=abs(pnmkq)**2/edsq/veclen(q0_eps)**2
+                endif
               enddo ! ie2
+              !write(*,*) "before iom with iomfisrt = ", iomfirst
+              !write(*,*) "                iomlast  = ", iomlast
 
               do iom=iomfirst,iomlast
                 vwc(ncbm:nbmaxpol)=kcw(icg,ncbm:nbmaxpol,ik,iom,isp)
-                head(iom)=head(iom)-coef*zdotu(nbmaxpol-ncbm+1,vwc,1,termcv,1)
+                if(iop_aniso.ne.-1) then
+                  do i=1,3
+                    do j=1,3
+                      ten_p_ani(i,j,iom) = &
+     &                 zdotu(nbmaxpol-ncbm+1,p_ani_im(i,j,:),1,vwc(:),1)
+                    enddo
+                  enddo
+                  ten_p_ani(:,:,iom) = cmplx(coef,0.0D0,8)*ten_p_ani(:,:,iom)
+                  !write(*,*) "out ie2 with iom = ", iom
+                  head(iom)=head(iom)-ten_rvctrv(3,ten_p_ani(:,:,iom),q0_eps)
+                else
+                  head(iom)=head(iom)-coef*zdotu(nbmaxpol-ncbm+1,vwc,1,termcv,1)
+                endif
               enddo ! iom 
+              !write(*,*) "after iom"
             enddo ! icg
           endif ! iop_core .eq.  0
 !
@@ -193,10 +225,12 @@
           enddo
         enddo ! irk 
 
-        deallocate(termcv,termvv,vwc,vwe)
+        deallocate(termcv,termvv,vwc,vwe,p_ani_im,u_ani_im)
       enddo ! isp 
 
       !! add the plasmon contributions
+      write(fid_outdbg, *) "metallic : ", metallic
+      write(fid_outdbg, *) "iop_drude : ", iop_drude
       if(metallic.and.iop_drude.eq.1) then
         write(fid_outgw,*) " Intraband contribution!"
         write(fid_outgw,'(a,f12.4)')" Calc. plasmon freq. (eV):",sqrt(c0_head)*hev
@@ -231,8 +265,6 @@
            
         enddo 
       endif
-
-      if(iop_aniso.ne.-1) call end_aniso
 
       end subroutine calchead
 !EOC      

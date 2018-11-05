@@ -38,7 +38,7 @@
 !
 ! Variables related to constrained RPA. They may be defined in a seperate module in the future  
 !
-      real(8):: wt_excl=0.0                    !! the excluding weitht for the transition 
+      real(8):: wt_excl=0.0                    !! the excluding weight for the transition 
       integer:: noc_excl,nun_excl
       real(8):: occ_win(2),unocc_win(2) 
       integer,allocatable:: ioc_excl(:),iun_excl(:) !! indices of occupied/unoccupied bands to be excluded from eps calculations

@@ -32,6 +32,7 @@
       use task,        only: casename,time_lapack,time_eps,l_save_dielmat, &
      &                       fid_outgw, fid_outdbg
       use modmpi
+      use anisotropy
 
 ! !INPUT PARAMETERS:
       
@@ -124,6 +125,7 @@
       ! first calculate momentum matrix and the head
       if(iq.eq.1.and.iop_coul_c.eq.-1) then
         call init_mommat(1,nomax,numin,nbmaxpol,nirkp,nspin)
+        if(iop_aniso.ne.-1) call init_aniso(iom_f,iom_l)
 
         if(iop_mommat.eq.0) then
           call calcmommat(0,1,nomax,numin,nbmaxpol,0)
@@ -327,7 +329,7 @@
           endif
         endif
 #endif
-
+         if(iq.eq.1.and.iop_aniso.ne.-1) call end_aniso
       endif 
 
       !! save eps to files 

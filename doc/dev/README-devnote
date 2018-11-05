@@ -18,5 +18,6 @@
 	- `scgw_herm_sxc`
 	- `task_acont`
 	- `acpatrd`, `calcacfreq`, `getsac`,`setsac` in `src_acfreq`
-  2. correct default condition for `iop_coul` from 0 to -1 in `calcminm`,`calcmicm`,`calcminc`,`calcmwm`,**`calcselfx`**.
+  2. correct default condition for `iop_coul` from 0 to -1 in `calcminm`,`calcmicm`,`calcminc`,**`calcmwm`**,**`calcselfx`**.
   3. move anisotropy-related quantites to a new module file `anisotropy.f90`
+  4. create `ten_rvctrv` to calculate $q\cdot T\cdot q$ in `src_util`
