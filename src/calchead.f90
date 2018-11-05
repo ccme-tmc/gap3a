@@ -25,7 +25,8 @@
      &                       omega_plasma,eta_head 
       use struk,       only: vi
       use task,        only: fid_outgw, fid_outdbg
-      use anisotropy,  only: ten_p_ani, vec_u_ani, iop_aniso
+      use anisotropy,  only: ten_p_ani,vec_u_ani,iop_aniso, &
+     &                       q0_sph,w_q0_sph,head_q0,nq0
       use mixbasis,    only: matsiz
 
       implicit none
@@ -44,6 +45,7 @@
       integer :: ik,irk,iik ! Counter, runs over kpoints in the full and irreducible BZ
       integer :: iom       ! Counter, runs over frequencies
       integer :: i,j,k ! Counter: Cartisian directions
+      integer :: iq0   ! Counter: q0 near Gamma for anisotropy
       integer :: ie12max
       integer :: isp 
       integer :: nvbm,ncbm
@@ -55,9 +57,10 @@
       real(8) :: edif    ! energy differences
       real(8) :: edsq    ! edif^2
       real(8) :: coef,pnmkq2
-      complex(8):: pnmkq 
+      complex(8):: ccoef, pnmkq 
 
-      complex(8), allocatable :: p_ani_im(:,:,:),u_ani_im(:,:,:)
+      complex(8), allocatable :: p_ani_iom_cv(:,:,:),u_ani_iom_cv(:,:,:)
+      complex(8), allocatable :: p_ani_iom_vv(:,:,:),u_ani_iom_vv(:,:,:)
       complex(8), allocatable :: termcv(:),termvv(:),vwe(:),vwc(:)
 
 !
@@ -82,31 +85,37 @@
 !TODO: 
 !  -- Add and check the treatment of metallic systems 
 !
+      head(iomfirst:iomlast) = cone 
 
       if(ldbg) call linmsg(6,'-',sname)
       do isp=1,nspin 
         nvbm = nomaxs(isp)
         ncbm = numins(isp) 
 
-        allocate(termvv(1:nbmaxpol*nvbm))
+        ! TODO iop_aniso dependent allocation and deallocation
         allocate(vwe(1:nbmaxpol*nvbm))
-        allocate(termcv(ncbm:nbmaxpol))
-        allocate(p_ani_im(3,3,ncbm:nbmaxpol))
-        allocate(u_ani_im(3,matsiz,ncbm:nbmaxpol))
         allocate(vwc(ncbm:nbmaxpol))
+        allocate(p_ani_iom_cv(3,3,ncbm:nbmaxpol))
+        allocate(u_ani_iom_cv(3,matsiz,ncbm:nbmaxpol))
+        allocate(p_ani_iom_vv(3,3,1:nbmaxpol*nvbm))
+        allocate(u_ani_iom_vv(3,matsiz,1:nbmaxpol*nvbm))
+        allocate(termvv(1:nbmaxpol*nvbm))
+        allocate(termcv(ncbm:nbmaxpol))
 
         do irk=ikfirst,iklast
 
-          if(irk.eq.1.and.isp.eq.1) then 
-            head(iomfirst:iomlast) = cone 
-          endif 
+          !if(irk.eq.1.and.isp.eq.1) then 
+          !  head(iomfirst:iomlast) = cone 
+          !endif 
 
           ik = idikp(irk)
           kwt = wkir(irk)
 
           call crpa_setmask(irk,irk,isp)
 
+          ! TODO coef should be changed to be |q|-dependent in 2D case
           coef=4.0d0*pi*vi*kwt*fspin
+          ccoef=cmplx(coef,0.0D0,8)
 
           if(ldbg) write(fid_outgw,*) " - coef=",coef
 !
@@ -139,11 +148,12 @@
                   !write(*,*) "use ten_p for ani"
                   do i=1,3
                     do j=1,3
-                      p_ani_im(i,j,ie2) = mmatcv(j,icg,ie2,irk,isp) * &
+                      p_ani_iom_cv(i,j,ie2) = mmatcv(j,icg,ie2,irk,isp)*&
      &                          conjg(mmatcv(i,icg,ie2,irk,isp)) / &
      &                          cmplx(edsq,0.0D0,8)
                     enddo
                   enddo
+                  termcv(ie2)=ten_rvctrv(3,p_ani_iom_cv(:,:,ie2),q0_eps)
                 else
                 !! two treatments are equivalent with q0_eps=(1,1,1)/\sqrt{3}
                 !! old treatment concerning q -> 0 : averaging over three directions
@@ -152,7 +162,7 @@
                  !! new treatment : choosing a particular direction 
                   pnmkq=sum(mmatcv(1:3,icg,ie2,irk,isp)*q0_eps(1:3))
                   termcv(ie2)=abs(pnmkq)**2/edsq/veclen(q0_eps)**2
-                endif
+                endif ! iop_aniso.ne.-1
               enddo ! ie2
               !write(*,*) "before iom with iomfisrt = ", iomfirst
               !write(*,*) "                iomlast  = ", iomlast
@@ -162,16 +172,18 @@
                 if(iop_aniso.ne.-1) then
                   do i=1,3
                     do j=1,3
-                      ten_p_ani(i,j,iom) = &
-     &                 zdotu(nbmaxpol-ncbm+1,p_ani_im(i,j,:),1,vwc(:),1)
+                      ten_p_ani(i,j,iom) = ten_p_ani(i,j,iom) + ccoef*&
+     &                zdotu(nbmaxpol-ncbm+1,p_ani_iom_cv(i,j,:),1,vwc(:),1)
+!                      do ie2=ncbm,nbmaxpol
+!                        ten_p_ani(i,j,iom)=ten_p_ani(i,j,iom) + &
+!     &                       ccoef*p_ani_iom_cv(i,j,ie2)*vwc(ie2)
+!                      enddo
                     enddo
                   enddo
-                  ten_p_ani(:,:,iom) = cmplx(coef,0.0D0,8)*ten_p_ani(:,:,iom)
-                  !write(*,*) "out ie2 with iom = ", iom
-                  head(iom)=head(iom)-ten_rvctrv(3,ten_p_ani(:,:,iom),q0_eps)
+                  head(iom)=head(iom)-ccoef*zdotu(nbmaxpol-ncbm+1,vwc,1,termcv,1)
                 else
-                  head(iom)=head(iom)-coef*zdotu(nbmaxpol-ncbm+1,vwc,1,termcv,1)
-                endif
+                  head(iom)=head(iom)-ccoef*zdotu(nbmaxpol-ncbm+1,vwc,1,termcv,1)
+                endif ! iop_aniso.ne.-1
               enddo ! iom 
               !write(*,*) "after iom"
             enddo ! icg
@@ -189,30 +201,39 @@
          
 !              call wrnmsg(edsq.lt.1.e-10,sname,"degenerate CB and VB")
 !              call wrnmsg(edif.lt.0.0,sname,"Wrong ordered VB and CB")
-
               if(edsq.lt.1.0d-20)then
-                termvv(ie12) = czero  
+                termvv(ie12) = czero
+                if(iop_aniso.ne.-1) p_ani_iom_vv(:,:,ie12) = czero
                 if(ldbg) then 
-                  write(fid_outgw,*) "#Check: nearly degenerate bands: kcw=", & 
+                  write(fid_outgw,*) &
+                    "#Check: nearly degenerate bands: kcw=", & 
      &              kcw(ncg_p+ie1,ie2,ik,1,isp)
                 endif 
- 
               else 
-
-!               pnmkq=sum(mmatvv(1:3,ie1,ie2)*q0_eps(1:3))
-!               termvv(ie12)=fspin*abs(pnmkq)**2/edsq
-
+                if(iop_aniso.ne.-1) then
+                  !write(*,*) "use ten_p for ani"
+                  do i=1,3
+                    do j=1,3
+                      p_ani_iom_vv(i,j,ie12)=mmatvv(j,ie1,ie2,irk,isp)*&
+     &                    conjg(mmatvv(i,ie1,ie2,irk,isp)) / &
+     &                    cmplx(edsq,0.0D0,8)*mask_eps(ie2,ie1+ncg_p)
+                    enddo
+                  enddo
+                  termvv(ie12)=ten_rvctrv(3,p_ani_iom_vv(:,:,ie12),q0_eps)
+                else
+                  pnmkq=sum(mmatvv(1:3,ie1,ie2,irk,isp)*q0_eps(1:3)) &
+     &                * mask_eps(ie2,ie1+ncg_p)
+                  termvv(ie12)=abs(pnmkq)**2/edsq
                 !! old 
-                termvv(ie12) = mask_eps(ie2,ie1+ncg_p)/(3.0d0*edsq)        &
-     &             *sum(abs(mmatvv(:,ie1,ie2,irk,isp))**2)
+     !             termvv(ie12) = mask_eps(ie2,ie1+ncg_p)/(3.0d0*edsq) &
+     !&             *sum(abs(mmatvv(:,ie1,ie2,irk,isp))**2)
+                endif
               endif
-
             enddo ! ie2
           enddo ! ie1
           ie12max=ie12
 
           do iom=iomfirst,iomlast
-
             ie12=0
             do ie2=ncbm,nbmaxpol
               do ie1=1,nvbm
@@ -220,13 +241,55 @@
                 vwe(ie12) = kcw(ncg_p+ie1,ie2,ik,iom,isp)
               enddo 
             enddo 
-
-            head(iom)=head(iom)-coef*zdotu(ie12max,termvv,1,vwe,1)
+            if(iop_aniso.ne.-1) then
+              do i=1,3
+                do j=1,3
+                  ten_p_ani(i,j,iom) = ten_p_ani(i,j,iom) + ccoef*&
+     &                 zdotu(ie12max,p_ani_iom_vv(i,j,:),1,vwe(:),1)
+!                  do ie12=1,ie12max
+!                    ten_p_ani(i,j,iom)=ten_p_ani(i,j,iom) + &
+!     &                   ccoef*p_ani_iom_vv(i,j,ie12)*vwe(ie12)
+!                  enddo
+                enddo
+              enddo
+              head(iom)=head(iom)-ccoef*zdotu(ie12max,termvv,1,vwe,1)
+            else
+              head(iom)=head(iom)-ccoef*zdotu(ie12max,termvv,1,vwe,1)
+            endif
           enddo
         enddo ! irk 
 
-        deallocate(termcv,termvv,vwc,vwe,p_ani_im,u_ani_im)
-      enddo ! isp 
+        deallocate(vwc,vwe)
+        deallocate(p_ani_iom_cv,u_ani_iom_cv)
+        deallocate(p_ani_iom_vv,u_ani_iom_vv)
+        deallocate(termcv,termvv)
+      enddo ! isp
+
+      ! for anisotropy case, the head is calculated here
+      if(iop_aniso.ne.-1) then
+        if(ldbg)then
+          write(fid_outgw,*) "head calculated by terms (1+0j for aniso)"
+          write(fid_outgw,*) head(:)
+        endif
+        head(:)=cone
+        do iom=iomfirst,iomlast
+          head(iom)=head(iom) - ten_rvctrv(3,ten_p_ani(:,:,iom),q0_eps)
+          do iq0=1,nq0
+            head_q0(iq0,iom) = head_q0(iq0,iom) - &
+     &         ten_rvctrv(3,ten_p_ani(:,:,iom),q0_sph(:,iq0))
+          enddo
+        enddo
+      endif
+      
+      if(ldbg) then
+        if(iop_aniso.ne.-1) then
+          write(fid_outgw,*) "head calculated by tensor P"
+        else
+          write(fid_outgw,*) "head"
+        endif
+        write(fid_outgw,*) head(:)
+      endif
+
 
       !! add the plasmon contributions
       write(fid_outdbg, *) "metallic : ", metallic
@@ -256,15 +319,14 @@
 !            head(iom) = head(iom) + cmplx(wpl2/om**2,0.d0)
 !          endif
 ! new 
-           if(iop_freq.eq.3) then ! imaginary freq.
-             head(iom) = head(iom)+wpl2*(1.d0/(om+eta_head)**2)
-           elseif(iop_freq.eq.2) then ! real freq.  
-             head(iom) = head(iom)+wpl2*cmplx(-1.d0/(om**2+eta_head**2), &
-     &             eta_head/(om*(om**2+eta_head**2)))
-           endif
-           
-        enddo 
-      endif
+          if(iop_freq.eq.3) then ! imaginary freq.
+            head(iom) = head(iom)+wpl2*(1.d0/(om+eta_head)**2)
+          elseif(iop_freq.eq.2) then ! real freq.  
+            head(iom) = head(iom)+wpl2*cmplx(-1.d0/(om**2+eta_head**2), &
+     &            eta_head/(om*(om**2+eta_head**2)))
+          endif ! iop_freq
+        enddo ! iom
+      endif ! metallic.and.iop_drude.eq.1
 
       end subroutine calchead
 !EOC      

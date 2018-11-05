@@ -21,3 +21,5 @@
   2. correct default condition for `iop_coul` from 0 to -1 in `calcminm`,`calcmicm`,`calcminc`,**`calcmwm`**,**`calcselfx`**.
   3. move anisotropy-related quantites to a new module file `anisotropy.f90`
   4. create `ten_rvctrv` to calculate $q\cdot T\cdot q$ in `src_util`
+  5. move initialization of head in `calceps` before the `isp` loop
+  6. correctly calculate head at q0_eps with ten_p_aniso when `iop_aniso.ne.-1`

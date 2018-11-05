@@ -4,6 +4,7 @@ MODULE ANISOTROPY
     ! with the anisotropy of dielectric matrix for $q\to0$
 
     use mixbasis, only: matsiz
+    use constants, only: czero,cone
     use task, only: fid_outgw
 
     integer :: iop_aniso = -1  ! control whether to consider the anisotropy of dielectric function around Gamma
@@ -49,6 +50,11 @@ MODULE ANISOTROPY
                 endif
             endif
 
+            ten_p_ani(:,:,:) = czero
+            ten_a_ani(:,:,:) = czero
+            vec_u_ani(:,:,:) = czero
+            vec_a_ani(:,:,:) = czero
+            head_q0(:,:) = cone
             q0_sph(1,:) = xleb(:)
             q0_sph(2,:) = yleb(:)
             q0_sph(3,:) = zleb(:)
