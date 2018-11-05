@@ -1,3 +1,0 @@
-Some known issues about GAP2e
-
-1. Error #7012 when compiling readingw.f90 with ifort 2016, even after `make cleanall` is executed before `make all`.
