@@ -35,3 +35,9 @@
   1. In `calceps`, 
     - correctly calculate wings at `q0_eps` with `vec_u_aniso` and `vec_t_aniso` for `iop_aniso.ne.-1`
     - add `coef_coul` to make the 4\\pi coefficient possible to be dimension-dependent (TODO later)
+  2. Initialize cutoff length in `readingw`
+  3. create `coul_coef` to calculate |q|-dependent coefficient for head and wing calculations
+  4. In `barcoul`, `smallq` for isotropic dieletric function, since `q0_eps` only specifies direction (TODO)
+  5. Separate inversion of body `eps` from the inversion of whole dielectric matrix
+  6. Try inverting the dielectric matrix by tensor A and vector a,b,u,t but failed. (TODO)
+

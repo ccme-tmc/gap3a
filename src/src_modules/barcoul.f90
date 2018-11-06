@@ -106,9 +106,17 @@
       else  !! q-dependent initialization 
         allocate(vmat(mbsiz,mbsiz),ev(mbsiz),stat=ierr )
         call errmsg(ierr.ne.0,sname,"Fail to allocate vmat")
+        ! NO vmat or ev for iq=0??
         vmat=0.d0
         ev = 0.d0 
-      endif 
+      endif
+      ! TODO initialize cut-off distances for 1D and 2D
+      ! Note that the truncation directio is fixed !!!
+      ! i.e. for 2D, the third direction
+      !      for 1D, the first and second directions (NOT verified!!!)
+      if(zcut_coul.lt.0.0) zcut_coul = alat(3)/2.0D0
+      if(acut_coul.lt.0.0) acut_coul = alat(1)/2.0D0
+      if(bcut_coul.lt.0.0) bcut_coul = alat(2)/2.0D0
       end subroutine 
 
       subroutine end_barcoul(iq)

@@ -25,7 +25,7 @@
      &                       omega_plasma,eta_head 
       use struk,       only: vi
       use task,        only: fid_outgw, fid_outdbg
-      use anisotropy,  only: ten_p_ani,vec_u_ani,iop_aniso, &
+      use anisotropy,  only: ten_p_ani,ten_a_ani,iop_aniso, &
      &                       q0_sph,w_q0_sph,head_q0,nq0
       use mixbasis,    only: matsiz
 
@@ -262,7 +262,6 @@
         deallocate(vwc,vwe)
         deallocate(p_ani_iom_vv,p_ani_iom_cv)
         deallocate(termcv,termvv)
-        !deallocate(u_ani_iom_vv,u_ani_iom_cv)
       enddo ! isp
 
       ! for anisotropy case, the head is calculated here
@@ -273,6 +272,8 @@
         endif
         head(:)=cone
         do iom=iomfirst,iomlast
+          ! include tensor P in tensor A, since A = -P + ... (see doc)
+          ten_a_ani(:,:,iom) = -ten_p_ani(:,:,iom)
           head(iom)=head(iom) - ccoef_coul*ten_rvctrv(3,ten_p_ani(:,:,iom),q0_eps)
           do iq0=1,nq0
             head_q0(iq0,iom) = head_q0(iq0,iom) - &

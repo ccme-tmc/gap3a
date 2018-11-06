@@ -17,7 +17,8 @@
      &                       iop_metallic,spinmom,band_scissor,   &
      &                       emaxpol,eminpol,emaxsc,eminsc,efermi
       use barcoul,     only: barcevtol,rcut_coul,stctol,iop_coul, &
-     &                       iop_coul_x,iop_coul_c,iop_coulvm
+     &                       iop_coul_x,iop_coul_c,iop_coulvm, &
+     &                       zcut_coul,acut_coul,bcut_coul
 
       use bzint,       only: iop_bzint,iop_bzintq,n_gauq,eta_freq,     &
      &                       ztol_sorteq,tol_taylor,tol_unphys_weight, &
@@ -518,19 +519,6 @@
         endif 
       endif 
 !
-! block::q0eps -- the direction q --> 0  
-!
-      ierr=loct_parse_isdef(blk_q0eps)
-      if(ierr.eq.1) then 
-        call loct_parse_block_float(blk_q0eps,0,0,q0_eps(1))
-        call loct_parse_block_float(blk_q0eps,0,1,q0_eps(2))
-        call loct_parse_block_float(blk_q0eps,0,2,q0_eps(3))
-      else
-        q0_eps=1.d0/sqrt(3.d0)
-      endif  
-
-     
-
 !
 !     Read the data for the frequecy grid
 !
@@ -542,7 +530,6 @@
 !                2 Gauss-Laguerre 
 !                3 double Gauss-Legende
 !                4 fermion Matsubara frequency
-
       iop_fgrid=3
       nomeg=16
       omegmax=0.42
@@ -772,11 +759,29 @@
       !! set the trancation radius for the bare Coulomb interaction, needed for finite systems
       call loct_parse_int  ("iop_coulvm",  0,iop_coulvm )
       !call loct_parse_int  ("iop_coul"  , -1,iop_coul   )
+      call loct_parse_int  ("iop_coul", -1,iop_coul )
       call loct_parse_int  ("iop_coul_x", -1,iop_coul_x )
       call loct_parse_int  ("iop_coul_c", -1,iop_coul_c )
 
-      !iop_coul_tmp = iop_coul_x
-
+! block::q0eps -- the direction q --> 0  
+!
+      ierr=loct_parse_isdef(blk_q0eps)
+      if(ierr.eq.1) then 
+        call loct_parse_block_float(blk_q0eps,0,0,q0_eps(1))
+        call loct_parse_block_float(blk_q0eps,0,1,q0_eps(2))
+        call loct_parse_block_float(blk_q0eps,0,2,q0_eps(3))
+      else
+        q0_eps=0.0d0
+        ! choose default q0_eps according to truncation setup
+        if(iop_coul.eq.1)then
+          q0_eps(3) = 1.0d0
+        elseif(iop_coul.eq.2)then
+          q0_eps(1:2)=1.d0/sqrt(2.d0)
+        else
+          q0_eps=1.d0/sqrt(3.d0)
+        endif
+      endif  
+     
 !      if(iop_coul.ne.0.and.iop_coulvm.eq.0) then
 !        !write(6,*) "WARNING: For truncated/screened Coulumb interaction,&
 !        write(fid_outgw,*) "WARNING: For truncated/screened Coulumb interaction,&
@@ -784,20 +789,16 @@
 !     & scheme (i.e. iop_coulvm=1)!"
 !        iop_coulvm = 1
 !      endif    
-
       call loct_parse_float("rcut_coul",-1.0d0,rcut_coul)
+      call loct_parse_float("zcut_coul",-1.0d0,zcut_coul)
+      call loct_parse_float("acut_coul",-1.0d0,acut_coul)
+      call loct_parse_float("bcut_coul",-1.0d0,bcut_coul)
 
       !! Set parameters for anisotropy
       call loct_parse_int("iop_aniso", -1, iop_aniso)
       call loct_parse_int("nq0", 0, nq0)
       
 
-      !write(6,100) 'Parameters for Coulomb matrix:'
-      !write(6,200) "  Maximum |G| in kmr units = ",pwm
-      !write(6,200) "  Error tolerance for struc. const = ",stctol
-      !write(6,101) "  Coulomb interaction for exchange",   iop_coul_x 
-      !write(6,101) "  Coulomb interaction for correlation",iop_coul_c 
-      !write(6,*)'------------------------------------------------------'
       write(fid_outgw,100) 'Parameters for Coulomb matrix:'
       write(fid_outgw,200) "  Maximum |G| in kmr units = ",pwm
       write(fid_outgw,200) "  Error tolerance for struc. const = ",stctol

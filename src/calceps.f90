@@ -67,13 +67,15 @@
       integer :: ik_f, ik_l 
       
       logical :: ldbg=.true.
+      logical :: l_eps_invd=.false.  ! label if eps,epsw and head inversed
+      logical :: l_body_invd=.false. ! label if eps (body only) inversed
 
       integer :: nblk,iblk,m_f,m_l
       integer :: nomg
       integer :: iop_minm
 
-      real(8) :: edif,coefwing,coefwing_ani,aux,aux_ani,ffact,omgsq,coef_coul
-      complex(8):: coef,coefks,ccoef_coul,cedif,caux,caux_ani,epsw1_tmp,epsw2_tmp
+      real(8) :: edif,coefwing,aux,ffact,omgsq,coefcoul
+      complex(8):: coefks,cedif,caux,epsw1_tmp,epsw2_tmp,ccoefcoul
 
       real(8) :: time1,time2,tstart,tend
       character(len=15)::sname='calceps'
@@ -81,7 +83,9 @@
       real(8),   allocatable :: enk(:)        !! local array for eigen-energies 
       complex(8),allocatable :: tmat(:,:),pm(:),wtmp(:),minm(:,:,:) 
       complex(8), allocatable :: u_ani_iom(:,:),vec_u_tmp(:,:)
+
       character(len=10),external:: int2str 
+      real(8),external :: coul_coef
 
       real(8),parameter :: sqr3=1.732050807568877294d0
 
@@ -146,14 +150,10 @@
       call mpi_set_range(nproc_row,myrank_row,nktot,1,ik_f,ik_l)
       write(fid_outgw,*) "calceps: myrank_row,ik_f,ik_l =",myrank_row,ik_f,ik_l
 
-      ! TODO for 2D, coef_coul is |q|-dependent
-      coef_coul = 4.0d0*pi
-
-      ccoef_coul = cmplx(coef_coul,0.0D0,8)
-      coefwing = -sqrt(coef_coul*vi)
-      ! the coulomb coefficent (e.g. 4\pi in 3D) is not included
-      ! in the coefwing_ani
-      coefwing_ani = -sqrt(vi)
+      ! TODO choose q0_eps
+      coefcoul = coul_coef(q0_eps,iop_coul_c)
+      ccoefcoul = cmplx(coefcoul,0.0D0,8)
+      coefwing = sqrt(vi)
 
       do isp=1,nspin  
         do iik=ik_f, ik_l 
@@ -238,23 +238,22 @@
 
                   if(abs(edif).gt.1.0d-10)then
                     aux=coefwing/edif
-                    aux_ani=coefwing_ani/edif
                   else 
                     aux=0.d0
-                    aux_ani=0.d0
                   endif 
                   
                   caux=cmplx(aux,0.0D0,8)
-                  caux_ani=cmplx(aux_ani,0.0D0,8)
                   if(ie1.le.ncg_p) then
-                    pm(ie12)=caux*sum(mmatcv(:,ie1,ie2,irk,isp)*q0_eps)
+                    pm(ie12)=sqrt(ccoefcoul)*caux &
+     &                  *sum(mmatcv(:,ie1,ie2,irk,isp)*q0_eps)
                     if(iop_aniso.ne.-1)then
-                      vec_u_tmp(:,ie12) =caux_ani*mmatcv(:,ie1,ie2,irk,isp)
+                      vec_u_tmp(:,ie12)=caux*mmatcv(:,ie1,ie2,irk,isp)
                     endif ! iop_aniso.ne.-1
                   else 
-                    pm(ie12)=caux*sum(mmatvv(:,ie1-ncg_p,ie2,irk,isp)*q0_eps)
+                    pm(ie12)=sqrt(ccoefcoul)*caux &
+     &                  *sum(mmatvv(:,ie1-ncg_p,ie2,irk,isp)*q0_eps)
                     if(iop_aniso.ne.-1)then
-                      vec_u_tmp(:,ie12)=caux_ani*mmatvv(:,ie1-ncg_p,ie2,irk,isp)
+                      vec_u_tmp(:,ie12)=caux*mmatvv(:,ie1-ncg_p,ie2,irk,isp)
                     endif ! iop_aniso.ne.-1
                   endif 
                 enddo 
@@ -279,7 +278,7 @@
      &            minm,matsiz,cone,eps(:,:,iom),matsiz)   
 
               if(iq.eq.1.and.iop_coul_c.eq.-1) then 
-                call zgemv('n',matsiz,nmdim,coefks,tmat,matsiz,pm,1,czero,wtmp,1)
+                call zgemv('n',matsiz,nmdim,-coefks,tmat,matsiz,pm,1,czero,wtmp,1)
                 !call zgemv('n',matsiz,nmdim,coef,tmat,matsiz,pm,1,cone,epsw1(:,iom),1)
                 if(iop_aniso.ne.-1)then
                   call zgemm('n','t',3,matsiz,nmdim,coefks,&
@@ -297,7 +296,7 @@
      &                  *mask_eps(ie2,ie1) 
                     enddo
                   enddo
-                  call zgemv('n',matsiz,nmdim,coefks,tmat,matsiz,pm,1,czero,wtmp,1)
+                  call zgemv('n',matsiz,nmdim,-coefks,tmat,matsiz,pm,1,czero,wtmp,1)
                   !call zgemv('n',matsiz,nmdim,coefks,tmat,matsiz,pm,1,cone,epsw2(:,iom),1)
                   if(iop_aniso.ne.-1)then
                     call zgemm('n','t',3,matsiz,nmdim,coefks,&
@@ -341,10 +340,9 @@
       ! for anisotropy, calculate wings here with vec_u and vec_t
       if(iop_aniso.ne.-1) then
          if(ldbg)then
-           write(fid_outdbg, *) "Compare epsw from iso and aniso"
-           write(fid_outdbg, "(A3,A4,8A13)") "iom","imats", &
-     &                       "ReW1(o)","ImW1(o)","ReW2(o)","ImW2(o)",&
-     &                       "ReW1(n)","ImW1(n)","ReW2(n)","ImW2(n)"
+           write(fid_outdbg, *) "diff epsw from iso and aniso"
+           write(fid_outdbg, "(A3,A4,A2,4A13)") "iom","imats", "ST",&
+     &                       "ReW1","ImW1","ReW2","ImW2"
          endif
         do iom=iom_f, iom_l
           do imats=1, matsiz
@@ -352,26 +350,30 @@
               epsw1_tmp=epsw1(imats,iom)
               epsw2_tmp=epsw2(imats,iom)
             endif
-            epsw1(imats,iom) = sqrt(ccoef_coul) * & 
+            epsw1(imats,iom) = - sqrt(ccoefcoul) * & 
      &          sum(vec_u_ani(:,imats,iom)*cmplx(q0_eps(:),0.0D0,8))
-            epsw2(imats,iom) = sqrt(ccoef_coul) * & 
+            epsw2(imats,iom) = - sqrt(ccoefcoul) * & 
      &          sum(vec_t_ani(:,imats,iom)*cmplx(q0_eps(:),0.0D0,8))
             ! calculate for q0_sph
             do iq0=1,nq0
-              wing1_q0(iq0,imats,iom)=sqrt(ccoef_coul) * &
+              wing1_q0(iq0,imats,iom)= - sqrt(ccoefcoul) * &
      &          sum(vec_u_ani(:,imats,iom)*cmplx(q0_sph(iq0,:),0.0D0,8))
-              wing2_q0(iq0,imats,iom)=sqrt(ccoef_coul) * &
+              wing2_q0(iq0,imats,iom)= - sqrt(ccoefcoul) * &
      &          sum(vec_t_ani(:,imats,iom)*cmplx(q0_sph(iq0,:),0.0D0,8))
             enddo
             if(ldbg)then
-              write(fid_outdbg, "(I3,I4,8e13.5)") iom, imats,  &
-     &          epsw1_tmp,epsw2_tmp,epsw1(imats,iom),epsw2(imats,iom)
+              write(fid_outdbg, "(I3,I4,A2,4e13.5)") iom, imats,'O',&
+     &                              epsw1_tmp,epsw2_tmp
+              write(fid_outdbg, "(I3,I4,A2,4e13.5)") iom, imats,'N',&
+     &                              epsw1(imats,iom),epsw2(imats,iom)
+              write(fid_outdbg, "(I3,I4,A2,2L26)") iom, imats,'D',&
+     &                 abs(epsw1(imats,iom)-epsw1_tmp).lt.1.0D-12, &
+     &                 abs(epsw2(imats,iom)-epsw2_tmp).lt.1.0D-12
             endif
-            !epsw1(imats,iom)=epsw1_tmp
-            !epsw2(imats,iom)=epsw2_tmp
           enddo
         enddo
       endif
+
 
       !! add "1" to the diagonal elements
       if(myrank_ra3.eq.0) then 
@@ -390,10 +392,10 @@
         call sub_write_emac(0)  
       else               !!  calculate inveps 
         if(myrank_ra3.eq.0) then
+          call sub_invbody
           call sub_calcinveps 
           call sub_write_emac(1) 
         endif 
-
 #ifdef MPI 
         if(nproc_ra3.gt.1) then
           write(fid_outgw,*) "bcast eps: myrank_ra3 = ",myrank_ra3
@@ -456,25 +458,20 @@
  14   format(i4,f16.6,2e16.6)
       end subroutine 
 
-      subroutine sub_calcinveps
-      implicit none 
-      
-      integer :: im,jm,iom  ! index for mixed basis and freq.
-      integer :: lwork
 
-      complex(8), allocatable :: w2b(:), bw1(:)
+      subroutine sub_invbody
+      
+      implicit none 
+      integer :: iom  ! index for mixed basis and freq.
+      integer :: lwork
       integer, allocatable :: ipiv(:)
       complex(8), allocatable :: work(:)
 
-      external zhemm
-      complex(8),external::zdotc,zdotu
-
       lwork=64*matsiz
-      allocate(ipiv(matsiz),work(lwork),bw1(matsiz),w2b(matsiz),stat=ierr)
+      allocate(ipiv(matsiz),work(lwork),stat=ierr)
       call errmsg(ierr.ne.0,sname,"fail to allocate work,ipiv")
 
       do iom=iom_f,iom_l
-
         call cpu_time(time1)
         if(iop_freq.eq.2) then  !! real freq
           call zgetrf(matsiz,matsiz,eps(:,:,iom),matsiz,ipiv,ierr)
@@ -489,7 +486,28 @@
         endif
         call cpu_time(time2)
         time_lapack=time_lapack+time2-time1
+      enddo ! iom
+      deallocate(ipiv,work)
+      l_body_invd=.true.
+      end subroutine sub_invbody
 
+
+      subroutine sub_calcinveps
+      implicit none 
+      
+      integer :: im,jm,iom  ! index for mixed basis and freq.
+      integer :: iq0        ! counter: runs over nq0
+      complex(8), allocatable :: w2b(:), bw1(:)
+      complex(8) :: bw1_tmp, w2b_tmp  ! for test use
+      complex(8),external:: zdotu,ten_rvctrv
+
+      ! sub_invbody should be first called to make the body B `eps`
+      ! actually B^{-1}
+      call errmsg(.not.l_body_invd,sname,"body eps not inversed.")
+      allocate(bw1(matsiz),w2b(matsiz),stat=ierr)
+      call errmsg(ierr.ne.0,sname,"fail to allocate bw1,w2b")
+
+      do iom=iom_f,iom_l
         ! TODO anisotropy in inverse of dielectric matrix
         if(iq.eq.1.and.iop_coul_c.eq.-1) then  !!  Gamma point 
           call cpu_time(time1)
@@ -498,22 +516,52 @@
      &              epsw1(:,iom),1,czero,bw1,1)
             call zgemv('t',matsiz,matsiz,cone,eps(:,:,iom),matsiz, &
      &              epsw2(:,iom),1,czero,w2b,1)
-            if(iop_aniso.ne.-1) then
-            endif
           else
             call zhemv('u',matsiz,cone,eps(:,:,iom),matsiz, &
      &              epsw1(:,iom),1,czero,bw1,1)
             call zhemv('u',matsiz,cone,eps(:,:,iom),matsiz, &
      &              epsw2(:,iom),1,czero,w2b,1)
-            if(iop_aniso.ne.-1) then
-            endif
             w2b=conjg(w2b)
+          endif
+          if(iop_aniso.ne.-1) then
+            ! calculate vector a and vector b
+            call zgemm('n','t',3,matsiz,matsiz,cone, &
+                       vec_u_ani(:,:,iom),3,eps(:,:,iom),matsiz, &
+                       czero, vec_a_ani(:,:,iom), 3)
+            call zgemm('n','n',3,matsiz,matsiz,cone, &
+                       vec_t_ani(:,:,iom),3,eps(:,:,iom),matsiz, &
+                       czero, vec_b_ani(:,:,iom), 3)
+            ! calculate tensor A
+            call zgemm('n','t',3,3,matsiz,cone, &
+                       vec_t_ani(:,:,iom),3,vec_a_ani(:,:,iom),matsiz, &
+                       -cone, ten_a_ani(:,:,iom), 3)
           endif
 
           call cpu_time(time2)
           time_lapack=time_lapack+time2-time1
+          ! test for bw1 and w2b
+          do imats=1,matsiz
+            bw1_tmp = bw1(imats)
+            w2b_tmp = w2b(imats)
+            if(ldbg) then
+                write(fid_outdbg, "(i3,i4,A2,4e13.5)") &
+     &                iom, imats, "O", bw1(imats),w2b(imats)
+            endif
+            bw1(imats)=-sqrt(ccoefcoul)*sum(vec_a_ani(:,imats,iom)*q0_eps(:))
+            w2b(imats)=-sqrt(ccoefcoul)*sum(vec_b_ani(:,imats,iom)*q0_eps(:))
+            if(ldbg) then
+                write(fid_outdbg,"(i3,i4,A2,4e13.5)") &
+     &               iom,imats,"N", bw1(imats),w2b(imats)
+                write(fid_outdbg,"(i3,i4,A2,4e13.5)") &
+     &               iom,imats,"D",bw1(imats)-bw1_tmp,w2b(imats)-w2b_tmp
+            endif
+          enddo
 
           emac(2,iom)=head(iom)
+          ! test for head
+          !if(iop_aniso.ne.-1)then
+          !  head(iom)=1.d0/(1.0d0+cmplx(coefcoul,0.0D0,8)*ten_rvctrv(3,ten_a_ani,iom,q0_eps))
+          !endif
           head(iom)=1.d0/(head(iom)-zdotu(matsiz,epsw2(:,iom),1,bw1,1))
           emac(1,iom)=1.d0/head(iom)
 
@@ -534,7 +582,8 @@
           enddo
         endif
       enddo ! iom
-      deallocate(ipiv,work,w2b,bw1)
+      deallocate(w2b,bw1)
+      l_eps_invd=.true.
 
       end subroutine ! sub_calcinveps
 
