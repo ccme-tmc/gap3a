@@ -72,8 +72,8 @@
       integer :: nomg
       integer :: iop_minm
 
-      real(8) :: edif,coefw,aux,ffact,omgsq
-      complex(8):: coef,coef_coul,cedif,caux,epsw1_tmp,epsw2_tmp
+      real(8) :: edif,coefwing,coefwing_ani,aux,aux_ani,ffact,omgsq,coef_coul
+      complex(8):: coef,coefks,ccoef_coul,cedif,caux,caux_ani,epsw1_tmp,epsw2_tmp
 
       real(8) :: time1,time2,tstart,tend
       character(len=15)::sname='calceps'
@@ -148,19 +148,24 @@
 
       ! TODO for 2D, coef_coul is |q|-dependent
       coef_coul = 4.0d0*pi
-      coefw = sqrt(coef_coul*vi)
+
+      ccoef_coul = cmplx(coef_coul,0.0D0,8)
+      coefwing = -sqrt(coef_coul*vi)
+      ! the coulomb coefficent (e.g. 4\pi in 3D) is not included
+      ! in the coefwing_ani
+      coefwing_ani = -sqrt(vi)
+
       do isp=1,nspin  
         do iik=ik_f, ik_l 
-
           ! set ik, irk, jk and jrk 
           if(isym.eq.0) then 
             ik=iik 
             irk=kpirind(ik)
-            coef= - cone*fspin 
+            coefks = cone*fspin 
           else 
             irk=iik
             ik=idikp(irk)
-            coef= - wkir(irk)*cone*fspin
+            coefks = wkir(irk)*cone*fspin
           endif 
 
           jk = kqid(ik,iq)
@@ -232,21 +237,24 @@
                   edif = enk(ie2+ncg_p) - enk(ie1)
 
                   if(abs(edif).gt.1.0d-10)then
-                    aux=coefw/edif
+                    aux=coefwing/edif
+                    aux_ani=coefwing_ani/edif
                   else 
                     aux=0.d0
+                    aux_ani=0.d0
                   endif 
                   
                   caux=cmplx(aux,0.0D0,8)
+                  caux_ani=cmplx(aux_ani,0.0D0,8)
                   if(ie1.le.ncg_p) then
                     pm(ie12)=caux*sum(mmatcv(:,ie1,ie2,irk,isp)*q0_eps)
                     if(iop_aniso.ne.-1)then
-                      vec_u_tmp(:,ie12) =caux*mmatcv(:,ie1,ie2,irk,isp)
+                      vec_u_tmp(:,ie12) =caux_ani*mmatcv(:,ie1,ie2,irk,isp)
                     endif ! iop_aniso.ne.-1
                   else 
                     pm(ie12)=caux*sum(mmatvv(:,ie1-ncg_p,ie2,irk,isp)*q0_eps)
                     if(iop_aniso.ne.-1)then
-                      vec_u_tmp(:,ie12)=caux*mmatvv(:,ie1-ncg_p,ie2,irk,isp)
+                      vec_u_tmp(:,ie12)=caux_ani*mmatvv(:,ie1-ncg_p,ie2,irk,isp)
                     endif ! iop_aniso.ne.-1
                   endif 
                 enddo 
@@ -267,14 +275,14 @@
 
               call cpu_time(time1)
               ! TODO is coulomb interacton included in minm?
-              call zgemm('n','c',matsiz,matsiz,nmdim,coef,tmat,matsiz, &
+              call zgemm('n','c',matsiz,matsiz,nmdim,-coefks,tmat,matsiz, &
      &            minm,matsiz,cone,eps(:,:,iom),matsiz)   
 
               if(iq.eq.1.and.iop_coul_c.eq.-1) then 
-                call zgemv('n',matsiz,nmdim,coef,tmat,matsiz,pm,1,czero,wtmp,1)
+                call zgemv('n',matsiz,nmdim,coefks,tmat,matsiz,pm,1,czero,wtmp,1)
                 !call zgemv('n',matsiz,nmdim,coef,tmat,matsiz,pm,1,cone,epsw1(:,iom),1)
                 if(iop_aniso.ne.-1)then
-                  call zgemm('n','t',3,matsiz,nmdim,coef,&
+                  call zgemm('n','t',3,matsiz,nmdim,coefks,&
      &                 vec_u_tmp,3,tmat,matsiz,czero,u_ani_iom,3)
                   vec_u_ani(:,:,iom)=vec_u_ani(:,:,iom)+u_ani_iom(:,:)
                 endif
@@ -289,10 +297,10 @@
      &                  *mask_eps(ie2,ie1) 
                     enddo
                   enddo
-                  call zgemv('n',matsiz,nmdim,coef,tmat,matsiz,pm,1,czero,wtmp,1)
-                  !call zgemv('n',matsiz,nmdim,coef,tmat,matsiz,pm,1,cone,epsw2(:,iom),1)
+                  call zgemv('n',matsiz,nmdim,coefks,tmat,matsiz,pm,1,czero,wtmp,1)
+                  !call zgemv('n',matsiz,nmdim,coefks,tmat,matsiz,pm,1,cone,epsw2(:,iom),1)
                   if(iop_aniso.ne.-1)then
-                    call zgemm('n','t',3,matsiz,nmdim,coef,&
+                    call zgemm('n','t',3,matsiz,nmdim,coefks,&
      &                   vec_u_tmp,3,tmat,matsiz,czero,u_ani_iom,3)
                   endif
                 endif
@@ -314,6 +322,22 @@
         enddo ! iik
       enddo ! isp
 
+#ifdef MPI 
+      if(nproc_ra3.gt.1) then 
+        write(fid_outgw,*) "Collect eps: myrank_ra3=",myrank_ra3,"comm=",mycomm_ra3
+        call mpi_sum_array(0,eps,matsiz,matsiz,nomg,mycomm_ra3)
+        if(iq.eq.1) then
+          call mpi_sum_array(0,epsw1,matsiz,nomg,mycomm_ra3)
+          call mpi_sum_array(0,epsw2,matsiz,nomg,mycomm_ra3)
+          ! TODO check if the mpi_sum_array works with vec_u_ani etc
+          if(iop_aniso.ne.-1)then
+            call mpi_sum_array(0,vec_u_ani,3,matsiz,nomg,mycomm_ra3)
+            call mpi_sum_array(0,vec_t_ani,3,matsiz,nomg,mycomm_ra3)
+          endif
+        endif
+      endif
+#endif
+
       ! for anisotropy, calculate wings here with vec_u and vec_t
       if(iop_aniso.ne.-1) then
          if(ldbg)then
@@ -328,33 +352,26 @@
               epsw1_tmp=epsw1(imats,iom)
               epsw2_tmp=epsw2(imats,iom)
             endif
-            epsw1(imats,iom)=sum(vec_u_ani(:,imats,iom)*cmplx(q0_eps(:),0.0D0,8))
-            epsw2(imats,iom)=sum(vec_t_ani(:,imats,iom)*cmplx(q0_eps(:),0.0D0,8))
+            epsw1(imats,iom) = sqrt(ccoef_coul) * & 
+     &          sum(vec_u_ani(:,imats,iom)*cmplx(q0_eps(:),0.0D0,8))
+            epsw2(imats,iom) = sqrt(ccoef_coul) * & 
+     &          sum(vec_t_ani(:,imats,iom)*cmplx(q0_eps(:),0.0D0,8))
             ! calculate for q0_sph
             do iq0=1,nq0
-              wing1_q0(iq0,imats,iom)=sum(vec_u_ani(:,imats,iom)*cmplx(q0_sph(iq0,:),0.0D0,8))
-              wing2_q0(iq0,imats,iom)=sum(vec_t_ani(:,imats,iom)*cmplx(q0_sph(iq0,:),0.0D0,8))
+              wing1_q0(iq0,imats,iom)=sqrt(ccoef_coul) * &
+     &          sum(vec_u_ani(:,imats,iom)*cmplx(q0_sph(iq0,:),0.0D0,8))
+              wing2_q0(iq0,imats,iom)=sqrt(ccoef_coul) * &
+     &          sum(vec_t_ani(:,imats,iom)*cmplx(q0_sph(iq0,:),0.0D0,8))
             enddo
             if(ldbg)then
-              write(fid_outdbg, "(I3,I4,8e13.5)") iom, imats, epsw1_tmp, epsw2_tmp, &
-     &                             epsw1(imats,iom),epsw2(imats,iom)
+              write(fid_outdbg, "(I3,I4,8e13.5)") iom, imats,  &
+     &          epsw1_tmp,epsw2_tmp,epsw1(imats,iom),epsw2(imats,iom)
             endif
             !epsw1(imats,iom)=epsw1_tmp
             !epsw2(imats,iom)=epsw2_tmp
           enddo
         enddo
       endif
-
-#ifdef MPI 
-      if(nproc_ra3.gt.1) then 
-        write(fid_outgw,*) "Collect eps: myrank_ra3=",myrank_ra3,"comm=",mycomm_ra3
-        call mpi_sum_array(0,eps,matsiz,matsiz,nomg,mycomm_ra3)
-        if(iq.eq.1) then
-          call mpi_sum_array(0,epsw1,matsiz,nomg,mycomm_ra3)
-          call mpi_sum_array(0,epsw2,matsiz,nomg,mycomm_ra3)
-        endif
-      endif
-#endif
 
       !! add "1" to the diagonal elements
       if(myrank_ra3.eq.0) then 

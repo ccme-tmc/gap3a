@@ -57,8 +57,8 @@
       real(8) :: cpivi   ! 4*pi/vcell
       real(8) :: edif    ! energy differences
       real(8) :: edsq    ! edif^2
-      real(8) :: coef,pnmkq2
-      complex(8):: ccoef, pnmkq 
+      real(8) :: coef,pnmkq2,coef_coul 
+      complex(8):: ccoef, pnmkq, ccoef_coul
 
       complex(8), allocatable :: p_ani_iom_cv(:,:,:),p_ani_iom_vv(:,:,:)
       complex(8), allocatable :: termcv(:),termvv(:),vwe(:),vwc(:)
@@ -84,7 +84,10 @@
 
 !TODO: 
 !  -- Add and check the treatment of metallic systems 
-!
+
+      ! TODO make coef_coul |q|-dependent
+      coef_coul = 4.0D0*pi
+      ccoef_coul = cmplx(coef_coul,0.0D0,8)
       head(iomfirst:iomlast) = cone 
 
       if(ldbg) call linmsg(6,'-',sname)
@@ -111,8 +114,7 @@
 
           call crpa_setmask(irk,irk,isp)
 
-          ! TODO coef should be changed to be |q|-dependent in 2D case
-          coef=4.0d0*pi*vi*kwt*fspin
+          coef=vi*kwt*fspin
           ccoef=cmplx(coef,0.0D0,8)
 
           if(ldbg) write(fid_outgw,*) " - coef=",coef
@@ -124,7 +126,7 @@
             if(ldbg) write(fid_outgw,*) " - ncbm,nvbm=",ncbm,nvbm 
             do ie=ncbm,nvbm 
               pnmkq2=sum(abs(mmatvv(1:3,ie,ie,irk,isp))**2)/3.d0
-              c0_head=c0_head+coef*kwfer(ie,irk,isp)*pnmkq2*mask_eps(ie,ie+ncg_p)
+              c0_head=c0_head+ccoef_coul*ccoef*kwfer(ie,irk,isp)*pnmkq2*mask_eps(ie,ie+ncg_p)
             ! TODO: anisotropy for intraband transition
             enddo 
           endif 
@@ -178,9 +180,9 @@
 !                      enddo
                     enddo
                   enddo
-                  head(iom)=head(iom)-ccoef*zdotu(nbmaxpol-ncbm+1,vwc,1,termcv,1)
+                  head(iom)=head(iom)-ccoef_coul*ccoef*zdotu(nbmaxpol-ncbm+1,vwc,1,termcv,1)
                 else
-                  head(iom)=head(iom)-ccoef*zdotu(nbmaxpol-ncbm+1,vwc,1,termcv,1)
+                  head(iom)=head(iom)-ccoef_coul*ccoef*zdotu(nbmaxpol-ncbm+1,vwc,1,termcv,1)
                 endif ! iop_aniso.ne.-1
               enddo ! iom 
               !write(*,*) "after iom"
@@ -250,9 +252,9 @@
 !                  enddo
                 enddo
               enddo
-              head(iom)=head(iom)-ccoef*zdotu(ie12max,termvv,1,vwe,1)
+              head(iom)=head(iom)-ccoef_coul*ccoef*zdotu(ie12max,termvv,1,vwe,1)
             else
-              head(iom)=head(iom)-ccoef*zdotu(ie12max,termvv,1,vwe,1)
+              head(iom)=head(iom)-ccoef_coul*ccoef*zdotu(ie12max,termvv,1,vwe,1)
             endif
           enddo
         enddo ! irk 
@@ -271,7 +273,7 @@
         endif
         head(:)=cone
         do iom=iomfirst,iomlast
-          head(iom)=head(iom) - ten_rvctrv(3,ten_p_ani(:,:,iom),q0_eps)
+          head(iom)=head(iom) - ccoef_coul*ten_rvctrv(3,ten_p_ani(:,:,iom),q0_eps)
           do iq0=1,nq0
             head_q0(iq0,iom) = head_q0(iq0,iom) - &
      &         ten_rvctrv(3,ten_p_ani(:,:,iom),q0_sph(:,iq0))
@@ -288,7 +290,7 @@
         write(fid_outgw,*) head(:)
       endif
 
-
+      !TODO anisotropy for plasmon contribution
       !! add the plasmon contributions
       write(fid_outdbg, *) "metallic : ", metallic
       write(fid_outdbg, *) "iop_drude : ", iop_drude
