@@ -49,12 +49,15 @@
 
 ! !LOCAL VARIABLES:
 
-      integer :: iat,icg,ic          ! indices for core states of a given atom.
-      integer :: ie1                 ! index occupied states   
-      integer :: ie2                 ! index for unoccupied states 
+      integer :: iat,icg,ic         ! indices for core states of a given atom.
+      integer :: ie1                ! index occupied states   
+      integer :: ie2                ! index for unoccupied states 
       integer :: nktot,iik,ik,irk,jk,jrk   ! indices for the k-points.
-      integer :: iom                 ! Counter: Runs over frequencies.
-      integer :: isp                 ! Counter: runs over spin
+      integer :: iom                ! Counter: Runs over frequencies.
+      integer :: isp                ! Counter: runs over spin
+      integer :: imats              ! Counter: runs over matsiz
+      integer :: i                  ! Counter: Cartesian axis
+      integer :: iq0                ! Counter: runs over nq0 (anisotropy)
       integer :: ie12
       integer :: ierr
       integer :: im  ! index for basis set 
@@ -63,20 +66,21 @@
       integer :: ie1_f,ie1_l  
       integer :: ik_f, ik_l 
       
-      logical :: ldbg=.false.
+      logical :: ldbg=.true.
 
       integer :: nblk,iblk,m_f,m_l
       integer :: nomg
       integer :: iop_minm
 
       real(8) :: edif,coefw,aux,ffact,omgsq
+      complex(8):: coef,coef_coul,cedif,caux,epsw1_tmp,epsw2_tmp
 
-      complex(8):: coef
       real(8) :: time1,time2,tstart,tend
       character(len=15)::sname='calceps'
 
       real(8),   allocatable :: enk(:)        !! local array for eigen-energies 
       complex(8),allocatable :: tmat(:,:),pm(:),wtmp(:),minm(:,:,:) 
+      complex(8), allocatable :: u_ani_iom(:,:),vec_u_tmp(:,:)
       character(len=10),external:: int2str 
 
       real(8),parameter :: sqr3=1.732050807568877294d0
@@ -102,7 +106,7 @@
 !     the first iteration of QSGW calculations, one just need to reads
 !     from Minm file directly, in the case of isc.gt.0, indicating
 !     a QSGW calculation, Minm are read from the the file and transformed 
-!     in terms of both "n" and "m" by qpwf_coef 
+!     in terms of both "n" and "m" by qpwf_c,ccoefwoef 
 !
       if(isc.lt.0) then 
         iop_minm = -1
@@ -125,7 +129,10 @@
       ! first calculate momentum matrix and the head
       if(iq.eq.1.and.iop_coul_c.eq.-1) then
         call init_mommat(1,nomax,numin,nbmaxpol,nirkp,nspin)
-        if(iop_aniso.ne.-1) call init_aniso(iom_f,iom_l)
+        if(iop_aniso.ne.-1) then
+          call init_aniso(iom_f,iom_l)
+          allocate(u_ani_iom(3,matsiz))
+        endif
 
         if(iop_mommat.eq.0) then
           call calcmommat(0,1,nomax,numin,nbmaxpol,0)
@@ -139,7 +146,9 @@
       call mpi_set_range(nproc_row,myrank_row,nktot,1,ik_f,ik_l)
       write(fid_outgw,*) "calceps: myrank_row,ik_f,ik_l =",myrank_row,ik_f,ik_l
 
-      coefw = 2.0d0*sqrt(pi*vi)
+      ! TODO for 2D, coef_coul is |q|-dependent
+      coef_coul = 4.0d0*pi
+      coefw = sqrt(coef_coul*vi)
       do isp=1,nspin  
         do iik=ik_f, ik_l 
 
@@ -175,7 +184,7 @@
           do ie1=1,ie1_l
             ie1_f = ie1
             if(enk(ie1) > eminpol) exit 
-          enddo  
+          enddo
           if(ldbg) write(fid_outgw,*) " ie1_f=",ie1_f 
 
           !! set mask_eps that defines the transitions to be skipped 
@@ -199,6 +208,7 @@
      &               pm(nmdim),& 
      &               wtmp(matsiz),&
      &               minm(matsiz,ie2_f:ie2_l,ie1_f:ie1_l), & 
+     &               vec_u_tmp(3,nmdim), &
      &               stat=ierr)
             call errmsg(ierr.ne.0,sname,"Fail to allocate tmat,pm")
 
@@ -226,17 +236,25 @@
                   else 
                     aux=0.d0
                   endif 
-
-                  if(ie1.le.ncg_p) then 
-                    pm(ie12)=aux*sum(mmatcv(:,ie1,ie2,irk,isp)*q0_eps)
+                  
+                  caux=cmplx(aux,0.0D0,8)
+                  if(ie1.le.ncg_p) then
+                    pm(ie12)=caux*sum(mmatcv(:,ie1,ie2,irk,isp)*q0_eps)
+                    if(iop_aniso.ne.-1)then
+                      vec_u_tmp(:,ie12) =caux*mmatcv(:,ie1,ie2,irk,isp)
+                    endif ! iop_aniso.ne.-1
                   else 
-                    pm(ie12)=aux*sum(mmatvv(:,ie1-ncg_p,ie2,irk,isp)*q0_eps)
+                    pm(ie12)=caux*sum(mmatvv(:,ie1-ncg_p,ie2,irk,isp)*q0_eps)
+                    if(iop_aniso.ne.-1)then
+                      vec_u_tmp(:,ie12)=caux*mmatvv(:,ie1-ncg_p,ie2,irk,isp)
+                    endif ! iop_aniso.ne.-1
                   endif 
                 enddo 
               enddo 
             endif   ! iq.eq.1
 
             do iom=iom_f,iom_l
+              ! TODO omgsq not used?
               omgsq=omega(iom)**2
               ie12=0
               do ie1=ie1_f, ie1_l 
@@ -254,6 +272,12 @@
 
               if(iq.eq.1.and.iop_coul_c.eq.-1) then 
                 call zgemv('n',matsiz,nmdim,coef,tmat,matsiz,pm,1,czero,wtmp,1)
+                !call zgemv('n',matsiz,nmdim,coef,tmat,matsiz,pm,1,cone,epsw1(:,iom),1)
+                if(iop_aniso.ne.-1)then
+                  call zgemm('n','t',3,matsiz,nmdim,coef,&
+     &                 vec_u_tmp,3,tmat,matsiz,czero,u_ani_iom,3)
+                  vec_u_ani(:,:,iom)=vec_u_ani(:,:,iom)+u_ani_iom(:,:)
+                endif
                 epsw1(:,iom)=epsw1(:,iom)+wtmp
                 if(iop_freq.eq.2) then !! real freq 
                   ie12=0
@@ -266,6 +290,15 @@
                     enddo
                   enddo
                   call zgemv('n',matsiz,nmdim,coef,tmat,matsiz,pm,1,czero,wtmp,1)
+                  !call zgemv('n',matsiz,nmdim,coef,tmat,matsiz,pm,1,cone,epsw2(:,iom),1)
+                  if(iop_aniso.ne.-1)then
+                    call zgemm('n','t',3,matsiz,nmdim,coef,&
+     &                   vec_u_tmp,3,tmat,matsiz,czero,u_ani_iom,3)
+                  endif
+                endif
+
+                if(iop_aniso.ne.-1)then
+                  vec_t_ani(:,:,iom)=vec_t_ani(:,:,iom)+conjg(u_ani_iom)
                 endif
                 epsw2(:,iom)=epsw2(:,iom)+conjg(wtmp)
               endif
@@ -273,13 +306,44 @@
               call cpu_time(time2)
               time_lapack=time_lapack+time2-time1
             enddo ! iom
-            deallocate(minm,tmat,pm,wtmp) 
+            deallocate(minm,tmat,pm,wtmp,vec_u_tmp)
 
           enddo ! iblk  
           deallocate(enk) 
 
         enddo ! iik
       enddo ! isp
+
+      ! for anisotropy, calculate wings here with vec_u and vec_t
+      if(iop_aniso.ne.-1) then
+         if(ldbg)then
+           write(fid_outdbg, *) "Compare epsw from iso and aniso"
+           write(fid_outdbg, "(A3,A4,8A13)") "iom","imats", &
+     &                       "ReW1(o)","ImW1(o)","ReW2(o)","ImW2(o)",&
+     &                       "ReW1(n)","ImW1(n)","ReW2(n)","ImW2(n)"
+         endif
+        do iom=iom_f, iom_l
+          do imats=1, matsiz
+            if(ldbg)then
+              epsw1_tmp=epsw1(imats,iom)
+              epsw2_tmp=epsw2(imats,iom)
+            endif
+            epsw1(imats,iom)=sum(vec_u_ani(:,imats,iom)*cmplx(q0_eps(:),0.0D0,8))
+            epsw2(imats,iom)=sum(vec_t_ani(:,imats,iom)*cmplx(q0_eps(:),0.0D0,8))
+            ! calculate for q0_sph
+            do iq0=1,nq0
+              wing1_q0(iq0,imats,iom)=sum(vec_u_ani(:,imats,iom)*cmplx(q0_sph(iq0,:),0.0D0,8))
+              wing2_q0(iq0,imats,iom)=sum(vec_t_ani(:,imats,iom)*cmplx(q0_sph(iq0,:),0.0D0,8))
+            enddo
+            if(ldbg)then
+              write(fid_outdbg, "(I3,I4,8e13.5)") iom, imats, epsw1_tmp, epsw2_tmp, &
+     &                             epsw1(imats,iom),epsw2(imats,iom)
+            endif
+            !epsw1(imats,iom)=epsw1_tmp
+            !epsw2(imats,iom)=epsw2_tmp
+          enddo
+        enddo
+      endif
 
 #ifdef MPI 
       if(nproc_ra3.gt.1) then 
@@ -329,7 +393,10 @@
           endif
         endif
 #endif
-         if(iq.eq.1.and.iop_aniso.ne.-1) call end_aniso
+        if(iq.eq.1.and.iop_aniso.ne.-1) then
+          call end_aniso
+          deallocate(u_ani_iom)
+        endif 
       endif 
 
       !! save eps to files 
@@ -406,19 +473,23 @@
         call cpu_time(time2)
         time_lapack=time_lapack+time2-time1
 
+        ! TODO anisotropy in inverse of dielectric matrix
         if(iq.eq.1.and.iop_coul_c.eq.-1) then  !!  Gamma point 
           call cpu_time(time1)
-
           if(iop_freq.eq.2) then
             call zgemv('n',matsiz,matsiz,cone,eps(:,:,iom),matsiz, &
      &              epsw1(:,iom),1,czero,bw1,1)
             call zgemv('t',matsiz,matsiz,cone,eps(:,:,iom),matsiz, &
      &              epsw2(:,iom),1,czero,w2b,1)
+            if(iop_aniso.ne.-1) then
+            endif
           else
             call zhemv('u',matsiz,cone,eps(:,:,iom),matsiz, &
      &              epsw1(:,iom),1,czero,bw1,1)
             call zhemv('u',matsiz,cone,eps(:,:,iom),matsiz, &
      &              epsw2(:,iom),1,czero,w2b,1)
+            if(iop_aniso.ne.-1) then
+            endif
             w2b=conjg(w2b)
           endif
 
@@ -449,7 +520,6 @@
       deallocate(ipiv,work,w2b,bw1)
 
       end subroutine ! sub_calcinveps
-
 
       end subroutine calceps
 !EOC

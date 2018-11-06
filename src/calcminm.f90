@@ -147,7 +147,8 @@
       enddo  
 
       idf=0
-      imix = 0   
+      imix = 0
+      ! TODO Any documentation to this large loop?
       do iat = 1, nat           !! Loop over atoms
         do ieq = 1, mult(iat)   !! Loop over equivalent atoms
           idf = idf + 1

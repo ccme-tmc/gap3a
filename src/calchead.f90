@@ -34,7 +34,8 @@
       integer,intent(in):: iomfirst,iomlast
       
 ! !LOCAL VARIABLES:
-      logical:: ldbg=.true.
+      !logical:: ldbg=.true.
+      logical:: ldbg=.false.
       character(10):: sname="calchead"
 
       integer :: icg  ! index for core states of all atoms 
@@ -59,8 +60,7 @@
       real(8) :: coef,pnmkq2
       complex(8):: ccoef, pnmkq 
 
-      complex(8), allocatable :: p_ani_iom_cv(:,:,:),u_ani_iom_cv(:,:,:)
-      complex(8), allocatable :: p_ani_iom_vv(:,:,:),u_ani_iom_vv(:,:,:)
+      complex(8), allocatable :: p_ani_iom_cv(:,:,:),p_ani_iom_vv(:,:,:)
       complex(8), allocatable :: termcv(:),termvv(:),vwe(:),vwc(:)
 
 !
@@ -96,9 +96,7 @@
         allocate(vwe(1:nbmaxpol*nvbm))
         allocate(vwc(ncbm:nbmaxpol))
         allocate(p_ani_iom_cv(3,3,ncbm:nbmaxpol))
-        allocate(u_ani_iom_cv(3,matsiz,ncbm:nbmaxpol))
         allocate(p_ani_iom_vv(3,3,1:nbmaxpol*nvbm))
-        allocate(u_ani_iom_vv(3,matsiz,1:nbmaxpol*nvbm))
         allocate(termvv(1:nbmaxpol*nvbm))
         allocate(termcv(ncbm:nbmaxpol))
 
@@ -120,7 +118,7 @@
           if(ldbg) write(fid_outgw,*) " - coef=",coef
 !
 !         the part related to metallic systems
-!
+!         TODO anisotropy for plasmon contribution
           if(metallic) then 
             if(ldbg) write(fid_outgw,*) " - intraband transition"
             if(ldbg) write(fid_outgw,*) " - ncbm,nvbm=",ncbm,nvbm 
@@ -260,15 +258,15 @@
         enddo ! irk 
 
         deallocate(vwc,vwe)
-        deallocate(p_ani_iom_cv,u_ani_iom_cv)
-        deallocate(p_ani_iom_vv,u_ani_iom_vv)
+        deallocate(p_ani_iom_vv,p_ani_iom_cv)
         deallocate(termcv,termvv)
+        !deallocate(u_ani_iom_vv,u_ani_iom_cv)
       enddo ! isp
 
       ! for anisotropy case, the head is calculated here
       if(iop_aniso.ne.-1) then
         if(ldbg)then
-          write(fid_outgw,*) "head calculated by terms (1+0j for aniso)"
+          write(fid_outgw,*) "head calculated by termscv & termsvv "
           write(fid_outgw,*) head(:)
         endif
         head(:)=cone
@@ -323,7 +321,7 @@
             head(iom) = head(iom)+wpl2*(1.d0/(om+eta_head)**2)
           elseif(iop_freq.eq.2) then ! real freq.  
             head(iom) = head(iom)+wpl2*cmplx(-1.d0/(om**2+eta_head**2), &
-     &            eta_head/(om*(om**2+eta_head**2)))
+     &            eta_head/(om*(om**2+eta_head**2)),8)
           endif ! iop_freq
         enddo ! iom
       endif ! metallic.and.iop_drude.eq.1
