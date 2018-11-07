@@ -339,11 +339,11 @@
 
       ! for anisotropy, calculate wings here with vec_u and vec_t
       if(iop_aniso.ne.-1) then
-         if(ldbg)then
-           write(fid_outdbg, *) "diff epsw from iso and aniso"
-           write(fid_outdbg, "(A3,A4,A2,4A13)") "iom","imats", "ST",&
-     &                       "ReW1","ImW1","ReW2","ImW2"
-         endif
+        if(ldbg)then
+          write(fid_outdbg, *) "diff epsw from iso and aniso"
+          write(fid_outdbg, "(A3,A4,A2,4A13)") "iom","imats", "ST",&
+     &                      "ReW1","ImW1","ReW2","ImW2"
+        endif
         do iom=iom_f, iom_l
           do imats=1, matsiz
             if(ldbg)then
@@ -511,58 +511,68 @@
         ! TODO anisotropy in inverse of dielectric matrix
         if(iq.eq.1.and.iop_coul_c.eq.-1) then  !!  Gamma point 
           call cpu_time(time1)
-          if(iop_freq.eq.2) then
-            call zgemv('n',matsiz,matsiz,cone,eps(:,:,iom),matsiz, &
-     &              epsw1(:,iom),1,czero,bw1,1)
-            call zgemv('t',matsiz,matsiz,cone,eps(:,:,iom),matsiz, &
-     &              epsw2(:,iom),1,czero,w2b,1)
-          else
-            call zhemv('u',matsiz,cone,eps(:,:,iom),matsiz, &
-     &              epsw1(:,iom),1,czero,bw1,1)
-            call zhemv('u',matsiz,cone,eps(:,:,iom),matsiz, &
-     &              epsw2(:,iom),1,czero,w2b,1)
-            w2b=conjg(w2b)
-          endif
+          call zgemv('n',matsiz,matsiz,cone,eps(:,:,iom),matsiz, &
+     &               epsw1(:,iom),1,czero,bw1,1)
+          call zgemv('t',matsiz,matsiz,cone,eps(:,:,iom),matsiz, &
+     &               epsw2(:,iom),1,czero,w2b,1)
+     !     if(iop_freq.eq.2) then
+     !       call zgemv('n',matsiz,matsiz,cone,eps(:,:,iom),matsiz, &
+     !&              epsw1(:,iom),1,czero,bw1,1)
+     !       call zgemv('t',matsiz,matsiz,cone,eps(:,:,iom),matsiz, &
+     !&              epsw2(:,iom),1,czero,w2b,1)
+     !     else
+     !       call zhemv('u',matsiz,cone,eps(:,:,iom),matsiz, &
+     !&              epsw1(:,iom),1,czero,bw1,1)
+     !       call zhemv('u',matsiz,cone,eps(:,:,iom),matsiz, &
+     !&              epsw2(:,iom),1,czero,w2b,1)
+     !       w2b=conjg(w2b)
+     !     endif
           if(iop_aniso.ne.-1) then
             ! calculate vector a and vector b
-            call zgemm('n','t',3,matsiz,matsiz,cone, &
+            call zgemm('n','t',3,matsiz,matsiz,-cone, &
                        vec_u_ani(:,:,iom),3,eps(:,:,iom),matsiz, &
-                       czero, vec_a_ani(:,:,iom), 3)
-            call zgemm('n','n',3,matsiz,matsiz,cone, &
+                       czero, vec_a_ani(:,:,iom), 3, ierr)
+            call zgemm('n','n',3,matsiz,matsiz,-cone, &
                        vec_t_ani(:,:,iom),3,eps(:,:,iom),matsiz, &
-                       czero, vec_b_ani(:,:,iom), 3)
+                       czero, vec_b_ani(:,:,iom), 3, ierr)
             ! calculate tensor A
+            ! following two zgemm should give identical result
             call zgemm('n','t',3,3,matsiz,cone, &
                        vec_t_ani(:,:,iom),3,vec_a_ani(:,:,iom),matsiz, &
-                       -cone, ten_a_ani(:,:,iom), 3)
+                       cone, ten_a_ani(:,:,iom), 3, ierr)
+            !call zgemm('n','t',3,3,matsiz,cone, &
+            !           vec_b_ani(:,:,iom),3,vec_u_ani(:,:,iom),matsiz, &
+            !           cone, ten_a_ani(:,:,iom), 3, ierr)
           endif
 
           call cpu_time(time2)
           time_lapack=time_lapack+time2-time1
           ! test for bw1 and w2b
-          do imats=1,matsiz
-            bw1_tmp = bw1(imats)
-            w2b_tmp = w2b(imats)
-            if(ldbg) then
-                write(fid_outdbg, "(i3,i4,A2,4e13.5)") &
-     &                iom, imats, "O", bw1(imats),w2b(imats)
-            endif
-            bw1(imats)=-sqrt(ccoefcoul)*sum(vec_a_ani(:,imats,iom)*q0_eps(:))
-            w2b(imats)=-sqrt(ccoefcoul)*sum(vec_b_ani(:,imats,iom)*q0_eps(:))
-            if(ldbg) then
-                write(fid_outdbg,"(i3,i4,A2,4e13.5)") &
-     &               iom,imats,"N", bw1(imats),w2b(imats)
-                write(fid_outdbg,"(i3,i4,A2,4e13.5)") &
-     &               iom,imats,"D",bw1(imats)-bw1_tmp,w2b(imats)-w2b_tmp
-            endif
-          enddo
+          if(iop_aniso.ne.-1)then
+            do imats=1,matsiz
+              bw1_tmp = bw1(imats)
+              w2b_tmp = w2b(imats)
+              bw1(imats)=sqrt(ccoefcoul)*sum(vec_a_ani(:,imats,iom)*q0_eps(:))
+              w2b(imats)=sqrt(ccoefcoul)*sum(vec_b_ani(:,imats,iom)*q0_eps(:))
+              if(ldbg) then
+                  write(fid_outdbg, "(i3,i4,A2,4e13.5)") &
+     &                  iom,imats,"O",bw1_tmp,w2b_tmp      
+                  write(fid_outdbg,"(i3,i4,A2,4e13.5)") &
+     &                  iom,imats,"N", bw1(imats),w2b(imats)
+                  write(fid_outdbg,"(i3,i4,A2,4e13.5)") &
+     &                  iom,imats,"D",bw1(imats)-bw1_tmp,w2b(imats)-w2b_tmp
+              endif
+            enddo
+          endif
 
           emac(2,iom)=head(iom)
           ! test for head
           !if(iop_aniso.ne.-1)then
-          !  head(iom)=1.d0/(1.0d0+cmplx(coefcoul,0.0D0,8)*ten_rvctrv(3,ten_a_ani,iom,q0_eps))
+          !  head(iom)=1.d0/(1.0d0+ccoefcoul*ten_rvctrv(3,ten_a_ani,iom,q0_eps))
           !endif
+          ! head calculated from the following two ways should be equivalent
           head(iom)=1.d0/(head(iom)-zdotu(matsiz,epsw2(:,iom),1,bw1,1))
+          !head(iom)=1.d0/(head(iom)-zdotu(matsiz,epsw1(:,iom),1,w2b,1))
           emac(1,iom)=1.d0/head(iom)
 
           epsw1(:,iom)= - head(iom)*bw1(:)

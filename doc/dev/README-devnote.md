@@ -41,3 +41,8 @@
   5. Separate inversion of body `eps` from the inversion of whole dielectric matrix
   6. Try inverting the dielectric matrix by tensor A and vector a,b,u,t but failed. (TODO)
 
+## 2018-11-07 (zmy)
+
+  1. Disable the use of `zhemv` in calulating `epsw1` and `epsw2` when inverting the dielectric matrix for imaginary frequency.
+     When using `zhemv`, calculating `head` with `epsw2+bw1` and `w2b+epsw1` gives different results,
+	 although they should be identical due to the analytic expression.
