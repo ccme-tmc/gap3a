@@ -46,3 +46,10 @@
   1. Disable the use of `zhemv` in calulating `epsw1` and `epsw2` when inverting the dielectric matrix for imaginary frequency.
      When using `zhemv`, calculating `head` with `epsw2+bw1` and `w2b+epsw1` gives different results,
 	 although they should be identical due to the analytic expression.
+
+## 2018-11-08 (zmy)
+
+  1. Fix the `zgemm` in calculating `ten_a_aniso`.
+  2. Rearrange some `iop_aniso` if condition
+  3. Calcualte dielectric matrix on `q0_sph` except for the body part.
+     Memory corruption happens for `nq0>=14`. 
