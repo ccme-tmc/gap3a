@@ -34,8 +34,8 @@
       integer,intent(in):: iomfirst,iomlast
       
 ! !LOCAL VARIABLES:
-      !logical:: ldbg=.true.
-      logical:: ldbg=.false.
+      logical:: ldbg=.true.
+      !logical:: ldbg=.false.
       character(10):: sname="calchead"
 
       integer :: icg  ! index for core states of all atoms 
@@ -272,14 +272,14 @@
         endif
         head(:)=cone
         do iom=iomfirst,iomlast
-          ! include tensor P in tensor A, since A = -P + ... (see doc)
-          ten_a_ani(:,:,iom) = -ten_p_ani(:,:,iom)
           head(iom)=head(iom) - ccoef_coul*ten_rvctrv(3,ten_p_ani(:,:,iom),q0_eps)
           do iq0=1,nq0
             head_q0(iq0,iom) = head_q0(iq0,iom) - &
      &         ten_rvctrv(3,ten_p_ani(:,:,iom),q0_sph(:,iq0))
           enddo
         enddo
+        ! include tensor P in tensor A, since A = -P + ... (see doc)
+        ten_a_ani = -ten_p_ani
       endif
       
       if(ldbg) then
