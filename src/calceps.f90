@@ -338,41 +338,34 @@
 
       ! for anisotropy, calculate wings here with vec_u and vec_t
       if(iop_aniso.ne.-1) then
-        if(ldbg)then
-          write(fid_outdbg, *) "diff epsw from iso and aniso"
-          write(fid_outdbg, "(A3,A4,A2,4A13)") "iom","imats", "ST",&
+#ifdef DEBUG
+        write(fid_outdbg, *) "diff epsw from iso and aniso"
+        write(fid_outdbg, "(A3,A4,A2,4A13)") "iom","imats", "ST",&
      &                      "ReW1","ImW1","ReW2","ImW2"
-        endif
+#endif
         do iom=iom_f, iom_l
           do imats=1, matsiz
-            if(ldbg)then
-              epsw1_tmp=epsw1(imats,iom)
-              epsw2_tmp=epsw2(imats,iom)
-            endif
+#ifdef DEBUG
+            epsw1_tmp=epsw1(imats,iom)
+            epsw2_tmp=epsw2(imats,iom)
+#endif
             epsw1(imats,iom) = - sqrt(ccoefcoul) * & 
      &          sum(vec_u_ani(:,imats,iom)*cmplx(q0_eps(:),0.0D0,8))
             epsw2(imats,iom) = - sqrt(ccoefcoul) * & 
      &          sum(vec_t_ani(:,imats,iom)*cmplx(q0_eps(:),0.0D0,8))
             ! calculate for q0_sph
-            do iq0=1,nq0
-              wing1_q0(iq0,imats,iom)= - sqrt(ccoefcoul) * &
-     &          sum(vec_u_ani(:,imats,iom)*cmplx(q0_sph(iq0,:),0.0D0,8))
-              wing2_q0(iq0,imats,iom)= - sqrt(ccoefcoul) * &
-     &          sum(vec_t_ani(:,imats,iom)*cmplx(q0_sph(iq0,:),0.0D0,8))
-            enddo
-            if(ldbg)then
-              write(fid_outdbg, "(I3,I4,A2,4e13.5)") iom, imats,'O',&
-     &                              epsw1_tmp,epsw2_tmp
-              write(fid_outdbg, "(I3,I4,A2,4e13.5)") iom, imats,'N',&
-     &                              epsw1(imats,iom),epsw2(imats,iom)
-              write(fid_outdbg, "(I3,I4,A2,2L26)") iom, imats,'D',&
-     &                 abs(epsw1(imats,iom)-epsw1_tmp).lt.1.0D-12, &
-     &                 abs(epsw2(imats,iom)-epsw2_tmp).lt.1.0D-12
-            endif
+#ifdef DEBUG
+            write(fid_outdbg, "(I3,I4,A2,4e13.5)") iom, imats,'O',&
+     &                            epsw1_tmp,epsw2_tmp
+            write(fid_outdbg, "(I3,I4,A2,4e13.5)") iom, imats,'N',&
+     &                            epsw1(imats,iom),epsw2(imats,iom)
+            write(fid_outdbg, "(I3,I4,A2,2L26)") iom, imats,'D',&
+     &               abs(epsw1(imats,iom)-epsw1_tmp).lt.1.0D-12, &
+     &               abs(epsw2(imats,iom)-epsw2_tmp).lt.1.0D-12
+#endif
           enddo
         enddo
       endif
-
 
       !! add "1" to the diagonal elements
       if(myrank_ra3.eq.0) then 
@@ -416,6 +409,7 @@
           deallocate(u_ani_iom)
         endif 
       endif 
+
 
       !! save eps to files 
       if(myrank_ra3.eq.0.and.l_save_dielmat) then 
@@ -497,7 +491,8 @@
       integer :: im,jm,iom  ! index for mixed basis and freq.
       integer :: iq0        ! counter: runs over nq0
       complex(8), allocatable :: w2b(:), bw1(:)
-      complex(8) :: bw1_tmp, w2b_tmp  ! for test use
+      complex(8) :: ten_aob_tmp(3,3)
+      complex(8) :: bw1_tmp, w2b_tmp ! for test use
       complex(8),external:: zdotu,ten_rvctrv
 
       ! sub_invbody should be first called to make the body B `eps`
@@ -510,22 +505,6 @@
         ! TODO anisotropy in inverse of dielectric matrix
         if(iq.eq.1.and.iop_coul_c.eq.-1) then  !!  Gamma point 
           call cpu_time(time1)
-          call zgemv('n',matsiz,matsiz,cone,eps(:,:,iom),matsiz, &
-     &               epsw1(:,iom),1,czero,bw1,1)
-          call zgemv('t',matsiz,matsiz,cone,eps(:,:,iom),matsiz, &
-     &               epsw2(:,iom),1,czero,w2b,1)
-!          if(iop_freq.eq.2) then
-!            call zgemv('n',matsiz,matsiz,cone,eps(:,:,iom),matsiz, &
-!     &              epsw1(:,iom),1,czero,bw1,1)
-!            call zgemv('t',matsiz,matsiz,cone,eps(:,:,iom),matsiz, &
-!     &              epsw2(:,iom),1,czero,w2b,1)
-!          else
-!            call zhemv('u',matsiz,cone,eps(:,:,iom),matsiz, &
-!     &              epsw1(:,iom),1,czero,bw1,1)
-!            call zhemv('u',matsiz,cone,eps(:,:,iom),matsiz, &
-!     &              epsw2(:,iom),1,czero,w2b,1)
-!            w2b=conjg(w2b)
-!          endif
           if(iop_aniso.ne.-1) then
             ! calculate vector a and vector b
             call zgemm('n','t',3,matsiz,matsiz,-cone, &
@@ -534,30 +513,38 @@
             call zgemm('n','n',3,matsiz,matsiz,-cone, &
                        vec_t_ani(:,:,iom),3,eps(:,:,iom),matsiz, &
                        czero, vec_b_ani(:,:,iom), 3, ierr)
+#ifdef DEBUG
+            call zgemv('n',matsiz,matsiz,cone,eps(:,:,iom),matsiz, &
+     &             epsw1(:,iom),1,czero,bw1,1)
+            call zgemv('t',matsiz,matsiz,cone,eps(:,:,iom),matsiz, &
+     &             epsw2(:,iom),1,czero,w2b,1)
+            write(fid_outgw, "(I3,A10,6f12.3)") iom,"A before:",ten_a_ani(1,:,iom)
+            write(fid_outgw, "(   A13,6f12.3)") " ",ten_a_ani(2,:,iom)
+            write(fid_outgw, "(   A13,6f12.3)") " ",ten_a_ani(3,:,iom)
+            write(fid_outgw, "(I3,A10,6f12.3)") iom,"P       :",ten_p_ani(1,:,iom)
+            write(fid_outgw, "(   A13,6f12.3)") " ",ten_p_ani(2,:,iom)
+            write(fid_outgw, "(   A13,6f12.3)") " ",ten_p_ani(3,:,iom)
+#endif
             ! calculate tensor A
             ! following two zgemm should give identical result
-            if(ldbg)then
-              write(fid_outgw, "(I3,A10,6f12.3)") iom,"A before:",ten_a_ani(1,:,iom)
-              write(fid_outgw, "(   A13,6f12.3)") " ",ten_a_ani(2,:,iom)
-              write(fid_outgw, "(   A13,6f12.3)") " ",ten_a_ani(3,:,iom)
-              write(fid_outgw, "(I3,A10,6f12.3)") iom,"P       :",ten_p_ani(1,:,iom)
-              write(fid_outgw, "(   A13,6f12.3)") " ",ten_p_ani(2,:,iom)
-              write(fid_outgw, "(   A13,6f12.3)") " ",ten_p_ani(3,:,iom)
-            endif
-
             call zgemm('n','t',3,3,matsiz,cone, &
                        vec_t_ani(:,:,iom),3,vec_a_ani(:,:,iom),3, &
                        cone, ten_a_ani(:,:,iom), 3, ierr)
             !call zgemm('n','t',3,3,matsiz,cone, &
-            !           vec_b_ani(:,:,iom),3,vec_u_ani(:,:,iom),matsiz, &
+            !           vec_b_ani(:,:,iom),3,vec_u_ani(:,:,iom),3, &
             !           cone, ten_a_ani(:,:,iom), 3, ierr)
             !    ! results from above two ways should be identical
             !write(*,*) "ten_a_ani ZGEMM ierr = ",ierr
-            if(ldbg)then
-              write(fid_outgw,"(I3,A10,6f12.3)") iom,"A after :",ten_a_ani(1,:,iom)
-              write(fid_outgw,"(   A13,6f12.3)") " ",ten_a_ani(2,:,iom)
-              write(fid_outgw,"(   A13,6f12.3)") " ",ten_a_ani(3,:,iom)
-            endif
+#ifdef DEBUG
+            write(fid_outgw,"(I3,A10,6f12.3)") iom,"A after :",ten_a_ani(1,:,iom)
+            write(fid_outgw,"(   A13,6f12.3)") " ",ten_a_ani(2,:,iom)
+            write(fid_outgw,"(   A13,6f12.3)") " ",ten_a_ani(3,:,iom)
+#endif
+          else
+            call zgemv('n',matsiz,matsiz,cone,eps(:,:,iom),matsiz, &
+     &               epsw1(:,iom),1,czero,bw1,1)
+            call zgemv('t',matsiz,matsiz,cone,eps(:,:,iom),matsiz, &
+     &               epsw2(:,iom),1,czero,w2b,1)
           endif
           call cpu_time(time2)
           time_lapack=time_lapack+time2-time1
@@ -580,7 +567,7 @@
      &                  abs(w2b(imats)-w2b_tmp).le.1.0D-12
               endif
             enddo
-          endif
+          endif ! iop_aniso.ne.-1
 
           emac(2,iom)=head(iom)
           ! head calculated from the following two ways should be equivalent
@@ -595,33 +582,77 @@
 !            head(iom)=1.d0/ & 
 !     &        (1.0D0-ccoefcoul*ten_rvctrv(3,ten_p_ani(:,:,iom),q0_eps)&
 !     &            -zdotu(matsiz,epsw1(:,iom),1,w2b,1)) ! tested correct
-            if(ldbg)then
-              write(fid_outgw,"(A6,I3,A2,2e13.4)") "e-100",iom,"O",head_tmp
-              write(fid_outgw,"(A6,I3,A2,2e13.4)") "e-100",iom,"N",head(iom)
-              write(fid_outgw,"(A6,I3,A2,2e13.4)") "e-100",iom,"D",head(iom)-head_tmp
-            endif
-            !head(iom)=head_tmp
+#ifdef DEBUG
+            write(fid_outgw,"(A6,I3,A2,2e13.4)") "e-100",iom,"O",head_tmp
+            write(fid_outgw,"(A6,I3,A2,2e13.4)") "e-100",iom,"N",head(iom)
+            write(fid_outgw,"(A6,I3,A2,2e13.4)") "e-100",iom,"D",head(iom)-head_tmp
+#endif
           endif
           emac(1,iom)=1.d0/head(iom)
 
-          epsw1(:,iom)=-head(iom)*bw1(:)
-          epsw2(:,iom)=-head(iom)*w2b(:)
-          do jm=1,matsiz
+          if(iop_aniso.ne.-1)then
             do im=1,matsiz
-              eps(im,jm,iom)=eps(im,jm,iom)+epsw1(im,iom)*epsw2(jm,iom)/head(iom)
+              epsw1(matsiz,iom)=-head(iom)*sqrt(ccoefcoul)*&
+     &            sum(vec_a_ani(:,im,iom)*q0_eps)
+              epsw2(matsiz,iom)=-head(iom)*sqrt(ccoefcoul)*&
+     &            sum(vec_b_ani(:,im,iom)*q0_eps)
             enddo
-          enddo
-        endif
+            ! TODO body of the eps^-1 should be optimized
+            do im=1,matsiz
+              do jm=1,matsiz
+                do i=1,3
+                  do j=1,3
+                    ten_aob_tmp(i,j)=vec_a_ani(i,im,iom)*vec_b_ani(j,jm,iom)
+                  enddo
+                enddo
+                eps(im,jm,iom)=eps(im,jm,iom) + &
+     &              ccoefcoul*head(iom)*ten_rvctrv(3,ten_aob_tmp,q0_eps)
+!                eps(im,jm,iom)=eps(im,jm,iom)+epsw1(im,iom)*epsw2(jm,iom)/head(iom)
+              enddo
+            enddo
+          else
+            epsw1(:,iom)=-head(iom)*bw1(:)
+            epsw2(:,iom)=-head(iom)*w2b(:)
+            do jm=1,matsiz
+              do im=1,matsiz
+                eps(im,jm,iom)=eps(im,jm,iom)+epsw1(im,iom)*epsw2(jm,iom)/head(iom)
+              enddo
+            enddo
+          endif ! iop_aniso.ne.-1
+        endif ! iq.eq.1.and.iop_coul_c.eq.-1
 
-       ! iop == 2, inveps-1 is calculated  
+       ! iop == 2, inveps - 1 is calculated  
         if(iop.eq.2) then
           if(iq.eq.1.and.iop_coul_c.eq.-1) head(iom)=head(iom)-cone
           do im=1,matsiz
             eps(im,im,iom)=eps(im,im,iom)-cone
           enddo
-        endif
+        endif ! iop.eq.2
       enddo ! iom
       deallocate(w2b,bw1)
+
+      !write(*,*) "1"
+      ! calculate eps^-1 on all q0_sph
+      if(iq.eq.1.and.iop_aniso.ne.-1)then
+        do iom=iom_f,iom_l
+          do iq0=1,nq0
+            ! head
+            head_q0(iq0,iom) = cone / &
+     &   (cone+ccoefcoul*ten_rvctrv(3,ten_a_ani(:,:,iom),q0_sph(iq0,:)))
+            ! wings
+            do im=1,matsiz
+              wing1_q0(iq0,im,iom)= - sqrt(ccoefcoul) * &
+     &          sum(vec_a_ani(:,im,iom)*cmplx(q0_sph(iq0,:),0.0D0,8))
+              wing2_q0(iq0,im,iom)= - sqrt(ccoefcoul) * &
+     &          sum(vec_b_ani(:,im,iom)*cmplx(q0_sph(iq0,:),0.0D0,8))
+            enddo
+          enddo
+          if(iop.eq.2) then
+            head_q0(iq0,iom)=head_q0(iq0,iom)-cone
+          endif
+        enddo
+        write(fid_outgw,"(A40,I4)")"eps^-1 calculated on q0_sph, nq0 = ",nq0
+      endif
       l_eps_invd=.true.
 
       end subroutine ! sub_calcinveps
