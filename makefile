@@ -15,8 +15,11 @@
 #
 SRC = "./src/"
 
-default: seq
+default: 
 	cd $(SRC); make; cd ..
+
+debug:
+	cd $(SRC); make debug=yes; cd ..
 
 all: 
 	cd $(SRC); make all; cd ..

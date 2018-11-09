@@ -53,3 +53,15 @@
   2. Rearrange some `iop_aniso` if condition
   3. Calcualte dielectric matrix on `q0_sph` except for the body part.
      Memory corruption happens for `nq0>=14`. 
+
+## 2018-11-09 (zmy)
+
+  1. `im_g0` defaults to 1 in `barcoul` module. (12.273 to 12.275 for LiF-nk1 GW0 gap)
+  2. fix memory corruption by fixing bugs when using `DOPTS` in makefile as `FFLAGS`
+  3. use `ALLOCATABLE` instead of `POINTER` to store tensors and vectors in `anisotropy`
+  4. add `debug' macro in `make.inc` to easily use `DOPTS` for tests
+  5. Update `README.md` in the root directory
+  6. add `smallq`,`smallq_div`,`qmax_q0` in `anisotropy` to define the proximity around Gamma point for integration
+  7. Subroutine `init_smallq` to decide `qmax` along `q0_sph` on the defined `q0` region
+  8. SUbroutine `angint_eps_sph` in `anisotropy` to average over Gamma proximity. Done for head.
+

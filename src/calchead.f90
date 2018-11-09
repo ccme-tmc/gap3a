@@ -174,10 +174,6 @@
                     do j=1,3
                       ten_p_ani(i,j,iom) = ten_p_ani(i,j,iom) + ccoef*&
      &                zdotu(nbmaxpol-ncbm+1,p_ani_iom_cv(i,j,:),1,vwc(:),1)
-!                      do ie2=ncbm,nbmaxpol
-!                        ten_p_ani(i,j,iom)=ten_p_ani(i,j,iom) + &
-!     &                       ccoef*p_ani_iom_cv(i,j,ie2)*vwc(ie2)
-!                      enddo
                     enddo
                   enddo
                   head(iom)=head(iom)-ccoef_coul*ccoef*zdotu(nbmaxpol-ncbm+1,vwc,1,termcv,1)
@@ -275,7 +271,7 @@
           head(iom)=head(iom) - ccoef_coul*ten_rvctrv(3,ten_p_ani(:,:,iom),q0_eps)
           do iq0=1,nq0
             head_q0(iq0,iom) = head_q0(iq0,iom) - &
-     &         ten_rvctrv(3,ten_p_ani(:,:,iom),q0_sph(:,iq0))
+     &         ten_rvctrv(3,ten_p_ani(:,:,iom),q0_sph(iq0,:))
           enddo
         enddo
         ! include tensor P in tensor A, since A = -P + ... (see doc)

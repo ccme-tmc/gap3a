@@ -46,6 +46,7 @@
         use core,    only: ncg
         use freq,    only: nomeg
         use kpoints, only: nkp,nirkp
+        use task,    only: fid_outgw
         implicit none
 
 ! !LOCAL VARIABLES:        
@@ -63,6 +64,7 @@
 
         kcw=0.d0
 
+        write(fid_outgw, "(A10,I2)") "iop_q0:", iop_q0
         if(iop_q0.eq.0) then 
           call set_singc_0
         else 
@@ -145,7 +147,6 @@
         !! Set the angular grid for integration
         call set_lebedev_laikov_grid(n_ang_grid)
 
-
         !! Store the grid
         grid_vec(1,1:n_ang_grid)=xleb(1:n_ang_grid)
         grid_vec(2,1:n_ang_grid)=yleb(1:n_ang_grid)
@@ -194,7 +195,7 @@
 !EOP
 !BOC
 !
-        !! determine the k-points closer to gamma
+        !! determine the k-points closet to gamma
         isk=0
         do i1=-1,1
           do i2=-1,1
@@ -227,6 +228,5 @@
         enddo ! iang
         end subroutine set_kmax_gama
 
-          
       end module bzinteg
 !EOC        

@@ -24,7 +24,8 @@
                                 !  0 -- the "standard" scheme 
                                 !  1 -- via plane wave expansion 
 
-      integer :: im_g0                    ! the index for the basis function corresponding to G=0
+      ! TODO check the usage of im_g0 with Prof. Jiang
+      integer :: im_g0 = 1                ! the index for the basis function corresponding to G=0
 
       real(8) :: barcevtol=-1.d-10        ! tolenrance to choose basis functions from bare Coulomb matrix eigenvectors 
       real(8) :: barcevtol2=0.001d0       ! barc eigenvectors that whose overlap with the G=0 plane wave   
