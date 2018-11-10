@@ -21,9 +21,9 @@ MODULE ANISOTROPY
     real(8), allocatable :: wt_q0_sph(:) ! weight of q0_sph
     integer :: lmax_q0 = 4               ! maximum angular momentum to expand eps on q0_sph
 
-    complex(8), allocatable :: head_q0(:,:)       ! the head (nq0, nomega) for q0 
-    complex(8), allocatable :: wing1_q0(:,:,:)    ! the vertical wing (nq0, matsiz, nomega) for q0 
-    complex(8), allocatable :: wing2_q0(:,:,:)    ! the horizontal wing (nq0, matsiz, nomega) for q0 
+    complex(8), allocatable :: head_q0(:)     ! the head (nq0) for q0 at some freq
+    complex(8), allocatable :: q0_va(:,:)    ! q0 dot vector a
+    complex(8), allocatable :: q0_vb(:,:)    ! q0 dot vector b
 
     ! smallq define the proximity around Gamma point
     real(8) :: smallq(26,3)
@@ -58,9 +58,9 @@ MODULE ANISOTROPY
                 &        ten_a_ani(3,3,iomfirst:iomlast),          &
                 &        q0_sph(1:nq0,3),                          &
                 &        wt_q0_sph(1:nq0),                         &
-                &        head_q0(1:nq0,iomfirst:iomlast),          &
-                &        wing1_q0(1:nq0,matsiz,iomfirst:iomlast),  &
-                &        wing2_q0(1:nq0,matsiz,iomfirst:iomlast),  &
+                &        head_q0(1:nq0),                           &
+                &        q0_va(1:nq0,matsiz),                      &
+                &        q0_vb(1:nq0,matsiz),                      &
                 &        qmax_q0(1:nq0),                           &
                 &        w_q0(1:nq0),                              &
                 &        stat=ierr)
@@ -78,9 +78,9 @@ MODULE ANISOTROPY
             vec_t_ani(:,:,:) = czero
             vec_a_ani(:,:,:) = czero
             vec_b_ani(:,:,:) = czero
-            head_q0(:,:) = cone
-            wing1_q0(:,:,:) = czero
-            wing2_q0(:,:,:) = czero
+            head_q0(:) = cone
+            q0_va(:,:) = czero
+            q0_vb(:,:) = czero
             q0_sph(:,1) = xleb(:)
             q0_sph(:,2) = yleb(:)
             q0_sph(:,3) = zleb(:)
@@ -93,8 +93,11 @@ MODULE ANISOTROPY
 
         SUBROUTINE end_aniso
 
-            deallocate(vec_u_ani, vec_a_ani, vec_b_ani, vec_t_ani, ten_p_ani, ten_a_ani,&
-    &          q0_sph, wt_q0_sph, head_q0, wing1_q0, wing2_q0, qmax_q0, w_q0)
+            deallocate(vec_u_ani, vec_a_ani, vec_b_ani, vec_t_ani, &
+    &                  ten_p_ani, ten_a_ani,&
+    &                  q0_sph, wt_q0_sph, head_q0, &
+    &                  q0_va, q0_vb, &
+    &                  qmax_q0, w_q0)
             write(fid_outgw,*) " - end_aniso: success"
 
         END SUBROUTINE end_aniso
@@ -186,24 +189,46 @@ MODULE ANISOTROPY
         complex(8),intent(inout) :: bodyinv(matsiz,matsiz) 
 
         ! local variables
-        integer :: lmsq
+        integer :: lmsq ! (lmax_q0+1)^2
         complex :: head_tmp
         complex(8),allocatable :: sph_harms(:,:)
         complex(8),allocatable :: h_lm(:)
-        complex(8),allocatable :: s_lm(:)
+        complex(8),allocatable :: a_lm(:,:),b_lm(:,:)
         complex(8),allocatable :: h_w(:)  ! head of invers times w_q0
-        integer :: iq0  ! Counter: runs over nq0
-        integer :: iom  ! Counter: runs over iom_f:iom_l
-        integer :: im   ! Counter: runs over matsiz
+        complex(8),allocatable :: q_aob_q(:) 
+        integer :: iq0               ! Counter: runs over nq0
+        integer :: iom               ! Counter: runs over iom_f:iom_l
+        integer :: im,jm             ! Counter: runs over matsiz
+        integer :: ilm,lm1,lm2,lm3   ! Counter: runs over lmsq
+        integer :: l1,l2,l3,m1,m2,m3 ! Counters: runs over angular moment
+        integer :: i,j               ! Counters: Cartesian axis
         logical :: ldbg=.true.
+        complex(8) :: ccoefcoul_q0, ten_aob_tmp(3,3)
 
         external ylm
-        complex(8),external :: zdotu
+        complex(8),external :: zdotu,ten_rvctrv
 
         lmsq = (lmax_q0+1)**2
         allocate(sph_harms(lmsq,nq0), &
-     &           h_w(nq0)            &
+     &           h_w(nq0),            &
+     &           q_aob_q(nq0),        &
+     &           h_lm(lmsq),          &
+     &           a_lm(lmsq,matsiz),   &
+     &           b_lm(lmsq,matsiz)    &
      &          )
+        ! calculate head_q0 and q0\cdot wing1, q0\cdot wing2
+        do iq0=1,nq0
+          ccoefcoul_q0=cmplx(4.0D0*pi,0.0D0,8)
+          ! head
+          head_q0(iq0) = cone / &
+     &     (cone+ccoefcoul_q0*ten_rvctrv(3,ten_a_ani(:,:,iomega),q0_sph(iq0,:)))
+          ! wings
+          do im=1,matsiz
+          ! TODO optimize with ZGEMM
+            q0_va(iq0,im)=sum(vec_a_ani(:,im,iomega)*cmplx(q0_sph(iq0,:),0.0D0,8))
+            q0_vb(iq0,im)=sum(vec_b_ani(:,im,iomega)*cmplx(q0_sph(iq0,:),0.0D0,8))
+          enddo
+        enddo
 
         ! calculate spherical harmonics at q0_sph
         do iq0=1,nq0
@@ -211,14 +236,64 @@ MODULE ANISOTROPY
         enddo
 
         head_tmp = head
-        h_w = head_q0(:,iomega) * w_q0
+        h_w(:) = head_q0(:)*w_q0(:)
+        ! TODO if the normalization against w is necessary?
         head=4.0D0*pi*zdotu(nq0,h_w,1,cmplx(wt_q0_sph(:),0.0D0,8),1)/norm_w_q0
         if(ldbg)then
             write(*,"(A4,2f13.4,A4,2f13.4)") "OH", head_tmp,"AH",head
             write(fid_outgw,"(A6,I3,A2,2e13.4)") "e-100",iomega,"A",head
         endif
+        ! project head*w, q0va, q0vb on spherical harmonics
+        do ilm=1,lmsq
+            h_lm(ilm)=zdotu(nq0,h_w*conjg(sph_harms(ilm,:)),1,cmplx(wt_q0_sph(:),0.0D0,8),1) &
+     &        /norm_w_q0 * 4.0D0 * pi
+            do im=1,matsiz
+                a_lm(ilm,im)=zdotu(nq0,q0_va(:,im)*conjg(sph_harms(ilm,:)),1,cmplx(wt_q0_sph(:),0.0D0,8),1)/norm_w_q0
+                b_lm(ilm,im)=zdotu(nq0,q0_vb(:,im)*conjg(sph_harms(ilm,:)),1,cmplx(wt_q0_sph(:),0.0D0,8),1)/norm_w_q0
+            enddo
+        enddo
 
-        deallocate(sph_harms,h_w)
+        do im=1,matsiz
+            wv(im)=zdotu(nq0,q0_va(:,im)*h_w(:),1,cmplx(wt_q0_sph(:),0.0D0,8),1)/norm_w_q0
+            wh(im)=zdotu(nq0,q0_vb(:,im)*h_w(:),1,cmplx(wt_q0_sph(:),0.0D0,8),1)/norm_w_q0
+            do jm=1,matsiz
+                do i=1,3
+                    do j=1,3
+                        ten_aob_tmp(i,j) = vec_a_ani(i,im,iomega)*vec_b_ani(j,jm,iomega)
+                    enddo
+                enddo
+                do iq0=1,nq0
+                    q_aob_q(iq0) = ten_rvctrv(3, ten_aob_tmp, q0_sph(iq0,:))
+                enddo
+                bodyinv(im,jm) = bodyinv(im,jm)+ 4.0D0*pi* &
+     &              zdotu(nq0,h_w*q_aob_q,1,cmplx(wt_q0_sph(:),0.0D0,8),1)/norm_w_q0
+            enddo
+        enddo
+
+        ! Use expansion on spherical harmonics. Problem exists!!!
+        ! clean wings first
+        !wv = czero
+        !wh = czero
+        !do l1=0,lmax_q0
+        !    do m1=-l1,l1
+        !        lm1 = 1 + l1*(l1+1) + m1
+        !        do l2=0,lmax_q0
+        !            if(l2.ne.l1) continue
+        !            do m2=-l2,l2
+        !                if(m2+m1.ne.0) continue
+        !                lm2 = 1 + l2*(l2+1) + m2
+        !                do im=1,matsiz
+        !                    wv(im) = wv(im) + h_lm(lm1) * a_lm(lm2,im) * (-1)**m2
+        !                    wh(im) = wh(im) + h_lm(lm1) * b_lm(lm2,im) * (-1)**m2
+        !                enddo
+        !            enddo
+        !        enddo
+        !    enddo
+        !enddo
+        wv = - wv *sqrt(4.0D0*pi)
+        wh = - wh *sqrt(4.0D0*pi)
+
+        deallocate(sph_harms, h_w, a_lm, b_lm, q_aob_q)
 
         END SUBROUTINE angint_eps_sph
 

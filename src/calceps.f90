@@ -539,24 +539,24 @@
           time_lapack=time_lapack+time2-time1
 
           ! test for bw1 and w2b
-          if(iop_aniso.ne.-1)then
-            do imats=1,matsiz
-              bw1_tmp = bw1(imats)
-              w2b_tmp = w2b(imats)
-              bw1(imats)=sqrt(ccoefcoul)*sum(vec_a_ani(:,imats,iom)*cmplx(q0_eps(:),0.0D0,8))
-              w2b(imats)=sqrt(ccoefcoul)*sum(vec_b_ani(:,imats,iom)*cmplx(q0_eps(:),0.0D0,8))
-              if(ldbg) then
-                  write(fid_outdbg,"(i3,i4,A2,4e13.5)") &
-     &                  iom,imats,"O",bw1_tmp,w2b_tmp      
-                  write(fid_outdbg,"(i3,i4,A2,4e13.5)") &
-     &                  iom,imats,"N", bw1(imats),w2b(imats)
-                  write(fid_outdbg,"(i3,i4,A2,2L26)") &
-     &                  iom,imats,"D", &
-     &                  abs(bw1(imats)-bw1_tmp).le.1.0D-12,&
-     &                  abs(w2b(imats)-w2b_tmp).le.1.0D-12
-              endif
-            enddo
-          endif ! iop_aniso.ne.-1
+!          if(iop_aniso.ne.-1)then
+!            do imats=1,matsiz
+!              bw1_tmp = bw1(imats)
+!              w2b_tmp = w2b(imats)
+!              bw1(imats)=sqrt(ccoefcoul)*sum(vec_a_ani(:,imats,iom)*cmplx(q0_eps(:),0.0D0,8))
+!              w2b(imats)=sqrt(ccoefcoul)*sum(vec_b_ani(:,imats,iom)*cmplx(q0_eps(:),0.0D0,8))
+!              if(ldbg) then
+!                  write(fid_outdbg,"(i3,i4,A2,4e13.5)") &
+!     &                  iom,imats,"O",bw1_tmp,w2b_tmp      
+!                  write(fid_outdbg,"(i3,i4,A2,4e13.5)") &
+!     &                  iom,imats,"N", bw1(imats),w2b(imats)
+!                  write(fid_outdbg,"(i3,i4,A2,2L26)") &
+!     &                  iom,imats,"D", &
+!     &                  abs(bw1(imats)-bw1_tmp).le.1.0D-12,&
+!     &                  abs(w2b(imats)-w2b_tmp).le.1.0D-12
+!              endif
+!            enddo
+!          endif ! iop_aniso.ne.-1
 
           emac(2,iom)=head(iom)
           ! head calculated from the following two ways should be equivalent
@@ -564,17 +564,17 @@
           head(iom)=1.d0/(head(iom)-zdotu(matsiz,epsw1(:,iom),1,w2b,1))
 
           ! test for head for anisotropy
-          head_tmp = head(iom)
-          if(iop_aniso.ne.-1)then
-            head(iom) = cone / &
-     &         (cone+ccoefcoul*ten_rvctrv(3,ten_a_ani(:,:,iom),q0_eps))
-!            head(iom)=1.d0/ & 
-!     &        (1.0D0-ccoefcoul*ten_rvctrv(3,ten_p_ani(:,:,iom),q0_eps)&
-!     &            -zdotu(matsiz,epsw1(:,iom),1,w2b,1)) ! tested correct
-            write(fid_outgw,"(A6,I3,A2,2e13.4)") "e-100",iom,"O",head_tmp
-            write(fid_outgw,"(A6,I3,A2,2e13.4)") "e-100",iom,"N",head(iom)
-            write(fid_outgw,"(A6,I3,A2,2e13.4)") "e-100",iom,"D",head(iom)-head_tmp
-          endif
+!          head_tmp = head(iom)
+!          if(iop_aniso.ne.-1)then
+!            head(iom) = cone / &
+!     &         (cone+ccoefcoul*ten_rvctrv(3,ten_a_ani(:,:,iom),q0_eps))
+!!            head(iom)=1.d0/ & 
+!!     &        (1.0D0-ccoefcoul*ten_rvctrv(3,ten_p_ani(:,:,iom),q0_eps)&
+!!     &            -zdotu(matsiz,epsw1(:,iom),1,w2b,1)) ! tested correct
+!            write(fid_outgw,"(A6,I3,A2,2e13.4)") "e-100",iom,"O",head_tmp
+!            write(fid_outgw,"(A6,I3,A2,2e13.4)") "e-100",iom,"N",head(iom)
+!            write(fid_outgw,"(A6,I3,A2,2e13.4)") "e-100",iom,"D",head(iom)-head_tmp
+!          endif
           emac(1,iom)=1.d0/head(iom)
 
           if(iop_aniso.ne.-1)then
@@ -598,32 +598,46 @@
               enddo
             enddo
 
-            ! calculate eps^-1 on all q0_sph
-            do iq0=1,nq0
-              ccoefcoul_q0=cmplx(coul_coef(q0_sph(iq0,:),iop_coul_c),0.0D0,8)
-              ! head
-              head_q0(iq0,iom) = cone / &
-     &       (cone+ccoefcoul*ten_rvctrv(3,ten_a_ani(:,:,iom),q0_sph(iq0,:)))
-              ! wings
-              do im=1,matsiz
-                wing1_q0(iq0,im,iom)=-sqrt(ccoefcoul_q0)*&
-     &            sum(vec_a_ani(:,im,iom)*cmplx(q0_sph(iq0,:),0.0D0,8))
-                wing2_q0(iq0,im,iom)=-sqrt(ccoefcoul_q0)*&
-     &            sum(vec_b_ani(:,im,iom)*cmplx(q0_sph(iq0,:),0.0D0,8))
-              enddo
-            enddo
+!            ! calculate eps^-1 on all q0_sph
+!            do iq0=1,nq0
+!              ccoefcoul_q0=cmplx(coul_coef(q0_sph(iq0,:),iop_coul_c),0.0D0,8)
+!              ! head
+!              head_q0(iq0,iom) = cone / &
+!     &       (cone+ccoefcoul*ten_rvctrv(3,ten_a_ani(:,:,iom),q0_sph(iq0,:)))
+!              ! wings
+!              do im=1,matsiz
+!                wing1_q0(iq0,im,iom)=-sqrt(ccoefcoul_q0)*&
+!     &            sum(vec_a_ani(:,im,iom)*cmplx(q0_sph(iq0,:),0.0D0,8))
+!                wing2_q0(iq0,im,iom)=-sqrt(ccoefcoul_q0)*&
+!     &            sum(vec_b_ani(:,im,iom)*cmplx(q0_sph(iq0,:),0.0D0,8))
+!              enddo
+!            enddo
 
-            if(ldbg)then
-              do iq0=1,nq0
-                write(fid_outdbg,"(A6,I5,I4,2F16.7)") "head_q0",iq0,iom,&
-     &               head_q0(iq0,iom)
-              enddo
-            endif
+!            if(ldbg)then
+!              do iq0=1,nq0
+!                write(fid_outdbg,"(A6,I5,I4,2F16.7)") "head_q0",iq0,iom,&
+!     &               head_q0(iq0,iom)
+!              enddo
+!            endif
             ! Use eps averaged over smallq region for self energy calculation
             ! Only use this in 3D.
             ! TODO different treatment for 2D/1D cases
+            if(ldbg) then
+              write(fid_outdbg,"(A30)") "V/H wing before average"
+              do im=1,matsiz
+                write(fid_outdbg,"(I3,I4,A1,2e13.4)") iom,im,"V",epsw1(im,iom)
+                write(fid_outdbg,"(I3,I4,A1,2e13.4)") iom,im,"H",epsw2(im,iom)
+              enddo
+            endif
             call angint_eps_sph(iom, head(iom), epsw1(:,iom), &
      &                          epsw2(:,iom), eps(:,:,iom))
+            if(ldbg) then
+              write(fid_outdbg,"(A30)") "V/H wing after average"
+              do im=1,matsiz
+                write(fid_outdbg,"(I3,I4,A1,2e13.4)") iom,im,"V",epsw1(im,iom)
+                write(fid_outdbg,"(I3,I4,A1,2e13.4)") iom,im,"H",epsw2(im,iom)
+              enddo
+            endif
           else
             epsw1(:,iom)=-head(iom)*bw1(:)
             epsw2(:,iom)=-head(iom)*w2b(:)

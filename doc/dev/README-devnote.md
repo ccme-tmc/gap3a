@@ -63,5 +63,9 @@
   5. Update `README.md` in the root directory
   6. add `smallq`,`smallq_div`,`qmax_q0` in `anisotropy` to define the proximity around Gamma point for integration
   7. Subroutine `init_smallq` to decide `qmax` along `q0_sph` on the defined `q0` region
-  8. SUbroutine `angint_eps_sph` in `anisotropy` to average over Gamma proximity. Done for head.
+  8. Subroutine `angint_eps_sph` in `anisotropy` to average over Gamma proximity. Done for head.
+
+## 2018-11-10 (zmy)
+
+  1. `angint_eps_sph` averages wings and boy over Gamma proximity.
 
