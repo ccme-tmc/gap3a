@@ -190,7 +190,7 @@ MODULE ANISOTROPY
 
         ! local variables
         integer :: lmsq ! (lmax_q0+1)^2
-        complex :: head_tmp
+        complex :: head_tmp, bodyinv_tmp
         complex(8),allocatable :: sph_harms(:,:)
         complex(8),allocatable :: h_lm(:)
         complex(8),allocatable :: a_lm(:,:),b_lm(:,:)
@@ -257,6 +257,7 @@ MODULE ANISOTROPY
             wv(im)=zdotu(nq0,q0_va(:,im)*h_w(:),1,cmplx(wt_q0_sph(:),0.0D0,8),1)/norm_w_q0
             wh(im)=zdotu(nq0,q0_vb(:,im)*h_w(:),1,cmplx(wt_q0_sph(:),0.0D0,8),1)/norm_w_q0
             do jm=1,matsiz
+                bodyinv_tmp = bodyinv(im,jm)
                 do i=1,3
                     do j=1,3
                         ten_aob_tmp(i,j) = vec_a_ani(i,im,iomega)*vec_b_ani(j,jm,iomega)
@@ -265,8 +266,9 @@ MODULE ANISOTROPY
                 do iq0=1,nq0
                     q_aob_q(iq0) = ten_rvctrv(3, ten_aob_tmp, q0_sph(iq0,:))
                 enddo
-                bodyinv(im,jm) = bodyinv(im,jm)+ 4.0D0*pi* &
+                bodyinv(im,jm) = bodyinv(im,jm)+ cmplx(4.0D0*pi,0.0D0,8)* &
      &              zdotu(nq0,h_w*q_aob_q,1,cmplx(wt_q0_sph(:),0.0D0,8),1)/norm_w_q0
+                if(ldbg) write(fid_outdbg, "(A10,I3,I4,I4,2E13.5)") "diffbody:",iomega,im,jm,bodyinv(im,jm)-bodyinv_tmp
             enddo
         enddo
 

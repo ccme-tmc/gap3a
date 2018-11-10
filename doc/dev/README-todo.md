@@ -12,3 +12,5 @@
 4. Add examples and tests (better in Jupyter notebook)
 
 5. Sphinx documentation
+
+6. fix `README.md`
