@@ -9,6 +9,7 @@ set bindir = $fullname:h
 set w2kdir = $WIENROOT 
 set name  = $fullname:t 	#name of this script-file
 
+set gap_prefix = gap3
 set logfile = :log
 set tmp   = (:$fullname)	#temporary files
 
@@ -34,8 +35,8 @@ alias	exec2		'(\!:*) ;'\
 alias	total_exec2	'output \!:*;'\
 			'exec2  \!:*'
 
-alias KGEN $bindir/gap2_kgen
-alias INITWANN $bindir/gap2_initwann
+alias KGEN $bindir/../src/${gap_prefix}_kgen
+alias INITWANN $bindir/../src/${gap_prefix}_initwann
 alias print 'echo  \!:* | tee -a $outfile '
 
   #alias editor vi

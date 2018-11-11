@@ -1,7 +1,7 @@
 #!/bin/bash 
 # a bash script used to scan parameters in gw.inp
 
-gwx=gap2c-mpi.x 
+gwx=gap3a-mpi.x 
 scan="all"
 wdir=`pwd`
 inp_dir="inp"

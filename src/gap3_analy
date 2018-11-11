@@ -21,9 +21,12 @@
     goto error
   endif 
 
-  alias KGEN $bindir/gap2_kgen
-  alias GWNVF  $bindir/gap2_gwnvf 
-  alias BANDANALY $bindir/gap2_bandanaly
+  gap_prefix=gap3
+
+  alias KGEN $bindir/${gap_prefix}_kgen
+  alias GWNVF  $bindir/${gap_prefix}_gwnvf 
+  alias BANDANALY $bindir/${gap_prefix}_bandanaly
+  alias WKSET $bindir/${gap_prefix}_w2kset
   setenv SCRATCH ./
 
   alias sb 'shift; breaksw'       #definition used in switch
@@ -287,14 +290,14 @@ init:
   if ( $task == 'dos' ) then 
     # create a default int file if it does not exist 
     if !(-e $file.int) then 
-      gap2_w2kset -f $file -o int 
+      WKSET -f $file -o int 
     endif
 
     # if the option -nkp present, generate k-mesh  
     if ( $?nkp ) then
       KGEN -s -f $file -nkp $nkp 
       if($status) then
-        echo "ERROR when running gap2_kgen"
+        echo "ERROR when running ${gap_prefix}_kgen"
         goto error
       endif
       print " The number of k-points for DOS" $nkp
@@ -450,7 +453,7 @@ gw-lapw1:  # get GW vector and energy files
 
   GWNVF -f $file -s $sp $gwopt  
   if($status != 0 ) then 
-    print "ERROR when running gap2_gwnvf" 
+    print "ERROR when running ${gap_prefix}_gwnvf" 
     print " -- skip the GW part"
     unset gw 
     goto $next 

@@ -2,7 +2,7 @@
 import sys,os,shutil,commands
 from math import *
 
-# python functions used by gap2_* scripts
+# python functions used by gap${version}_* scripts
 
 Ry2eV = 13.6056917
 

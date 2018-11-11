@@ -3,7 +3,7 @@
 # This script perform the necessary initializations for running the gw calculations
 
 echo '-----------------------------------------------------------------'
-echo '                           gap3_init                             ' 
+echo '                           gap2_init                             ' 
 echo '-----------------------------------------------------------------'
 
 set fullname=$0
@@ -12,14 +12,14 @@ set name=$fullname:t
 set gwinp="gw.inp"
 setenv SCRATCH '.'
 
-set gap_prefix=gap3
+set gap_prefix=gap2
 
 alias AWK gawk
-alias KGEN $bindir/../src/${gap_prefix}_kgen
-alias DMFTPR $bindir/../src/src_dmftproj/dmftproj.x
+alias KGEN $bindir/${gap_prefix}_kgen
+alias DMFTPR $bindir/src_dmftproj/dmftproj.x
 alias print 'echo  \!:* | tee -a $outfile '
-alias INITWANN   $bindir/../src/${gap_prefix}_initwann
-alias WIEN2WANN  $bindir/../src/${gap_prefix}_w2w 
+alias INITWANN   $bindir/gap2_initwann
+alias WIEN2WANN  $bindir/gap2_w2w 
 
 alias   teststatus      'if ($error) goto recover'
 alias   exec   '(x_lapw  -f $file \!:*) ; set error=$status ; teststatus ' 
@@ -711,10 +711,6 @@ LOmax = $lomax          # the LOMAX used in WIEN2k(lapw1,nmr)
 2.0  |  1.E-15
 %
 
-smallq_div = 1
-iop_aniso = -1
-nq0 = 0
-
 EOF
 
 
@@ -772,7 +768,7 @@ EOF
 # In more recent versions of wien2k, core wave functions are not written to files by default, so it is necessary to 
 # run x lcore to creat case.corewf 
 #
- ${gap_prefix}_w2kset -o inc -f $file 
+ gap2_w2kset -o inc -f $file 
 
  switch($sp)
  case 0: 
@@ -931,13 +927,13 @@ help:
                             be generated in the interactive mode, this might be necessary  
                             if you are using new versions of wien2k   
         -newin1 <newin1>  # -1  -- edit case.in1 on the fly
-                          # -2  -- generate new case.in1 by calling '${gap_prefix}_newin1 <newin1_opt>'
+                          # -2  -- generate new case.in1 by calling 'gap2_newin1 <newin1_opt>'
                           #  0  -- generate new case.in1 by calling 'x_nmr_lapw -mode in1 <newin1_opt>'
                           # >0  -- generate new case.in1 by calling 'x_nmr_lapw -mode in1 -nodes <newin1> <newin1_opt>'
                          
         -newin1opt <"newin1_opt">  
-                          #   option to be transfered to ${gap_prefix}_newin1 or x_nmr_lapw
-                          #   check available options by "${gap_prefix}_newin1 -h" or "x_nmr_lapw -h"   
+                          #   option to be transfered to gap2_newin1 or x_nmr_lapw
+                          #   check available options by "gap2_newin1 -h" or "x_nmr_lapw -h"   
         -newin1test       # run "x_nmr_lapw -mode testval" after running "x_nmr_lapw -mode in1"
 
         -orb              # LDA+U based GW calculations add -orb for lapw1 calculations 

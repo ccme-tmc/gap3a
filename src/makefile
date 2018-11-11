@@ -44,7 +44,7 @@ DESTDIR = .
 S_EXEC = $(DESTDIR)/$(S_EXECNAME)
 P_EXEC = $(DESTDIR)/$(P_EXECNAME)
 
-SCRIPTS = gap${version}_init gap$(vernum)_analy gap$(vernum)_bandanaly gap$(vernum)_gwnvf gap$(vernum)_initwann gap$(vernum)_kgen gap$(vernum)_newin1 gap$(vernum)_save gap$(vernum)_utils.py gap$(vernum)_w2kset gap$(vernum)_w2w gap$(vernum)_scaninp 
+SCRIPTS = gap${version}_init gap$(vernum)_analy gap$(vernum)_bandanaly gap$(vernum)_gwnvf gap$(vernum)_initwann gap$(vernum)_kgen gap$(vernum)_newin1 gap$(vernum)_save gap_utils.py gap$(vernum)_w2kset gap$(vernum)_w2w gap$(vernum)_scaninp 
 
 BZDIR= ./src_libbzint
 LIBBZ = ./libbzint.a
@@ -220,14 +220,15 @@ pack:
 
 prepsrc:
 	mkdir -p ../$(PACKNAME)/src
-	cp -rf *.f90 makefile make.inc* $(SCRIPTS) ../$(PACKNAME)/src
-	mkdir -p ../$(PACKNAME)/src/$(KGENDIR); cd $(KGENDIR); cp *.f makefile README ../../$(PACKNAME)/$(KGENDIR); cd .. 
-	mkdir -p ../$(PACKNAME)/src/$(DMFTPRDIR); cd $(DMFTPRDIR); cp *.f makefile ../../$(PACKNAME)/$(DMFTPRDIR); cd .. 
-	mkdir -p ../$(PACKNAME)/src/$(MODDIR); cd $(MODDIR); cp *.f90 makefile ../../$(PACKNAME)/$(MODDIR); cd ..
-	mkdir -p ../$(PACKNAME)/src/$(BZDIR); cd $(BZDIR); cp *.f90 *.f makefile ../../$(PACKNAME)/$(BZDIR); cd ..
-	mkdir -p ../$(PACKNAME)/src/$(ACFREQDIR); cd $(ACFREQDIR); cp *.f90 *.f makefile ../../$(PACKNAME)/$(ACFREQDIR); cd ..
-	mkdir -p ../$(PACKNAME)/src/$(UTILDIR); cd $(UTILDIR); cp *.f90 *.f makefile ../../$(PACKNAME)/$(UTILDIR); cd .. 
-	mkdir -p ../$(PACKNAME)/src/$(PARSERDIR); cd $(PARSERDIR); cp *.f90 *.c *.h *.in *.y makefile ../../$(PACKNAME)/$(PARSERDIR); cd .. 
+	cp -rf ../makefile ../README.md  ../$(PACKNAME)/
+	cp -rf *.f90 makefile make.inc-* $(SCRIPTS) ../$(PACKNAME)/src
+	mkdir -p ../$(PACKNAME)/src/$(KGENDIR); cd $(KGENDIR); cp *.f makefile README ../../$(PACKNAME)/src/$(KGENDIR); cd .. 
+	mkdir -p ../$(PACKNAME)/src/$(DMFTPRDIR); cd $(DMFTPRDIR); cp *.f makefile ../../$(PACKNAME)/src/$(DMFTPRDIR); cd .. 
+	mkdir -p ../$(PACKNAME)/src/$(MODDIR); cd $(MODDIR); cp *.f90 makefile ../../$(PACKNAME)/src/$(MODDIR); cd ..
+	mkdir -p ../$(PACKNAME)/src/$(BZDIR); cd $(BZDIR); cp *.f90 *.f makefile ../../$(PACKNAME)/src/$(BZDIR); cd ..
+	mkdir -p ../$(PACKNAME)/src/$(ACFREQDIR); cd $(ACFREQDIR); cp *.f90 *.f makefile ../../$(PACKNAME)/src/$(ACFREQDIR); cd ..
+	mkdir -p ../$(PACKNAME)/src/$(UTILDIR); cd $(UTILDIR); cp *.f90 *.f makefile ../../$(PACKNAME)/src/$(UTILDIR); cd .. 
+	mkdir -p ../$(PACKNAME)/src/$(PARSERDIR); cd $(PARSERDIR); cp *.f90 *.c *.h *.in *.y makefile ../../$(PACKNAME)/src/$(PARSERDIR); cd .. 
 
 prepdoc:
 	mkdir -p ../$(PACKNAME)/doc

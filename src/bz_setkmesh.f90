@@ -135,7 +135,7 @@
      &is inconsistent with that used in WIEN2k!!!"
           write(6,'(a)') " - there may be some bugs in libbzint "
           write(6,'(a)') " - use KS-vectors in the full BZ (check the & 
-     &flag '-sv' in gap2_init) to avoid such problems"
+     &flag '-sv' in gap3a_init) to avoid such problems"
           stop 
         endif 
       endif 

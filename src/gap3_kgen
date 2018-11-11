@@ -122,7 +122,7 @@ EOF
   endif 
 
   if ( $status != 0 ) then
-    echo "Fail to generate " $file.klist " with gap2_kgen"
+    echo "Fail to generate " $file.klist " with gap3_kgen"
     set error
   endif 
 
@@ -135,7 +135,7 @@ EOF
   exit 0
 
 error:
-  echo "ERROR in gap2_kgen"
+  echo "ERROR in gap3_kgen"
   exit 1
 
 help:
