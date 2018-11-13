@@ -18,8 +18,9 @@
       use kpoints,     only: nqp,nirkp
       use task,        only: progname,taskname,time_minm,time_lapack,&
      &                       time_evec,time_eps,time_selfx,time_selfc,&
-     &                       time_mwm,time_coul,time_vxc
+     &                       time_mwm,time_coul,time_vxc,time_aniso
       use xcpot,       only: init_xcpot, end_xcpot
+      use anisotropy,  only: iop_aniso
       use modmpi
 
 !
@@ -135,6 +136,9 @@
       write(6,10) "  selfc matrix         ",time_selfc
       write(6,10) "  Bare Coulomb         ",time_coul
       write(6,10) "  M*W*M matrix         ",time_mwm
+      if(iop_aniso.ne.-1) then
+        write(6,10) "  Anisotropy realted   ",time_aniso
+      endif
 
  10   format('CPUTIME for    ',A40,f16.2,' seconds')      
       call io_cleanup

@@ -7,8 +7,10 @@ MODULE ANISOTROPY
     use constants, only: czero,cone,pi
     use task, only: fid_outgw, fid_outdbg
 
+    implicit none
     integer :: iop_aniso = -1  ! control whether to consider the anisotropy of dielectric function around Gamma
                                ! -1 -- use q0_eps, no anisotropy
+
     complex(8), allocatable :: vec_u_ani(:,:,:)   ! vector u
     complex(8), allocatable :: vec_t_ani(:,:,:)   ! vector t
     complex(8), allocatable :: vec_a_ani(:,:,:)   ! vector a
@@ -41,6 +43,7 @@ MODULE ANISOTROPY
 
             use lebedev_laikov
 
+            implicit none
             integer,intent(in) :: iomfirst, iomlast
             integer :: ierr
 
@@ -161,18 +164,18 @@ MODULE ANISOTROPY
         ! normalization of w_q0(q) in the defined proximity
         norm_w_q0 = 4*pi*ddot(nq0,w_q0,1,wt_q0_sph,1)
 
-        if(ldbg) then
-            write(fid_outdbg,"(A7)") "smallq:"
-            do isq=1,26
-                write(fid_outdbg,"(I3,3F12.6)") isq, smallq(isq,:)
-            enddo
-            write(fid_outdbg,"(A30, f12.6)") "Volume of smallq (a.u.^-3):", vol_q0
-            write(fid_outdbg,"(A15,I4)") "qmax with nq0 ", nq0
-            do iq0=1,nq0
-                write(fid_outdbg,"(I4,4F12.6)") iq0, q0_sph(iq0,:),qmax_q0(iq0)
-            enddo
-            write(fid_outdbg,"(A25,F12.7)") "Normalization of w(q) = ", norm_w_q0
-        endif
+        !if(ldbg) then
+        write(fid_outdbg,"(A7)") "smallq:"
+        do isq=1,26
+            write(fid_outdbg,"(I3,3F12.6)") isq, smallq(isq,:)
+        enddo
+        write(fid_outgw,"(A30, f12.6)") "Volume of smallq (a.u.^-3):", vol_q0
+        write(fid_outgw,"(A15,I4)") "qmax with nq0 ", nq0
+        do iq0=1,nq0
+            write(fid_outdbg,"(I4,4F12.6)") iq0, q0_sph(iq0,:),qmax_q0(iq0)
+        enddo
+        write(fid_outgw,"(A25,F12.7)") "Normalization of w(q) = ", norm_w_q0
+        !endif
 
         END SUBROUTINE init_smallq
 

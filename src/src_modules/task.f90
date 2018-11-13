@@ -62,6 +62,7 @@
         real(8) :: time_evec   = 0.d0     ! cputime used for expanding eigenvectors
         real(8) :: time_coul   = 0.d0     ! cputime used for bare Coulomn matrix 
         real(8) :: time_vxc    = 0.d0     ! cputime used for LDA/GGA Vxc matrix  
+        real(8) :: time_aniso  = 0.d0     ! cputime used for anisotropy related utilities
 
 !
 ! memory usage information for largest matrices

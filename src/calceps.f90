@@ -30,9 +30,11 @@
       use selfenergy,  only: qpwf_coef
       use struk,       only: nat,vi
       use task,        only: casename,time_lapack,time_eps,l_save_dielmat, &
-     &                       fid_outgw, fid_outdbg
+     &                       fid_outgw, fid_outdbg,time_aniso
       use modmpi
-      use anisotropy
+      use anisotropy,  only: ten_a_ani,ten_p_ani,init_aniso,end_aniso,&
+     &                       vec_a_ani,vec_b_ani,vec_t_ani,vec_u_ani,&
+     &                       iop_aniso,angint_eps_sph
 
 ! !INPUT PARAMETERS:
       
@@ -66,8 +68,8 @@
       integer :: ik_f, ik_l 
       
       logical :: ldbg=.true.
-      logical :: l_eps_invd=.false.  ! label if eps,epsw and head inversed
-      logical :: l_body_invd=.false. ! label if eps (body only) inversed
+      logical :: l_eps_invd=.false.  ! label if eps,epsw and head inverted
+      logical :: l_body_invd=.false. ! label if eps (body only) inverted
 
       integer :: nblk,iblk,m_f,m_l
       integer :: nomg
@@ -77,7 +79,7 @@
       complex(8):: coefks,cedif,caux,epsw1_tmp,epsw2_tmp,head_tmp,ccoefcoul
       complex(8):: ten_a_ani_tmp(3,3)
 
-      real(8) :: time1,time2,tstart,tend
+      real(8) :: time1,time2,time3,time4,tstart,tend
       character(len=15)::sname='calceps'
 
       real(8),   allocatable :: enk(:)        !! local array for eigen-energies 
@@ -130,11 +132,15 @@
       ! calculate q-dep. BZint weights
       call bz_calcqdepw(iq)  
 
+      time_aniso = 0.0D0
       ! first calculate momentum matrix and the head
       if(iq.eq.1.and.iop_coul_c.eq.-1) then
         call init_mommat(1,nomax,numin,nbmaxpol,nirkp,nspin)
         if(iop_aniso.ne.-1) then
+          call cpu_time(time1)
           call init_aniso(iom_f,iom_l)
+          call cpu_time(time2)
+          time_aniso = time_aniso + time2 - time1
           allocate(u_ani_iom(3,matsiz))
         endif
 
@@ -145,7 +151,7 @@
         endif
         call calchead(1,nirkp,iom_f,iom_l)
       endif
-
+        
       ! set the parallelization over k (within the row)
       call mpi_set_range(nproc_row,myrank_row,nktot,1,ik_f,ik_l)
       write(fid_outgw,*) "calceps: myrank_row,ik_f,ik_l =",myrank_row,ik_f,ik_l
@@ -190,7 +196,7 @@
             ie1_f = ie1
             if(enk(ie1) > eminpol) exit 
           enddo
-          if(ldbg) write(fid_outgw,*) " ie1_f=",ie1_f 
+          if(ldbg) write(fid_outgw,*) " ie1_f=",ie1_f, "ie1_l=", ie1_l
 
           !! set mask_eps that defines the transitions to be skipped 
           call crpa_setmask(irk,jrk,isp) 
@@ -281,9 +287,12 @@
                 call zgemv('n',matsiz,nmdim,-coefks,tmat,matsiz,pm,1,czero,wtmp,1)
                 !call zgemv('n',matsiz,nmdim,coef,tmat,matsiz,pm,1,cone,epsw1(:,iom),1)
                 if(iop_aniso.ne.-1)then
+                  call cpu_time(time3)
                   call zgemm('n','t',3,matsiz,nmdim,coefks,&
      &                 vec_u_tmp,3,tmat,matsiz,czero,u_ani_iom,3)
                   vec_u_ani(:,:,iom)=vec_u_ani(:,:,iom)+u_ani_iom(:,:)
+                  call cpu_time(time4)
+                  time_aniso = time_aniso + time4 - time3
                 endif
                 epsw1(:,iom)=epsw1(:,iom)+wtmp
 
@@ -301,9 +310,12 @@
                   !call zgemv('n',matsiz,nmdim,coefks,tmat,matsiz,pm,1,cone,epsw2(:,iom),1)
                 endif
                 if(iop_aniso.ne.-1)then
+                  call cpu_time(time3)
                   call zgemm('n','t',3,matsiz,nmdim,coefks,&
      &                 vec_u_tmp,3,tmat,matsiz,czero,u_ani_iom,3)
                   vec_t_ani(:,:,iom)=vec_t_ani(:,:,iom)+conjg(u_ani_iom)
+                  call cpu_time(time4)
+                  time_aniso = time_aniso + time4 - time3
                 endif
                 epsw2(:,iom)=epsw2(:,iom)+conjg(wtmp)
               endif
@@ -328,15 +340,24 @@
           call mpi_sum_array(0,epsw2,matsiz,nomg,mycomm_ra3)
           ! TODO check if the mpi_sum_array works with vec_u_ani etc
           if(iop_aniso.ne.-1)then
+            call cpu_time(time1)
             call mpi_sum_array(0,vec_u_ani,3,matsiz,nomg,mycomm_ra3)
             call mpi_sum_array(0,vec_t_ani,3,matsiz,nomg,mycomm_ra3)
+            call cpu_time(time2)
+            time_aniso = time_aniso + time2 - time1
           endif
         endif
       endif
+      write(fid_outgw,"(A28,I3,A10,I3)")"eps/w/h Sum done: myrank",&
+     & myrank_ra3, " in comm ",mycomm_ra3
+      call MPI_Barrier(mycomm_ra3, ierr)
+      write(fid_outgw,"(A28,I3,A10,I3,A2,I3)")"MPI_Barrier of myrank",&
+     & myrank_ra3, "in comm ",mycomm_ra3, " :", ierr
 #endif
 
       ! for anisotropy, calculate wings here with vec_u and vec_t
-      if(iop_aniso.ne.-1) then
+      if(iq.eq.1.and.iop_coul_c.eq.-1.and.iop_aniso.ne.-1) then
+        call cpu_time(time1)
         write(fid_outdbg, *) "diff epsw from iso and aniso"
         write(fid_outdbg, "(A3,A4,A2,4A13)") "iom","imats", "ST",&
      &                      "ReW1","ImW1","ReW2","ImW2"
@@ -357,6 +378,8 @@
      &               abs(epsw2(imats,iom)-epsw2_tmp).lt.1.0D-12
           enddo
         enddo
+        call cpu_time(time2)
+        time_aniso = time_aniso + time2 - time1
       endif
 
       !! add "1" to the diagonal elements
@@ -481,10 +504,8 @@
       implicit none 
       
       integer :: im,jm,iom  ! index for mixed basis and freq.
-      integer :: iq0        ! Counter: runs over nq0 (anisotropy)
       complex(8), allocatable :: w2b(:), bw1(:)
       complex(8) :: ten_aob_tmp(3,3)
-      complex(8) :: ccoefcoul_q0
       complex(8) :: bw1_tmp, w2b_tmp ! for test use
       complex(8),external:: zdotu,ten_rvctrv
 
@@ -495,10 +516,10 @@
       call errmsg(ierr.ne.0,sname,"fail to allocate bw1,w2b")
 
       do iom=iom_f,iom_l
-        ! TODO anisotropy in inverse of dielectric matrix
         if(iq.eq.1.and.iop_coul_c.eq.-1) then  !!  Gamma point 
           call cpu_time(time1)
           if(iop_aniso.ne.-1) then
+            call cpu_time(time3)
             ! calculate vector a and vector b
             call zgemm('n','t',3,matsiz,matsiz,-cone, &
                        vec_u_ani(:,:,iom),3,eps(:,:,iom),matsiz, &
@@ -506,6 +527,8 @@
             call zgemm('n','n',3,matsiz,matsiz,-cone, &
                        vec_t_ani(:,:,iom),3,eps(:,:,iom),matsiz, &
                        czero, vec_b_ani(:,:,iom), 3, ierr)
+            call cpu_time(time4)
+            time_aniso = time_aniso + time4 - time3
             call zgemv('n',matsiz,matsiz,cone,eps(:,:,iom),matsiz, &
      &             epsw1(:,iom),1,czero,bw1,1)
             call zgemv('t',matsiz,matsiz,cone,eps(:,:,iom),matsiz, &
@@ -518,6 +541,7 @@
             write(fid_outgw, "(   A13,6f12.3)") " ",ten_p_ani(3,:,iom)
             ! calculate tensor A
             ! following two zgemm should give identical result
+            call cpu_time(time3)
             call zgemm('n','t',3,3,matsiz,cone, &
                        vec_t_ani(:,:,iom),3,vec_a_ani(:,:,iom),3, &
                        cone, ten_a_ani(:,:,iom), 3, ierr)
@@ -526,6 +550,8 @@
             !           cone, ten_a_ani(:,:,iom), 3, ierr)
             !    ! results from above two ways should be identical
             !write(*,*) "ten_a_ani ZGEMM ierr = ",ierr
+            call cpu_time(time4)
+            time_aniso = time_aniso + time4 - time3
             write(fid_outgw,"(I3,A10,6f12.3)") iom,"A after :",ten_a_ani(1,:,iom)
             write(fid_outgw,"(   A13,6f12.3)") " ",ten_a_ani(2,:,iom)
             write(fid_outgw,"(   A13,6f12.3)") " ",ten_a_ani(3,:,iom)
@@ -534,7 +560,8 @@
      &               epsw1(:,iom),1,czero,bw1,1)
             call zgemv('t',matsiz,matsiz,cone,eps(:,:,iom),matsiz, &
      &               epsw2(:,iom),1,czero,w2b,1)
-          endif
+          endif ! iop_aniso.ne.-1
+
           call cpu_time(time2)
           time_lapack=time_lapack+time2-time1
 
@@ -584,7 +611,7 @@
               epsw2(matsiz,iom)=-head(iom)*sqrt(ccoefcoul)*&
      &            sum(vec_b_ani(:,im,iom)*q0_eps)
             enddo
-            ! TODO body of the eps^-1 should be optimized
+            ! TODO body of the eps^-1 could be optimized
             do im=1,matsiz
               do jm=1,matsiz
                 do i=1,3
@@ -619,6 +646,7 @@
 !     &               head_q0(iq0,iom)
 !              enddo
 !            endif
+
             ! Use eps averaged over smallq region for self energy calculation
             ! Only use this in 3D.
             ! TODO different treatment for 2D/1D cases
@@ -629,8 +657,11 @@
                 write(fid_outdbg,"(I3,I4,A1,2e13.4)") iom,im,"H",epsw2(im,iom)
               enddo
             endif
+            call cpu_time(time3)
             call angint_eps_sph(iom, head(iom), epsw1(:,iom), &
      &                          epsw2(:,iom), eps(:,:,iom))
+            call cpu_time(time4)
+            time_aniso = time_aniso + time4 - time3
             if(ldbg) then
               write(fid_outdbg,"(A30)") "V/H wing after average"
               do im=1,matsiz

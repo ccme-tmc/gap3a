@@ -44,15 +44,14 @@
 ## 2018-11-07 (zmy)
 
   1. Disable the use of `zhemv` in calulating `epsw1` and `epsw2` when inverting the dielectric matrix for imaginary frequency.
-     When using `zhemv`, calculating `head` with `epsw2+bw1` and `w2b+epsw1` gives different results,
-	 although they should be identical due to the analytic expression.
+When using `zhemv`, calculating `head` with `epsw2+bw1` and `w2b+epsw1` gives different results,
+although they should be identical due to the analytic expression.
 
 ## 2018-11-08 (zmy)
 
   1. Fix the `zgemm` in calculating `ten_a_aniso`.
   2. Rearrange some `iop_aniso` if condition
-  3. Calcualte dielectric matrix on `q0_sph` except for the body part.
-     Memory corruption happens for `nq0>=14`. 
+  3. Calcualte dielectric matrix on `q0_sph` except for the body part. Memory corruption happens for `nq0>=14`
 
 ## 2018-11-09 (zmy)
 
@@ -69,3 +68,8 @@
 
   1. `angint_eps_sph` averages wings and boy over Gamma proximity.
 
+## 2018-11-13 (zmy)
+
+  1. add time counting for anisotropy utilies
+  2. explicitly write all used variables from `anisotropy` module in `calceps` subroutine
+  3. fix MPI bug by ifo condition in `calceps`

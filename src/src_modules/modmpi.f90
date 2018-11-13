@@ -158,7 +158,8 @@ contains
 #ifdef MPI
   subroutine mpi_set_group(nq,nk) 
 ! this subroutine is to set up the MPI commonicators 
-! all processes are divided into groups     
+! all processes are divided into groups
+    use task, only: fid_outgw
     implicit none
     integer, intent(in):: nq,nk
     integer myrow,mycol,my3rd,myra3
@@ -177,8 +178,8 @@ contains
       return 
     endif 
 
-    write(6,*) " Setup MPI group:"
-    write(6,*) " nq=",nq," nk=",nk
+    write(fid_outgw,*) " Setup MPI group:"
+    write(fid_outgw,*) " nq=",nq," nk=",nk
 
     if(lsetgroup) call mpi_free_group
 
@@ -200,7 +201,7 @@ contains
     !! set nproc_3rd
     nproc_3rd = nproc/(nproc_col*nproc_row) 
     nproc_ra3 = nproc_row*nproc_3rd 
-    write(6,*) "nproc_col/row/3rd/ra3(init) =",nproc_col,nproc_row,nproc_3rd,nproc_ra3
+    write(fid_outgw,*) "nproc_col/row/3rd/ra3(init) =",nproc_col,nproc_row,nproc_3rd,nproc_ra3
 
     my3rd = myrank/(nproc_col*nproc_row)
     mycol = (myrank - my3rd*nproc_col*nproc_row)/nproc_row 
@@ -229,15 +230,15 @@ contains
     call MPI_COMM_RANK(mycomm_col,myrank_col,ierr)
     call MPI_COMM_RANK(mycomm_3rd,myrank_3rd,ierr)
     call MPI_COMM_RANK(mycomm_ra3,myrank_ra3,ierr)
-    write(6,'(a40,5i5)') "myrank, mycol/row/3rd/ra3=",myrank,mycol,myrow,my3rd,myra3
-    write(6,'(a45,4i5)') "   myrank_col/row/3rd/ra3=",myrank_col,myrank_row,myrank_3rd,myrank_ra3
-    write(6,*) "mycomm_col/row/3rd=",mycomm_col,mycomm_row,mycomm_3rd 
+    write(fid_outgw,'(a40,5i5)') "myrank, mycol/row/3rd/ra3=",myrank,mycol,myrow,my3rd,myra3
+    write(fid_outgw,'(a45,4i5)') "   myrank_col/row/3rd/ra3=",myrank_col,myrank_row,myrank_3rd,myrank_ra3
+    write(fid_outgw,*) "mycomm_col/row/3rd=",mycomm_col,mycomm_row,mycomm_3rd 
 
     if(     mycol.ne.myrank_col &
    &   .or. myrow.ne.myrank_row &
    &   .or. my3rd.ne.myrank_3rd  & 
    &   .or. myra3.ne.myrank_ra3) then 
-      write(6,*) "WARNING: something may be wrong here!"
+      write(fid_outgw,*) "WARNING: something may be wrong here!"
     endif  
 
 !   reset nproc_row/row/3rd, since this may not be identical for each column 
@@ -255,15 +256,15 @@ contains
    &   .and. (     nproc_col .ne. nproc_col_old         &
    &           .or.nproc_row .ne. nproc_row_old         &
    &           .or.nproc_3rd .ne. nproc_3rd_old ) ) then 
-      write(6,*) "ERROR: something wrong when setting MPI groups:"
+      write(fid_outgw,*) "ERROR: something wrong when setting MPI groups:"
       if(myrank.eq.0) then 
-        write(6,*) "  new nproc_col/row/3rd/ra3=",nproc_col,nproc_row,nproc_3rd,nproc_ra3
+        write(fid_outgw,*) "  new nproc_col/row/3rd/ra3=",nproc_col,nproc_row,nproc_3rd,nproc_ra3
       endif 
       stop  
     endif 
 
     mycomm=MPI_COMM_WORLD
-    write(6,*) "nproc_col/row/3rd/ra3(final) =",nproc_col,nproc_row,nproc_3rd,nproc_ra3 
+    write(fid_outgw,*) "nproc_col/row/3rd/ra3(final) =",nproc_col,nproc_row,nproc_3rd,nproc_ra3 
 
     lsetgroup = .true.
 

@@ -24,7 +24,7 @@
       use dielmat,     only: head,c0_head,q0_eps,mask_eps,iop_drude,&
      &                       omega_plasma,eta_head 
       use struk,       only: vi
-      use task,        only: fid_outgw, fid_outdbg
+      use task,        only: fid_outgw, fid_outdbg, time_aniso
       use anisotropy,  only: ten_p_ani,ten_a_ani,iop_aniso
       use mixbasis,    only: matsiz
 
@@ -57,6 +57,8 @@
       real(8) :: edif    ! energy differences
       real(8) :: edsq    ! edif^2
       real(8) :: coef,pnmkq2,coef_coul 
+      real(8) :: time1,time2
+      
       complex(8):: ccoef, pnmkq, ccoef_coul
 
       complex(8), allocatable :: p_ani_iom_cv(:,:,:),p_ani_iom_vv(:,:,:)
@@ -114,9 +116,8 @@
           call crpa_setmask(irk,irk,isp)
 
           coef=vi*kwt*fspin
-          ccoef=cmplx(coef,0.0D0,8)
-
           if(ldbg) write(fid_outgw,*) " - coef=",coef
+          ccoef=cmplx(coef,0.0D0,8)
 !
 !         the part related to metallic systems
 !         TODO anisotropy for plasmon contribution
@@ -145,6 +146,7 @@
 
                 if(iop_aniso.ne.-1) then
                   !write(*,*) "use ten_p for ani"
+                  call cpu_time(time1)
                   do i=1,3
                     do j=1,3
                       p_ani_iom_cv(i,j,ie2) = mmatcv(j,icg,ie2,irk,isp)*&
@@ -152,6 +154,8 @@
      &                          cmplx(edsq,0.0D0,8)
                     enddo
                   enddo
+                  call cpu_time(time2)
+                  time_aniso = time_aniso + time2 - time1
                   termcv(ie2)=ten_rvctrv(3,p_ani_iom_cv(:,:,ie2),q0_eps)
                 else
                 !! two treatments are equivalent with q0_eps=(1,1,1)/\sqrt{3}
@@ -169,12 +173,15 @@
               do iom=iomfirst,iomlast
                 vwc(ncbm:nbmaxpol)=kcw(icg,ncbm:nbmaxpol,ik,iom,isp)
                 if(iop_aniso.ne.-1) then
+                  call cpu_time(time1)
                   do i=1,3
                     do j=1,3
                       ten_p_ani(i,j,iom) = ten_p_ani(i,j,iom) + ccoef*&
      &                zdotu(nbmaxpol-ncbm+1,p_ani_iom_cv(i,j,:),1,vwc(:),1)
                     enddo
                   enddo
+                  call cpu_time(time2)
+                  time_aniso = time_aniso + time2 - time1
                   head(iom)=head(iom)-ccoef_coul*ccoef*zdotu(nbmaxpol-ncbm+1,vwc,1,termcv,1)
                 else
                   head(iom)=head(iom)-ccoef_coul*ccoef*zdotu(nbmaxpol-ncbm+1,vwc,1,termcv,1)
@@ -207,6 +214,7 @@
               else 
                 if(iop_aniso.ne.-1) then
                   !write(*,*) "use ten_p for ani"
+                  call cpu_time(time1)
                   do i=1,3
                     do j=1,3
                       p_ani_iom_vv(i,j,ie12)=mmatvv(j,ie1,ie2,irk,isp)*&
@@ -214,6 +222,8 @@
      &                    cmplx(edsq,0.0D0,8)*mask_eps(ie2,ie1+ncg_p)
                     enddo
                   enddo
+                  call cpu_time(time2)
+                  time_aniso = time_aniso + time2 - time1
                   termvv(ie12)=ten_rvctrv(3,p_ani_iom_vv(:,:,ie12),q0_eps)
                 else
                   pnmkq=sum(mmatvv(1:3,ie1,ie2,irk,isp)*q0_eps(1:3)) &
@@ -237,6 +247,7 @@
               enddo 
             enddo 
             if(iop_aniso.ne.-1) then
+              call cpu_time(time1)
               do i=1,3
                 do j=1,3
                   ten_p_ani(i,j,iom) = ten_p_ani(i,j,iom) + ccoef*&
@@ -247,6 +258,8 @@
 !                  enddo
                 enddo
               enddo
+              call cpu_time(time2)
+              time_aniso = time_aniso + time2 - time1
               head(iom)=head(iom)-ccoef_coul*ccoef*zdotu(ie12max,termvv,1,vwe,1)
             else
               head(iom)=head(iom)-ccoef_coul*ccoef*zdotu(ie12max,termvv,1,vwe,1)
