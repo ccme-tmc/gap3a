@@ -14,7 +14,7 @@
 ! !USES:
 
       use bands,      only: nbmaxsc,nspin,ibgw,nbgw,nbandsgw,nbands_c
-      use bzinteg,    only: singc1,singc2
+      use bzinteg,    only: singc1co,singc2co
       use constants,  only: cone,czero,pi,fourpi,sqrt4pi
       use core,       only: eigcore,ncg,iop_core 
       use dielmat,    only: eps,head,epsw1,epsw2
@@ -24,7 +24,7 @@
       use selfenergy, only: qpwf_coef 
       use struk,      only: vi 
       use task,       only: time_lapack,time_selfc,     &
-     &                      casename,spflag,savdir
+     &                      casename,spflag,savdir,fid_outgw
       use modmpi
 
 ! !INPUT PARAMETERS:
@@ -80,6 +80,7 @@
 
       call cpu_time(tstart)
 
+      write(fid_outgw,*) "Calculate M*W*M by ", sname
       if(isc.eq.-1) then 
         iop_minm = -1 
       else if(isc.eq.0) then
@@ -171,12 +172,13 @@
       vi4pi=fourpi*vi
       sqvi4pi=sqrt(vi4pi)
       wkq = dble(weightq(iq))/dble(nqp)
-      coefs2=singc2*vi4pi
-      coefs1=singc1*sqvi4pi
+      coefs2=singc2co*vi4pi
+      coefs1=singc1co*sqvi4pi
 
       nmdim=nbandsgw*(m1-m0+1)
       if(nmdim.le.0) then 
-        write(6,*) trim(sname)//":WARNING -- nmdim <=0 in sub_calcmwm"
+        write(fid_outgw,*) &
+     &      trim(sname)//":WARNING -- nmdim <=0 in sub_calcmwm"
         return 
       endif 
       allocate(wm(matsiz,m0:m1,ibgw:nbgw))

@@ -22,7 +22,8 @@
       use kpoints,    only: nqp,kqid,idikp,kpirind,weightq
       use mixbasis,   only: matsiz
       use struk,      only: vi 
-      use task,       only: time_lapack,lrestart,time_mwm, fid_outdbg
+      use task,       only: time_lapack,lrestart,time_mwm, fid_outdbg,&
+     &                      fid_outgw
 
 ! !INPUT PARAMETERS:
 
@@ -53,6 +54,7 @@
 
       mwm = 0.d0 
 
+      write(fid_outgw,*) "Calculate M*W*M by ", sname
       call cpu_time(tstart)
       ik=idikp(irk)
       if(lrestart) then 

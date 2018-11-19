@@ -1,10 +1,10 @@
 include ../make.inc 
 .SUFFIXES:      .f90
 
-OBJS= task.o constants.o lebedev_laikov.o reallocate.o recipvec.o \
-	  acfd.o angintegrals.o bands.o barcoul.o bzinteg.o anisotropy.o  \
-	  core.o crpa.o dielmat.o eigenvec.o fouri.o freq.o \
-      hfexch.o kmeshintp.o  kpoints.o lapack.o  lapwlo.o minmmat.o mixbasis.o  modmpi.o  modules.o  mommat.o    \
+OBJS= task.o constants.o  modmpi.o  kpoints.o lebedev_laikov.o reallocate.o recipvec.o \
+	  acfd.o angintegrals.o bands.o barcoul.o mixbasis.o  anisotropy.o  bzinteg.o \
+	  core.o crpa.o eigenvec.o dielmat.o fouri.o freq.o \
+      hfexch.o kmeshintp.o  lapack.o  lapwlo.o minmmat.o modules.o  mommat.o    \
       param.o prodfun.o radwf.o rspevec.o selfenergy.o struk.o  \
       xcpot.o   
       

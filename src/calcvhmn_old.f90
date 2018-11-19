@@ -15,7 +15,7 @@
       use bands,      only: bande,nbmax,nspin,fspin,    &
      &                      nomaxs,numins,ibgw,nbgw,nbandsgw
       use barcoul,    only: barcev,barcevsq
-      use bzinteg,    only: kwt_bz
+      use bzinteg,    only: singc2,kwt_bz
       use constants,  only: cone,czero,pi,fourpi,sqrt4pi
       use core,       only: corind, eigcore,ncg
       use kpoints,    only: nirkp,nkp,kqid,weightq,idikp,     &

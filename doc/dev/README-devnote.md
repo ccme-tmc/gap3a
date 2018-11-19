@@ -75,3 +75,18 @@
   2. Explicitly write all used variables from `anisotropy` module in `calceps` subroutine
   3. Fix MPI bug by if condition in `calceps`
 
+## 2018-11-18 (zmy)
+
+  1. Test data should that only averaging the dielectric matrix does not fully remove the singularity at Gamma
+  for anisotropic dielectric screening: the band gap depends linearly on the number of k point along z direction
+  for hBN test case.
+  2. Try to use `singc1ex,singc2ex` and `singc1co,singc2co` to represent the coefficient used to deal with q-1 
+  and q-2 singularities in exchange and correlation self-energy, respectively. `singc1` and `singc2` are not 
+  deprecated yet for the sake of stability. But they will be removed later.
+  The reason why the diffferentiation is necessary is that to deal with anisotropy in dielectric function, 
+  the auxiliary function Fs, which is used to calculate `singc1/2` only adds to the complexity to 
+  integrate over q0, since the integration should be performed explicitly to account for anisotropy.
+  However, they are still useful in calculating exchange self-energy.
+  3. Figure out that `calcmwm` instead of `calc_mwm3` is used to calculate M*W*M for correlationi selfenergy.
+  Hence non-analyticity for head should be considered in this part.(TODO)
+

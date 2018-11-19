@@ -14,7 +14,7 @@
 ! !USES:
       use acfd,        only: ex_hf
       use bands,       only: nomaxs,nspin,fspin
-      use bzinteg,     only: kiw,singc2ex,kwt_ibz,kwt_bz
+      use bzinteg,     only: kiw,singc2,kwt_ibz,kwt_bz
       use constants,   only: cone,czero,twopi
       use core,        only: ncg,nclm,corind,nclmmax
       use kpoints,     only: nkp,wkir,kpirind,nqp,idikp,kqid
@@ -62,7 +62,7 @@
       allocate(minm(matsiz,nmdim))
 
       if(iq.eq.1) then
-        exq0s= -singc2ex*twopi*neltot*vi  !! singular term of the HF exchange energy
+        exq0s= -singc2*twopi*neltot*vi  !! singular term of the HF exchange energy
         write(6,'(a,f10.4)') "  -- singular (q=0) term contr.=",exq0s
         ex_hf=ex_hf+exq0s
       endif

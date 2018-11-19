@@ -29,7 +29,11 @@
       real(8), allocatable :: ang_weight(:) ! weight of each point
       real(8), allocatable :: k_max_gama(:) ! the length of each grid point on the unit sphere
 
-      real(8) :: singc1,singc2,singc       !! 
+      real(8) :: singc1ex ! Coefficients for the 1/q singularity part of exchange self-energy
+      real(8) :: singc2ex ! Coefficients for the 1/q^2 singularity part of exchange self-energy
+      real(8) :: singc1co ! Coefficients for the 1/q singularity part of exchange self-energy
+      real(8) :: singc2co ! Coefficients for the 1/q^2 singularity part of exchange self-energy
+      real(8) :: singc, singc1, singc2
 
       real(8),parameter,private:: pi=3.14159265358979d0
 !EOP
@@ -54,7 +58,7 @@
 
 !EOP
 !BOC
-        call linmsg(6,'-',"init_bzinteg")
+        call linmsg(fid_outgw,'-',"init_bzinteg")
         allocate(kcw(ncg+nomax,numin:nbmaxpol,nkp,nomeg,nspin),       &
      &           stat=ierr) 
         if(ierr.ne.0) then 
@@ -64,23 +68,27 @@
 
         kcw=0.d0
 
-        write(fid_outgw, "(A10,I2)") "iop_q0:", iop_q0
+        !write(fid_outgw, "(A10,I2)") "iop_q0:", iop_q0
         if(iop_q0.eq.0) then 
-          call set_singc_0
-        else 
-          if(n_ang_grid.le.0) n_ang_grid = 26
-          allocate(grid_vec(1:3,n_ang_grid), ang_weight(n_ang_grid),    &
-     &            k_max_gama(n_ang_grid),stat=ierr)
-          if(ierr.ne.0) then
-            write(6,*) "init_bzinteg: Fail to allocate memory"
-            stop
-          endif
-          grid_vec=0.0d0
-          ang_weight=0.0d0
-          call set_angular_grid
-          call set_singc_1
+          call set_singc_ex
+          call set_singc_co
+!        else 
+!          if(n_ang_grid.le.0) n_ang_grid = 26
+!          allocate(grid_vec(1:3,n_ang_grid), ang_weight(n_ang_grid),    &
+!     &            k_max_gama(n_ang_grid),stat=ierr)
+!          if(ierr.ne.0) then
+!            write(fid_outgw,*) "init_bzinteg: Fail to allocate memory"
+!            stop
+!          endif
+!          grid_vec=0.0d0
+!          ang_weight=0.0d0
+!          call set_angular_grid
+!          call set_singc_1
         endif 
-        write(6,'(a,3f12.6)') "singc1,singc2,singc=",singc1,singc2,singc 
+        write(fid_outgw,'(a,2f12.6)') "singc1ex, singc2ex =", &
+            singc1ex,singc2ex
+        write(fid_outgw,'(a,2f12.6)') "singc1co, singc2co =", &
+            singc1co,singc2co
 
         end subroutine init_bzinteg
     
@@ -93,7 +101,7 @@
 
 ! Calculate coefficient of singular term at q->0 for exchange and
 ! correlation self-energy
-        subroutine set_singc_0
+        subroutine set_singc_ex
         use struk,   only: vi
         use kpoints, only: nqp
         integer:: iq
@@ -114,20 +122,30 @@
         intf2=1.0d0/(4.0d0*pi2vi*alfa)*sqrt(pi)
         singc1=intf1-singc1
         singc2=intf2-singc2
+
+        singc1ex = singc1
+        singc2ex = singc2
         singc=singc2
         endsubroutine 
 ! 
 ! Calculate the integral of 1/k^2 for the singular term of the exchange term
 !
-        subroutine set_singc_1
+        subroutine set_singc_co
+        use anisotropy, only: iop_aniso
         integer:: iang
 
-        singc1=1.d0
-        singc2=1.d0
-        singc=0.0d0
-        do iang=1,n_ang_grid
-          singc=singc+ang_weight(iang)*k_max_gama(iang)
-        enddo
+        if(iop_aniso.eq.-1)then
+            singc1co=singc1ex
+            singc2co=singc2ex
+        else
+            singc1co=singc1ex
+            singc2co=singc1ex ! to be commented for pratical use
+            !singc2co=1.0D0
+        endif
+        !singc=0.0d0
+        !do iang=1,n_ang_grid
+        !  singc=singc+ang_weight(iang)*k_max_gama(iang)
+        !enddo
         end subroutine 
 
         subroutine set_angular_grid
