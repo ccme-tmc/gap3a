@@ -29,7 +29,8 @@
       use selfenergy,  only: init_selfenergy,end_selfenergy,sigx,sigc,  & 
      &                       flag_sxc,fn_selfe,isxc 
       use xcpot,       only: init_xcpot,end_xcpot
-      use task,        only: lrestart,casename,nmax_sc
+      use task,        only: lrestart,casename,nmax_sc,time_aniso
+      use anisotropy,  only: init_aniso,end_aniso,iop_aniso
       use modmpi      
       use liboct_parser
       
@@ -185,6 +186,7 @@
 !-----------------------------------------------------------------------                            
         subroutine sub_calc_sigc
         integer:: ierr_sc
+        real(8) :: time1, time2
 
         if(lrestart) then
           call io_sxcmn('r','d',iq,isxc,1,ierr_sc)
@@ -197,6 +199,13 @@
         else
           call coul_setev(iq,barcevtol,iop_coul_c)
           call init_dielmat(iq,1,nomeg)  !! initialize
+          if(iop_aniso.ne.-1)then
+            time_aniso = 0.0
+            call cpu_time(time1)
+            call init_aniso(iq,1,nomeg)
+            call cpu_time(time2)
+            time_aniso = time_aniso + time2 - time1
+          endif
 
           call calceps(iq,1,nomeg,0,-1,2,lread_eps)
 
@@ -206,6 +215,9 @@
             call io_sxcmn('w','d',iq,isxc,1,ierr)
           endif
 
+          if(iop_aniso.ne.-1)then
+            call end_aniso(iq)
+          endif
           call end_dielmat(iq)
           call end_barcev
         endif

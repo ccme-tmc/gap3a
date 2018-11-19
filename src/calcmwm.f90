@@ -15,7 +15,7 @@
 
       use bands,      only: ibgw,nbgw,nbandsgw
       use barcoul,    only: iop_coul
-      use bzinteg,    only: singc1,singc2
+      use bzinteg,    only: singc1co,singc2co
       use constants,  only: cone,czero,pi,fourpi,sqrt4pi
       use core,       only: ncg_c
       use dielmat,    only: eps,head,epsw1,epsw2
@@ -100,6 +100,7 @@
 !     This subroutine is used as a generic interface to calculate M*W*M
 ! 
         subroutine sub_setmwm(mst,mend)
+        use anisotropy, only: iop_aniso,angint_invq2_dhead
         implicit none 
         integer,intent(in):: mst, mend
 
@@ -111,8 +112,8 @@
         complex(8), external :: zdotc,zdotu
         external zhemm
 
-        coefs2=singc2*fourpi*vi
-        coefs1=singc1*sqrt(fourpi*vi)
+        coefs2=singc2co*fourpi*vi
+        coefs1=singc1co*sqrt(fourpi*vi)
         wkq = dble(weightq(iq))/dble(nqp)
   
         nmdim = nbandsgw*(mend-mst+1) 
@@ -128,10 +129,14 @@
             do ie2=mst,mend
               mwm(ie2,ie1,iom)=wkq*zdotc(matsiz,minm(:,ie2,ie1),1, &
      &           wm(:,ie2,ie1),1)
-              if(iq.eq.1.and.iop_coul.eq.-1.and.ie1.eq.ie2-ncg_c) then 
-                mwm(ie2,ie1,iom) = mwm(ie2,ie1,iom)                     &
-     &           + coefs2*head(iom)                                     &
-     &           + coefs1*( zdotu(matsiz,minm(:,ie2,ie1),1,epsw2,1)     &
+              if(iq.eq.1.and.iop_coul.eq.-1.and.ie1.eq.ie2-ncg_c) then
+                if(iop_aniso.ne.-1)then
+                ! use \int{1/q^2 * head(q)} instead of head for iop_aniso.ne.-1
+                  !call angint_invq2_dhead(iom, head(iom))
+                endif
+                mwm(ie2,ie1,iom) = mwm(ie2,ie1,iom)                  &
+     &           + coefs2*head(iom)                                  &
+     &           + coefs1*( zdotu(matsiz,minm(:,ie2,ie1),1,epsw2,1)  &
      &                     +zdotc(matsiz,minm(:,ie2,ie1),1,epsw1,1) )    
               endif  
             enddo ! ie1

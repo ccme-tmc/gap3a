@@ -25,7 +25,7 @@
       use selfenergy, only: sigm,sigm_f,qpwf_coef 
       use struk,      only: vi 
       use task,       only: time_lapack,time_selfc,     &
-     &                      casename,spflag,savdir
+     &                      casename,spflag,savdir, fid_outgw
       use modmpi
 
 ! !INPUT PARAMETERS:
@@ -335,7 +335,8 @@
 
             nmdim=nbandsgw*(m1-m0+1)
             if(nmdim.le.0) then 
-              write(6,*) trim(sname)//":WARNING -- nmdim <=0 in sub_calcmwm"
+              write(6,*) trim(sname) &
+     &            //":WARNING -- nmdim <=0 in sub_calcmwm"
               return 
             endif 
             allocate(wm(matsiz,m0:m1,ibgw:nbgw))

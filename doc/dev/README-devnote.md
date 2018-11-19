@@ -90,3 +90,8 @@
   3. Figure out that `calcmwm` instead of `calc_mwm3` is used to calculate M*W*M for correlationi selfenergy.
   Hence non-analyticity for head should be considered in this part.(TODO)
 
+## 2018-11-19 (zmy)
+
+  1. Move the factor `4pi` in Lebedev-Laikov integration to weight `wt_q0_sph`.
+  This adds missing `4pi` factor in `bodyinv` correction in `angint_eps_sph`
+

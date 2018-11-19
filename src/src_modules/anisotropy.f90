@@ -23,7 +23,7 @@ MODULE ANISOTROPY
     real(8), allocatable :: wt_q0_sph(:) ! weight of q0_sph
     integer :: lmax_q0 = 4               ! maximum angular momentum to expand eps on q0_sph
 
-    complex(8), allocatable :: head_q0(:)     ! the head (nq0) for q0 at some freq
+    complex(8), allocatable :: head_q0(:,:)     ! the head (nq0,nomega) for q0 at some freq
     complex(8), allocatable :: q0_va(:,:)    ! q0 dot vector a
     complex(8), allocatable :: q0_vb(:,:)    ! q0 dot vector b
 
@@ -39,69 +39,76 @@ MODULE ANISOTROPY
 
     CONTAINS
 
-        SUBROUTINE init_aniso(iomfirst, iomlast)
+        SUBROUTINE init_aniso(iq, iomfirst, iomlast)
 
             use lebedev_laikov
 
             implicit none
+            
+            integer,intent(in) :: iq 
             integer,intent(in) :: iomfirst, iomlast
             integer :: ierr
 
-            call set_lebedev_laikov_grid(nq0)
-            nq0 = nleb
+            if(iq.eq.1)then
+                call set_lebedev_laikov_grid(nq0)
+                nq0 = nleb
 
-            if(iop_aniso.ne.-1)then
-                write(fid_outgw,*) "Anisotropy switched on"
-                ! TODO avoid body_q0 in future for integration 
-                allocate(vec_u_ani(3,matsiz,iomfirst:iomlast),     &
-                &        vec_t_ani(3,matsiz,iomfirst:iomlast),     &
-                &        vec_a_ani(3,matsiz,iomfirst:iomlast),     &
-                &        vec_b_ani(3,matsiz,iomfirst:iomlast),     &
-                &        ten_p_ani(3,3,iomfirst:iomlast),          &
-                &        ten_a_ani(3,3,iomfirst:iomlast),          &
-                &        q0_sph(1:nq0,3),                          &
-                &        wt_q0_sph(1:nq0),                         &
-                &        head_q0(1:nq0),                           &
-                &        q0_va(1:nq0,matsiz),                      &
-                &        q0_vb(1:nq0,matsiz),                      &
-                &        qmax_q0(1:nq0),                           &
-                &        w_q0(1:nq0),                              &
-                &        stat=ierr)
-                if(ierr.ne.0) then
-                    write(fid_outgw,*) " - init_aniso: Fail to allocate aniso"
-                    stop
-                else
-                    write(fid_outgw,*) " - init_aniso: success"
+                if(iop_aniso.ne.-1)then
+                    write(fid_outgw,*) "Anisotropy switched on"
+                    ! TODO avoid body_q0 in future for integration 
+                    allocate(vec_u_ani(3,matsiz,iomfirst:iomlast),     &
+                    &        vec_t_ani(3,matsiz,iomfirst:iomlast),     &
+                    &        vec_a_ani(3,matsiz,iomfirst:iomlast),     &
+                    &        vec_b_ani(3,matsiz,iomfirst:iomlast),     &
+                    &        ten_p_ani(3,3,iomfirst:iomlast),          &
+                    &        ten_a_ani(3,3,iomfirst:iomlast),          &
+                    &        q0_sph(1:nq0,3),                          &
+                    &        wt_q0_sph(1:nq0),                         &
+                    &        head_q0(1:nq0,iomfirst:iomlast),          &
+                    &        q0_va(1:nq0,matsiz),                      &
+                    &        q0_vb(1:nq0,matsiz),                      &
+                    &        qmax_q0(1:nq0),                           &
+                    &        w_q0(1:nq0),                              &
+                    &        stat=ierr)
+                    if(ierr.ne.0) then
+                        write(fid_outgw,*) " - init_aniso: Fail to allocate aniso"
+                        stop
+                    else
+                        write(fid_outgw,*) " - init_aniso: success"
+                    endif
                 endif
-            endif
 
-            ten_p_ani(:,:,:) = czero
-            ten_a_ani(:,:,:) = czero
-            vec_u_ani(:,:,:) = czero
-            vec_t_ani(:,:,:) = czero
-            vec_a_ani(:,:,:) = czero
-            vec_b_ani(:,:,:) = czero
-            head_q0(:) = cone
-            q0_va(:,:) = czero
-            q0_vb(:,:) = czero
-            q0_sph(:,1) = xleb(:)
-            q0_sph(:,2) = yleb(:)
-            q0_sph(:,3) = zleb(:)
-            wt_q0_sph(:) = wleb(:)
-            call unset_lebedev_laikov_grid
-            call init_smallq
+                ten_p_ani(:,:,:) = czero
+                ten_a_ani(:,:,:) = czero
+                vec_u_ani(:,:,:) = czero
+                vec_t_ani(:,:,:) = czero
+                vec_a_ani(:,:,:) = czero
+                vec_b_ani(:,:,:) = czero
+                head_q0(:,:) = cone
+                q0_va(:,:) = czero
+                q0_vb(:,:) = czero
+                q0_sph(:,1) = xleb(:)
+                q0_sph(:,2) = yleb(:)
+                q0_sph(:,3) = zleb(:)
+                wt_q0_sph(:) = wleb(:) * 4.0D0 * pi
+                call unset_lebedev_laikov_grid
+                call init_smallq
+            endif ! iq.eq.1
 
         END SUBROUTINE init_aniso
 
 
-        SUBROUTINE end_aniso
+        SUBROUTINE end_aniso(iq)
 
-            deallocate(vec_u_ani, vec_a_ani, vec_b_ani, vec_t_ani, &
-    &                  ten_p_ani, ten_a_ani,&
-    &                  q0_sph, wt_q0_sph, head_q0, &
-    &                  q0_va, q0_vb, &
-    &                  qmax_q0, w_q0)
-            write(fid_outgw,*) " - end_aniso: success"
+            integer,intent(in) :: iq
+            if(iq.eq.1)then
+                deallocate(vec_u_ani, vec_a_ani, vec_b_ani, vec_t_ani, &
+    &                      ten_p_ani, ten_a_ani,&
+    &                      q0_sph, wt_q0_sph, head_q0, &
+    &                      q0_va, q0_vb, &
+    &                      qmax_q0, w_q0)
+                write(fid_outgw,*) " - end_aniso: success"
+            endif
 
         END SUBROUTINE end_aniso
 
@@ -162,7 +169,7 @@ MODULE ANISOTROPY
 
         w_q0(:) = qmax_q0(:)**3/3.0D0/vol_q0
         ! normalization of w_q0(q) in the defined proximity
-        norm_w_q0 = 4*pi*ddot(nq0,w_q0,1,wt_q0_sph,1)
+        norm_w_q0 = ddot(nq0,w_q0,1,wt_q0_sph,1)
 
         !if(ldbg) then
         write(fid_outdbg,"(A7)") "smallq:"
@@ -197,8 +204,8 @@ MODULE ANISOTROPY
         complex(8),allocatable :: sph_harms(:,:)
         complex(8),allocatable :: h_lm(:)
         complex(8),allocatable :: a_lm(:,:),b_lm(:,:)
-        complex(8),allocatable :: h_w(:)  ! head of invers times w_q0
-        complex(8),allocatable :: q_aob_q(:) 
+        complex(8),allocatable :: h_w(:)  ! head of invers, times w_q0
+        !complex(8),allocatable :: q_aob_q(:) 
         integer :: iq0               ! Counter: runs over nq0
         integer :: iom               ! Counter: runs over iom_f:iom_l
         integer :: im,jm             ! Counter: runs over matsiz
@@ -214,7 +221,7 @@ MODULE ANISOTROPY
         lmsq = (lmax_q0+1)**2
         allocate(sph_harms(lmsq,nq0), &
      &           h_w(nq0),            &
-     &           q_aob_q(nq0),        &
+!    &           q_aob_q(nq0),        &
      &           h_lm(lmsq),          &
      &           a_lm(lmsq,matsiz),   &
      &           b_lm(lmsq,matsiz)    &
@@ -223,7 +230,7 @@ MODULE ANISOTROPY
         do iq0=1,nq0
           ccoefcoul_q0=cmplx(4.0D0*pi,0.0D0,8)
           ! head
-          head_q0(iq0) = cone / &
+          head_q0(iq0,iomega) = cone / &
      &     (cone+ccoefcoul_q0*ten_rvctrv(3,ten_a_ani(:,:,iomega),q0_sph(iq0,:)))
           ! wings
           do im=1,matsiz
@@ -239,39 +246,44 @@ MODULE ANISOTROPY
         enddo
 
         head_tmp = head
-        h_w(:) = head_q0(:)*w_q0(:)
+        h_w(:) = head_q0(:,iomega)*w_q0(:)
         ! TODO if the normalization against w is necessary?
-        head=4.0D0*pi*zdotu(nq0,h_w,1,cmplx(wt_q0_sph(:),0.0D0,8),1)/norm_w_q0
+        head=zdotu(nq0,h_w,1,cmplx(wt_q0_sph(:),0.0D0,8),1)/norm_w_q0
         if(ldbg)then
-            write(*,"(A4,2f13.4,A4,2f13.4)") "OH", head_tmp,"AH",head
-            write(fid_outgw,"(A6,I3,A2,2e13.4)") "e-100",iomega,"A",head
+            write(*,"(A7,2f13.4,A7,2f13.4)") "Old H", head_tmp,"Ave H",head
+            write(fid_outgw,"(A20,I3,2e13.4)") "Ang. Ave. e-100",iomega,head
         endif
         ! project head*w, q0va, q0vb on spherical harmonics
-        do ilm=1,lmsq
-            h_lm(ilm)=zdotu(nq0,h_w*conjg(sph_harms(ilm,:)),1,cmplx(wt_q0_sph(:),0.0D0,8),1) &
-     &        /norm_w_q0 * 4.0D0 * pi
-            do im=1,matsiz
-                a_lm(ilm,im)=zdotu(nq0,q0_va(:,im)*conjg(sph_harms(ilm,:)),1,cmplx(wt_q0_sph(:),0.0D0,8),1)/norm_w_q0
-                b_lm(ilm,im)=zdotu(nq0,q0_vb(:,im)*conjg(sph_harms(ilm,:)),1,cmplx(wt_q0_sph(:),0.0D0,8),1)/norm_w_q0
-            enddo
-        enddo
+!        do ilm=1,lmsq
+!            h_lm(ilm)=zdotu(nq0,h_w*conjg(sph_harms(ilm,:)),1,cmplx(wt_q0_sph(:),0.0D0,8),1) &
+!     &        /norm_w_q0 * 4.0D0 * pi
+!            do im=1,matsiz
+!                a_lm(ilm,im)=zdotu(nq0,q0_va(:,im)*conjg(sph_harms(ilm,:)),1,cmplx(wt_q0_sph(:),0.0D0,8),1)/norm_w_q0
+!                b_lm(ilm,im)=zdotu(nq0,q0_vb(:,im)*conjg(sph_harms(ilm,:)),1,cmplx(wt_q0_sph(:),0.0D0,8),1)/norm_w_q0
+!            enddo
+!        enddo
 
         do im=1,matsiz
+        ! TODO use BLAS-2 routines
             wv(im)=zdotu(nq0,q0_va(:,im)*h_w(:),1,cmplx(wt_q0_sph(:),0.0D0,8),1)/norm_w_q0
             wh(im)=zdotu(nq0,q0_vb(:,im)*h_w(:),1,cmplx(wt_q0_sph(:),0.0D0,8),1)/norm_w_q0
             do jm=1,matsiz
                 bodyinv_tmp = bodyinv(im,jm)
-                do i=1,3
-                    do j=1,3
-                        ten_aob_tmp(i,j) = vec_a_ani(i,im,iomega)*vec_b_ani(j,jm,iomega)
-                    enddo
-                enddo
-                do iq0=1,nq0
-                    q_aob_q(iq0) = ten_rvctrv(3, ten_aob_tmp, q0_sph(iq0,:))
-                enddo
+!                do i=1,3
+!                    do j=1,3
+!                        ten_aob_tmp(i,j) = vec_a_ani(i,im,iomega)*vec_b_ani(j,jm,iomega)
+!                    enddo
+!                enddo
+!                do iq0=1,nq0
+!                    q_aob_q(iq0) = ten_rvctrv(3, ten_aob_tmp, q0_sph(iq0,:))
+!                enddo
+!                bodyinv(im,jm) = bodyinv(im,jm)+ cmplx(4.0D0*pi,0.0D0,8)* &
+!     &              zdotu(nq0,h_w*q_aob_q,1,cmplx(wt_q0_sph(:),0.0D0,8),1)/norm_w_q0
+                ! actually there is no need to calculate q_aob_q, just use q0_va and q0_vb
                 bodyinv(im,jm) = bodyinv(im,jm)+ cmplx(4.0D0*pi,0.0D0,8)* &
-     &              zdotu(nq0,h_w*q_aob_q,1,cmplx(wt_q0_sph(:),0.0D0,8),1)/norm_w_q0
+     &              zdotu(nq0,h_w*q0_va(:,im)*q0_vb(:,jm),1,cmplx(wt_q0_sph(:),0.0D0,8),1)/norm_w_q0
                 if(ldbg) write(fid_outdbg, "(A10,I3,I4,I4,2E13.5)") "diffbody:",iomega,im,jm,bodyinv(im,jm)-bodyinv_tmp
+                !bodyinv(im,jm) = bodyinv_tmp
             enddo
         enddo
 
@@ -298,9 +310,23 @@ MODULE ANISOTROPY
         wv = - wv *sqrt(4.0D0*pi)
         wh = - wh *sqrt(4.0D0*pi)
 
-        deallocate(sph_harms, h_w, a_lm, b_lm, q_aob_q)
+        deallocate(sph_harms, h_w, a_lm, b_lm)
 
         END SUBROUTINE angint_eps_sph
+
+        SUBROUTINE angint_invq2_dhead(iomega, angint)
+        ! calcualte 
+        ! \frac{1}{V_{\Gamma}}\int_{V_{\Gamma}}
+        ! {\dd{\hat{\mathbf{q}}}\left\lbrace\varepsilon^{-1}_{00}(\mathbf{q}\to0,\textt{iomega})-1\right\rbrace}
+        ! $V_{\Gamma}$ is calculated by 
+        integer,intent(in) :: iomega
+        complex(8),intent(out) :: angint
+        complex(8),external :: zdotu
+
+        angint = zdotu(nq0, head_q0(:,iomega)-cone, 1, qmax_q0, cmplx(wt_q0_sph(:),0.0D0,8), 1) &
+     &                / cmplx(norm_w_q0 * vol_q0, 0.0D0, 8)
+        
+        END SUBROUTINE angint_invq2_dhead
 
 END MODULE ANISOTROPY
 

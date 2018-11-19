@@ -137,10 +137,10 @@
       if(iq.eq.1.and.iop_coul_c.eq.-1) then
         call init_mommat(1,nomax,numin,nbmaxpol,nirkp,nspin)
         if(iop_aniso.ne.-1) then
-          call cpu_time(time1)
-          call init_aniso(iom_f,iom_l)
-          call cpu_time(time2)
-          time_aniso = time_aniso + time2 - time1
+        !  call cpu_time(time1)
+        !  call init_aniso(iom_f,iom_l)
+        !  call cpu_time(time2)
+        !  time_aniso = time_aniso + time2 - time1
           allocate(u_ani_iom(3,matsiz))
         endif
 
@@ -422,7 +422,7 @@
       endif 
 
       if(iq.eq.1.and.iop_aniso.ne.-1.and.iop_coul_c.eq.-1) then
-        call end_aniso
+!        call end_aniso
         deallocate(u_ani_iom)
       endif 
 

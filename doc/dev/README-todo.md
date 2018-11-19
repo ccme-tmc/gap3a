@@ -8,6 +8,6 @@
 
 3. Add examples and tests (better in Jupyter notebook)
 
-4. Sphinx documentation
+4. Sphinx/FORD documentation
 
 5. fix `README.md`

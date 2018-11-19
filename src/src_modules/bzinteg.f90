@@ -139,7 +139,7 @@
             singc2co=singc2ex
         else
             singc1co=singc1ex
-            singc2co=singc1ex ! to be commented for pratical use
+            singc2co=singc2ex ! to be commented for pratical use
             !singc2co=1.0D0
         endif
         !singc=0.0d0
