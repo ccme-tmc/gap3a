@@ -72,6 +72,7 @@
       f2=0.0d0
       ipwin=1
       !alfa=(1.0d0/(6.0d0*pi*pi*vi))**(1.0d0/3.0d0)
+      ! skip G=0 for q=0
       if(iq.eq.1) ipwin=2 
 !
 !     Loop over G-vectors
@@ -94,6 +95,8 @@
         f2=f2+expagpq/modgpq
 
       enddo ! ipw
+
+      ! nkp = N_c
       f1 = f1 / dble(nkp)
       f2 = f2 / dble(nkp)
       

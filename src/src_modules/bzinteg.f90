@@ -4,6 +4,7 @@
 !
 ! !MODULE: bzinteg
       module bzinteg
+      use task,    only: fid_outgw
 
 ! !PUBLIC VARIABLES:
       integer:: iop_q0 = 0                      ! control how to handle q=0 singularity
@@ -50,7 +51,6 @@
         use core,    only: ncg
         use freq,    only: nomeg
         use kpoints, only: nkp,nirkp
-        use task,    only: fid_outgw
         implicit none
 
 ! !LOCAL VARIABLES:        
@@ -84,7 +84,8 @@
 !          ang_weight=0.0d0
 !          call set_angular_grid
 !          call set_singc_1
-        endif 
+        endif
+
         write(fid_outgw,'(a,2f12.6)') "singc1ex, singc2ex =", &
             singc1ex,singc2ex
         write(fid_outgw,'(a,2f12.6)') "singc1co, singc2co =", &
@@ -112,6 +113,7 @@
         alfa=(1.0d0/(6.0d0*pi2vi))**(1.0d0/3.0d0)
         singc1=0.d0
         singc2=0.d0
+        write(fid_outgw,'(A30,I3)') "Generating Coefs from nqp = ", nqp
         do iq=1,nqp
           call genauxf(iq,alfa,singf1,singf2)
           singc1=singc1 + singf1  
@@ -127,9 +129,8 @@
         singc2ex = singc2
         singc=singc2
         endsubroutine 
-! 
-! Calculate the integral of 1/k^2 for the singular term of the exchange term
-!
+
+
         subroutine set_singc_co
         use anisotropy, only: iop_aniso
         integer:: iang
@@ -139,7 +140,7 @@
             singc2co=singc2ex
         else
             singc1co=singc1ex
-            singc2co=singc2ex ! to be commented for pratical use
+            singc2co=singc2ex
             !singc2co=1.0D0
         endif
         !singc=0.0d0
@@ -147,6 +148,7 @@
         !  singc=singc+ang_weight(iang)*k_max_gama(iang)
         !enddo
         end subroutine 
+
 
         subroutine set_angular_grid
 !

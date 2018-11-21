@@ -132,7 +132,7 @@
               if(iq.eq.1.and.iop_coul.eq.-1.and.ie1.eq.ie2-ncg_c) then
                 if(iop_aniso.ne.-1)then
                 ! use \int{1/q^2 * head(q)} instead of head for iop_aniso.ne.-1
-                  !call angint_invq2_dhead(iom, head(iom))
+                !  call angint_invq2_dhead(iom, head(iom))
                 endif
                 mwm(ie2,ie1,iom) = mwm(ie2,ie1,iom)                  &
      &           + coefs2*head(iom)                                  &

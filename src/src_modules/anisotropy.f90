@@ -5,7 +5,7 @@ MODULE ANISOTROPY
 
     use mixbasis, only: matsiz
     use constants, only: czero,cone,pi
-    use task, only: fid_outgw, fid_outdbg
+    use task, only: fid_outgw, fid_outdbg, fid_aniso
 
     implicit none
     integer :: iop_aniso = -1  ! control whether to consider the anisotropy of dielectric function around Gamma
@@ -172,14 +172,15 @@ MODULE ANISOTROPY
         norm_w_q0 = ddot(nq0,w_q0,1,wt_q0_sph,1)
 
         !if(ldbg) then
-        write(fid_outdbg,"(A7)") "smallq:"
+        write(fid_aniso,"(A15)") "smallq list:"
         do isq=1,26
-            write(fid_outdbg,"(I3,3F12.6)") isq, smallq(isq,:)
+            write(fid_aniso,"(I3,3F12.6)") isq, smallq(isq,:)
         enddo
-        write(fid_outgw,"(A30, f12.6)") "Volume of smallq (a.u.^-3):", vol_q0
-        write(fid_outgw,"(A15,I4)") "qmax with nq0 ", nq0
+        write(fid_outgw,"(A40, f12.6)") "Volume of Gamma proximity (a.u.^-3): ", vol_q0
+        write(fid_outgw,"(A40,I4)") "nq0: ", nq0
+        write(fid_aniso,"(A40,I4)") "qmax with nq0: ", nq0
         do iq0=1,nq0
-            write(fid_outdbg,"(I4,4F12.6)") iq0, q0_sph(iq0,:),qmax_q0(iq0)
+            write(fid_aniso,"(I4,4F12.6)") iq0, q0_sph(iq0,:),qmax_q0(iq0)
         enddo
         write(fid_outgw,"(A25,F12.7)") "Normalization of w(q) = ", norm_w_q0
         !endif
@@ -212,6 +213,7 @@ MODULE ANISOTROPY
         integer :: ilm,lm1,lm2,lm3   ! Counter: runs over lmsq
         integer :: l1,l2,l3,m1,m2,m3 ! Counters: runs over angular moment
         integer :: i,j               ! Counters: Cartesian axis
+        integer :: scheme_head = 2
         logical :: ldbg=.true.
         complex(8) :: ccoefcoul_q0, ten_aob_tmp(3,3)
 
@@ -243,25 +245,51 @@ MODULE ANISOTROPY
         ! calculate spherical harmonics at q0_sph
         do iq0=1,nq0
             call ylm(q0_sph(iq0,:),lmax_q0,sph_harms(:,iq0))
+            ! check the calculation
+            !if(ldbg)then
+            !    write(*,"(A20,I5,A1,3F10.4,A1)") "Ylm at iq0 = ",iq0, "(", q0_sph(iq0,:), ")"
+            !    do l1=0,lmax_q0
+            !        do m1=1,2*l1+1
+            !            write(*,"(A3,I2,A3,I2,2F13.4)") "l=",l1,"m=",m1-l1-1,sph_harms(l1**2+m1,iq0)
+            !        enddo
+            !    enddo
+            !endif
         enddo
 
-        head_tmp = head
         h_w(:) = head_q0(:,iomega)*w_q0(:)
-        ! TODO if the normalization against w is necessary?
-        head=zdotu(nq0,h_w,1,cmplx(wt_q0_sph(:),0.0D0,8),1)/norm_w_q0
-        if(ldbg)then
-            write(*,"(A7,2f13.4,A7,2f13.4)") "Old H", head_tmp,"Ave H",head
-            write(fid_outgw,"(A20,I3,2e13.4)") "Ang. Ave. e-100",iomega,head
-        endif
+
+        do ilm=1,lmsq
+        ! project head on spherical harmonics
+            h_lm(ilm)=zdotu(nq0,head_q0(:,iomega)*conjg(sph_harms(ilm,:)),1,cmplx(wt_q0_sph(:),0.0D0,8),1)!&
+!     &      /norm_w_q0
         ! project head*w, q0va, q0vb on spherical harmonics
-!        do ilm=1,lmsq
 !            h_lm(ilm)=zdotu(nq0,h_w*conjg(sph_harms(ilm,:)),1,cmplx(wt_q0_sph(:),0.0D0,8),1) &
 !     &        /norm_w_q0 * 4.0D0 * pi
 !            do im=1,matsiz
 !                a_lm(ilm,im)=zdotu(nq0,q0_va(:,im)*conjg(sph_harms(ilm,:)),1,cmplx(wt_q0_sph(:),0.0D0,8),1)/norm_w_q0
 !                b_lm(ilm,im)=zdotu(nq0,q0_vb(:,im)*conjg(sph_harms(ilm,:)),1,cmplx(wt_q0_sph(:),0.0D0,8),1)/norm_w_q0
 !            enddo
-!        enddo
+        enddo
+
+        write(fid_aniso,"(I8,A26,4E13.4)") iomega, "head_q0_eps and Y00 part", head, h_lm(1)*sph_harms(1,1)
+        ! check projection of head
+        do iq0=1,nq0
+            head_tmp=sum(sph_harms(:,iq0)*h_lm)
+            write(fid_aniso,"(A12,I5,2F13.4,A12,2F13.4)") "head_q0",iq0,head_q0(iq0,iomega)," sum_Ylm = ",head_tmp
+            write(fid_aniso,"(I8,I9,A43,2E13.4)") iomega, iq0, "expand_Ylm_Diff = ", head_q0(iq0,iomega)-head_tmp
+        enddo
+
+        head_tmp = head
+        if(scheme_head.eq.1)then
+            ! Average head in Gamma proximity
+            head=zdotu(nq0,h_w,1,cmplx(wt_q0_sph(:),0.0D0,8),1)/norm_w_q0
+            write(fid_aniso,"(A7,2f13.4,A7,2f13.4)") "Old H", head_tmp,"Ave H",head
+            write(fid_aniso,"(A20,I3,2e13.4)") "Ang. Ave. e-100",iomega,head
+        elseif(scheme_head.eq.2)then
+            ! Use h_00 term only, according to Friedrich, et al PRB 81,125102(2010)
+            head = h_lm(1)*sph_harms(1,1)
+            write(fid_aniso,"(A7,2f13.4,A7,2f13.4)") "Old H ", head_tmp,"H00Y00", head
+        endif
 
         do im=1,matsiz
         ! TODO use BLAS-2 routines
@@ -280,14 +308,15 @@ MODULE ANISOTROPY
 !                bodyinv(im,jm) = bodyinv(im,jm)+ cmplx(4.0D0*pi,0.0D0,8)* &
 !     &              zdotu(nq0,h_w*q_aob_q,1,cmplx(wt_q0_sph(:),0.0D0,8),1)/norm_w_q0
                 ! actually there is no need to calculate q_aob_q, just use q0_va and q0_vb
-                bodyinv(im,jm) = bodyinv(im,jm)+ cmplx(4.0D0*pi,0.0D0,8)* &
+                bodyinv(im,jm) = bodyinv(im,jm) + cmplx(4.0D0*pi,0.0D0,8)* &
      &              zdotu(nq0,h_w*q0_va(:,im)*q0_vb(:,jm),1,cmplx(wt_q0_sph(:),0.0D0,8),1)/norm_w_q0
-                if(ldbg) write(fid_outdbg, "(A10,I3,I4,I4,2E13.5)") "diffbody:",iomega,im,jm,bodyinv(im,jm)-bodyinv_tmp
-                !bodyinv(im,jm) = bodyinv_tmp
+                if(ldbg) write(fid_aniso, "(A10,I3,I4,I4,2E13.5)") "diffbody:",iomega,im,jm,bodyinv(im,jm)-bodyinv_tmp
+                ! TODO verify body, and comment the line below
+                bodyinv(im,jm) = bodyinv_tmp
             enddo
         enddo
 
-        ! Use expansion on spherical harmonics. Problem exists!!!
+        ! TODO Use expansion on spherical harmonics. Problem exists!!!
         ! clean wings first
         !wv = czero
         !wh = czero
@@ -323,7 +352,7 @@ MODULE ANISOTROPY
         complex(8),intent(out) :: angint
         complex(8),external :: zdotu
 
-        angint = zdotu(nq0, head_q0(:,iomega)-cone, 1, qmax_q0, cmplx(wt_q0_sph(:),0.0D0,8), 1) &
+        angint = zdotu(nq0, head_q0(:,iomega)-cone, 1, cmplx(qmax_q0(:)*wt_q0_sph(:),0.0D0,8), 1) &
      &                / cmplx(norm_w_q0 * vol_q0, 0.0D0, 8)
         
         END SUBROUTINE angint_invq2_dhead

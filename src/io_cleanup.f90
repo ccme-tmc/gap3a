@@ -3,7 +3,7 @@
       use eigenvec,   only: vfunit
       use task,       only: iop_scratch,fid_outdbg,fid_outmb,&
      &                   fid_outmom,fid_outkpt,fid_outqp,&
-     &                   savdir, fid_outgw
+     &                   savdir, fid_outgw, fid_aniso
       use modmpi 
       
       implicit none 
@@ -19,6 +19,7 @@
       close(fid_outmom) 
       close(fid_outkpt)
       close(fid_outqp)
+      close(fid_aniso)
 
 #ifdef MPI
       write(fid_outgw,*) "Process #",myrank," finished!"

@@ -15,7 +15,7 @@
       use bands,      only: bande,efermi,nbmax,nspin,        &
      &                      nomaxs,numins,ibgw,nbgw,nbandsgw 
       use barcoul,    only: iop_coul
-      use bzinteg,    only: singc2,kiw
+      use bzinteg,    only: singc2ex,kiw
       use constants,  only: cone,czero,pi,fourpi,sqrt4pi
       use core,       only: corind, eigcore,ncg,iop_core,ncg_x 
       use kpoints,    only: nirkp,nqp,kqid,idikp,kpirind
@@ -191,7 +191,7 @@
             if(iop_coul.eq.-1.and.iq.eq.1.and.ie1.eq.ie2.and.ie1.le.nomx) then 
               wts = wt*nqp
               if(ldbg) write(6,*) "ie1=",ie1,"wts=",wts
-              sx(ie1) = sx(ie1) - sxs2*singc2*wts
+              sx(ie1) = sx(ie1) - sxs2*singc2ex*wts
             endif 
           enddo
         enddo

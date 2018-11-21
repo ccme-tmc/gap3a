@@ -14,7 +14,8 @@
       use bands,      only: nspin
       use task,       only: casename,fid_outdbg,fid_outmb,iop_scratch, &
      &                      fid_outmom,fid_outkpt,scrdir,spflag,scrfn, &
-     &                      savdir, save_prefix, fid_outqp, fid_outgw
+     &                      savdir, save_prefix, fid_outqp, fid_outgw, &
+     &                      fid_aniso
       use eigenvec,   only: vfunit,vfname
       use modmpi
 
@@ -115,6 +116,7 @@
       open(fid_outmom,file=trim(save_prefix)//".outmom",action='write')
       open(fid_outkpt,file=trim(save_prefix)//".outkpt",action='write')
       open(fid_outqp, file=trim(save_prefix)//".outqp", action='write')
+      open(fid_aniso, file=trim(save_prefix)//".aniso", action='write')
 
       return
       end subroutine io_initfiles

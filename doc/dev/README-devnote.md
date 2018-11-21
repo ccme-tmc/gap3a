@@ -67,7 +67,7 @@
 
 ## 2018-11-10 (zmy)
 
-  1. Subroutine `angint_eps_sph` for averaging wings and boy over Gamma proximity.
+  1. Subroutine `angint_eps_sph` for averaging wings and body over Gamma proximity.
 
 ## 2018-11-13 (zmy)
 
@@ -94,4 +94,13 @@
 
   1. Move the factor `4pi` in Lebedev-Laikov integration to weight `wt_q0_sph`.
   This adds missing `4pi` factor in `bodyinv` correction in `angint_eps_sph`
+
+## 2018-11-20 (zmy)
+
+  1. Check expansion on spherical harmonics
+
+## 2018-11-21 (zmy)
+
+  1. Remove body correction for the current stage.
+  2. Use the scheme described in Friedrich, et al PRB 81,125102(2010).
 

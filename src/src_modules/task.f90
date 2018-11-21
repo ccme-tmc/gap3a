@@ -32,6 +32,7 @@
         character(len=20) :: f_outmb        !! mixed basis
         character(len=20) :: f_outqp        !! quasiparticle
         character(len=20) :: f_outkpt       !! kpoint mesh
+        character(len=20) :: f_aniso        !! anisotropy-related
 
         character(2):: spflag(2)            !! spin flag ['up'/'dn',''] used for I/O files
         integer :: iop_scratch = 2     ! control how to use the scratch space
@@ -80,7 +81,8 @@
      &                       fid_outkpt    = 10,  & ! k-point and bzint
      &                       fid_outqp     = 11,  & ! quasi-particle output
      &                       fid_inp       = 21,  & ! input file
-     &                       fid_log       = 22     ! log file
+     &                       fid_log       = 22,  & ! log file
+     &                       fid_aniso     = 23     ! anisotropy
 
 !EOP
 ! 
