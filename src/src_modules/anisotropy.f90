@@ -204,6 +204,7 @@ MODULE ANISOTROPY
         complex :: head_tmp, bodyinv_tmp
         complex(8),allocatable :: sph_harms(:,:)
         complex(8),allocatable :: h_lm(:)
+        complex(8),allocatable :: q_lm(:)
         complex(8),allocatable :: a_lm(:,:),b_lm(:,:)
         complex(8),allocatable :: h_w(:)  ! head of invers, times w_q0
         !complex(8),allocatable :: q_aob_q(:) 
@@ -218,13 +219,14 @@ MODULE ANISOTROPY
         complex(8) :: ccoefcoul_q0, ten_aob_tmp(3,3)
 
         external ylm
-        complex(8),external :: zdotu,ten_rvctrv
+        complex(8),external :: zdotu,zdotc,ten_rvctrv
 
         lmsq = (lmax_q0+1)**2
         allocate(sph_harms(lmsq,nq0), &
      &           h_w(nq0),            &
 !    &           q_aob_q(nq0),        &
      &           h_lm(lmsq),          &
+     &           q_lm(lmsq),          &
      &           a_lm(lmsq,matsiz),   &
      &           b_lm(lmsq,matsiz)    &
      &          )
@@ -262,6 +264,7 @@ MODULE ANISOTROPY
         ! project head on spherical harmonics
             h_lm(ilm)=zdotu(nq0,head_q0(:,iomega)*conjg(sph_harms(ilm,:)),1,cmplx(wt_q0_sph(:),0.0D0,8),1)!&
 !     &      /norm_w_q0
+            q_lm(ilm)=zdotu(nq0,conjg(sph_harms(ilm,:)),1,cmplx(qmax_q0(:)*wt_q0_sph(:),0.0D0,8),1)
         ! project head*w, q0va, q0vb on spherical harmonics
 !            h_lm(ilm)=zdotu(nq0,h_w*conjg(sph_harms(ilm,:)),1,cmplx(wt_q0_sph(:),0.0D0,8),1) &
 !     &        /norm_w_q0 * 4.0D0 * pi
@@ -286,9 +289,14 @@ MODULE ANISOTROPY
             write(fid_aniso,"(A7,2f13.4,A7,2f13.4)") "Old H", head_tmp,"Ave H",head
             write(fid_aniso,"(A20,I3,2e13.4)") "Ang. Ave. e-100",iomega,head
         elseif(scheme_head.eq.2)then
-            ! Use h_00 term only, according to Friedrich, et al PRB 81,125102(2010)
+            ! Use h_00 term only
+            ! according to Eq.(45) in Friedrich, et al PRB 81,125102(2010)
             head = h_lm(1)*sph_harms(1,1)
             write(fid_aniso,"(A7,2f13.4,A7,2f13.4)") "Old H ", head_tmp,"H00Y00", head
+        elseif(scheme_head.eq.3)then
+            ! according to Eq.(36) in Freysoldt, et al CPC 176,1(2007)
+            head = zdotc(lmsq, q_lm, 1, h_lm, 1) / vol_q0
+            write(fid_aniso,"(I3,A7,2f13.4,A7,2f13.4)") iomega,"Old H ",head_tmp," SumQH ",head
         endif
 
         do im=1,matsiz
@@ -339,7 +347,7 @@ MODULE ANISOTROPY
         wv = - wv *sqrt(4.0D0*pi)
         wh = - wh *sqrt(4.0D0*pi)
 
-        deallocate(sph_harms, h_w, a_lm, b_lm)
+        deallocate(sph_harms, h_w, a_lm, b_lm, q_lm)
 
         END SUBROUTINE angint_eps_sph
 

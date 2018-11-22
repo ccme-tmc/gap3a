@@ -90,7 +90,6 @@
         expagpq=exp(-alfa*alfa*modgpq)
 !
 !       Accumulate the terms into f1 and f2
-!
         f1=f1+expagpq/sqrt(modgpq)
         f2=f2+expagpq/modgpq
 

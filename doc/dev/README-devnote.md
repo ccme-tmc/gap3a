@@ -102,5 +102,9 @@
 ## 2018-11-21 (zmy)
 
   1. Remove body correction for the current stage.
-  2. Use the scheme described in Friedrich, et al PRB 81,125102(2010).
+  2. Use the scheme described as Eq.(45) in Friedrich, et al PRB 81,125102(2010).
+
+## 2018-11-22 (zmy)
+
+  1. Use the scheme described as Eq.(36) in Freysoldt, et al CPC 176,1(2007).
 

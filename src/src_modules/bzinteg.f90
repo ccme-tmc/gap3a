@@ -116,12 +116,17 @@
         write(fid_outgw,'(A30,I3)') "Generating Coefs from nqp = ", nqp
         do iq=1,nqp
           call genauxf(iq,alfa,singf1,singf2)
+          write(fid_outgw,'(I2,2F12.8)') iq, singf1, singf2
           singc1=singc1 + singf1  
           singc2=singc2 + singf2  
         enddo 
 
         intf1=1.0d0/(4.0d0*pi2vi*alfa*alfa)
         intf2=1.0d0/(4.0d0*pi2vi*alfa)*sqrt(pi)
+        write(fid_outgw,'(A12,F12.8,A12,F12.8)') " SumTildF1 ",singc1,&
+     &                                           " SumTildF2 ",singc2
+        write(fid_outgw,'(A12,F12.8,A12,F12.8)') "     SumF1 ",intf1,&
+     &                                           "     SumF2 ",intf2
         singc1=intf1-singc1
         singc2=intf2-singc2
 
