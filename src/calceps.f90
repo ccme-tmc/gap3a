@@ -32,9 +32,10 @@
       use task,        only: casename,time_lapack,time_eps,l_save_dielmat, &
      &                       fid_outgw, fid_outdbg,time_aniso
       use modmpi
-      use anisotropy,  only: ten_a_ani,ten_p_ani,init_aniso,end_aniso,&
+      use anisotropy,  only: ten_a_ani,ten_p_ani,&
      &                       vec_a_ani,vec_b_ani,vec_t_ani,vec_u_ani,&
-     &                       iop_aniso,angint_eps_sph
+     &                       iop_aniso,proj_head_on_ylm,&
+     &                       calc_h_w_inv_ang_grid,angint_eps_sph
 
 ! !INPUT PARAMETERS:
       
@@ -508,6 +509,7 @@
       complex(8) :: ten_aob_tmp(3,3)
       complex(8) :: bw1_tmp, w2b_tmp ! for test use
       complex(8),external:: zdotu,ten_rvctrv
+      external :: zgemv
 
       ! sub_invbody should be first called to make the body B `eps`
       ! actually B^{-1}
@@ -530,9 +532,9 @@
             call cpu_time(time4)
             time_aniso = time_aniso + time4 - time3
             call zgemv('n',matsiz,matsiz,cone,eps(:,:,iom),matsiz, &
-     &             epsw1(:,iom),1,czero,bw1,1)
+     &             epsw1(:,iom),1,czero,bw1,1,ierr)
             call zgemv('t',matsiz,matsiz,cone,eps(:,:,iom),matsiz, &
-     &             epsw2(:,iom),1,czero,w2b,1)
+     &             epsw2(:,iom),1,czero,w2b,1,ierr)
             write(fid_outgw, "(I3,A10,6f12.3)") iom,"A before:",ten_a_ani(1,:,iom)
             write(fid_outgw, "(   A13,6f12.3)") " ",ten_a_ani(2,:,iom)
             write(fid_outgw, "(   A13,6f12.3)") " ",ten_a_ani(3,:,iom)
@@ -557,9 +559,9 @@
             write(fid_outgw,"(   A13,6f12.3)") " ",ten_a_ani(3,:,iom)
           else
             call zgemv('n',matsiz,matsiz,cone,eps(:,:,iom),matsiz, &
-     &               epsw1(:,iom),1,czero,bw1,1)
+     &               epsw1(:,iom),1,czero,bw1,1,ierr)
             call zgemv('t',matsiz,matsiz,cone,eps(:,:,iom),matsiz, &
-     &               epsw2(:,iom),1,czero,w2b,1)
+     &               epsw2(:,iom),1,czero,w2b,1,ierr)
           endif ! iop_aniso.ne.-1
 
           call cpu_time(time2)
@@ -605,79 +607,76 @@
           emac(1,iom)=1.d0/head(iom)
 
           if(iop_aniso.ne.-1)then
-            do im=1,matsiz
-              epsw1(matsiz,iom)=-head(iom)*sqrt(ccoefcoul)*&
-     &            sum(vec_a_ani(:,im,iom)*q0_eps)
-              epsw2(matsiz,iom)=-head(iom)*sqrt(ccoefcoul)*&
-     &            sum(vec_b_ani(:,im,iom)*q0_eps)
-            enddo
+!            do im=1,matsiz
+!              epsw1(im,iom)=-head(iom)*sqrt(ccoefcoul)*&
+!     &            sum(vec_a_ani(:,im,iom)*q0_eps)
+!              epsw2(im,iom)=-head(iom)*sqrt(ccoefcoul)*&
+!     &            sum(vec_b_ani(:,im,iom)*q0_eps)
+!            enddo
+            call zgemv('T',3,matsiz,-head(iom)*sqrt(ccoefcoul),&
+     &          vec_a_ani(:,:,iom),3,cmplx(q0_eps,0.0D0,8),1,&
+     &          czero,epsw1(:,iom),1,ierr)
+            call zgemv('T',3,matsiz,-head(iom)*sqrt(ccoefcoul),&
+     &          vec_b_ani(:,:,iom),3,cmplx(q0_eps,0.0D0,8),1,&
+     &          czero,epsw2(:,iom),1,ierr)
             ! TODO body of the eps^-1 could be optimized
-            do im=1,matsiz
-              do jm=1,matsiz
-                do i=1,3
-                  do j=1,3
-                    ten_aob_tmp(i,j)=vec_a_ani(i,im,iom)*vec_b_ani(j,jm,iom)
-                  enddo
-                enddo
-                eps(im,jm,iom)=eps(im,jm,iom) + &
-     &              ccoefcoul*head(iom)*ten_rvctrv(3,ten_aob_tmp,q0_eps)
+!            do im=1,matsiz
+!              do jm=1,matsiz
+!!                do i=1,3
+!!                  do j=1,3
+!!                    ten_aob_tmp(i,j)=vec_a_ani(i,im,iom)*vec_b_ani(j,jm,iom)
+!!                  enddo
+!!                enddo
+!!                eps(im,jm,iom)=eps(im,jm,iom) + &
+!!     &              ccoefcoul*head(iom)*ten_rvctrv(3,ten_aob_tmp,q0_eps)
 !                eps(im,jm,iom)=eps(im,jm,iom)+epsw1(im,iom)*epsw2(jm,iom)/head(iom)
-              enddo
-            enddo
-
-!            ! calculate eps^-1 on all q0_sph
-!            do iq0=1,nq0
-!              ccoefcoul_q0=cmplx(coul_coef(q0_sph(iq0,:),iop_coul_c),0.0D0,8)
-!              ! head
-!              head_q0(iq0,iom) = cone / &
-!     &       (cone+ccoefcoul*ten_rvctrv(3,ten_a_ani(:,:,iom),q0_sph(iq0,:)))
-!              ! wings
-!              do im=1,matsiz
-!                wing1_q0(iq0,im,iom)=-sqrt(ccoefcoul_q0)*&
-!     &            sum(vec_a_ani(:,im,iom)*cmplx(q0_sph(iq0,:),0.0D0,8))
-!                wing2_q0(iq0,im,iom)=-sqrt(ccoefcoul_q0)*&
-!     &            sum(vec_b_ani(:,im,iom)*cmplx(q0_sph(iq0,:),0.0D0,8))
 !              enddo
 !            enddo
-
-!            if(ldbg)then
-!              do iq0=1,nq0
-!                write(fid_outdbg,"(A6,I5,I4,2F16.7)") "head_q0",iq0,iom,&
-!     &               head_q0(iq0,iom)
-!              enddo
-!            endif
-
             ! Use eps averaged over smallq region for self energy calculation
             ! Only use this in 3D.
             ! TODO different treatment for 2D/1D cases
-            if(ldbg) then
-              write(fid_outdbg,"(A30)") "V/H wing before average"
-              do im=1,matsiz
-                write(fid_outdbg,"(I3,I4,A1,2e13.4)") iom,im,"V",epsw1(im,iom)
-                write(fid_outdbg,"(I3,I4,A1,2e13.4)") iom,im,"H",epsw2(im,iom)
-              enddo
-            endif
-            call cpu_time(time3)
-            call angint_eps_sph(iom, head(iom), epsw1(:,iom), &
-     &                          epsw2(:,iom), eps(:,:,iom))
-            call cpu_time(time4)
-            time_aniso = time_aniso + time4 - time3
-            if(ldbg) then
-              write(fid_outdbg,"(A30)") "V/H wing after average"
-              do im=1,matsiz
-                write(fid_outdbg,"(I3,I4,A1,2e13.4)") iom,im,"V",epsw1(im,iom)
-                write(fid_outdbg,"(I3,I4,A1,2e13.4)") iom,im,"H",epsw2(im,iom)
-              enddo
-            endif
+!            if(ldbg) then
+!              write(fid_outdbg,"(A30)") "V/H wing before average"
+!              do im=1,matsiz
+!                write(fid_outdbg,"(I3,I4,A1,2e13.4)") iom,im,"V",epsw1(im,iom)
+!                write(fid_outdbg,"(I3,I4,A1,2e13.4)") iom,im,"H",epsw2(im,iom)
+!              enddo
+!            endif
+!            call cpu_time(time3)
+            call calc_h_w_inv_ang_grid(iom)
+            call proj_head_on_ylm(iom)
+!            call cpu_time(time4)
+!            time_aniso = time_aniso + time4 - time3
+!            if(ldbg) then
+!              write(fid_outdbg,"(A30)") "V/H wing after average"
+!              do im=1,matsiz
+!                write(fid_outdbg,"(I3,I4,A1,2e13.4)") iom,im,"V",epsw1(im,iom)
+!                write(fid_outdbg,"(I3,I4,A1,2e13.4)") iom,im,"H",epsw2(im,iom)
+!              enddo
+!            endif
           else
             epsw1(:,iom)=-head(iom)*bw1(:)
             epsw2(:,iom)=-head(iom)*w2b(:)
-            do jm=1,matsiz
-              do im=1,matsiz
-                eps(im,jm,iom)=eps(im,jm,iom)+epsw1(im,iom)*epsw2(jm,iom)/head(iom)
-              enddo
-            enddo
           endif ! iop_aniso.ne.-1
+
+          do jm=1,matsiz
+            do im=1,matsiz
+              eps(im,jm,iom)=eps(im,jm,iom)+epsw1(im,iom)*epsw2(jm,iom)/head(iom)
+            enddo
+          enddo
+
+          if(iop_aniso.ne.-1)then
+            call angint_eps_sph(iom, eps(:,:,iom), .FALSE.)
+          endif
+
+          if(ldbg) then
+            write(fid_outdbg,"(A30)") "V/H wing of eps-1"
+            do im=1,matsiz
+              write(fid_outdbg,"(I3,I4,A1,2e13.4)") iom,im,"V",epsw1(im,iom)
+              write(fid_outdbg,"(I3,I4,A1,2e13.4)") iom,im,"H",epsw2(im,iom)
+            enddo
+          endif
+
         endif ! iq.eq.1.and.iop_coul_c.eq.-1
 
        ! iop == 2, inveps - 1 is calculated  

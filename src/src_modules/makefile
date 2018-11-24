@@ -46,6 +46,7 @@ keep_para_files:
 	fi
 	touch .para
 
+anisotropy.o: mixbasis.o task.o constants.o kpoints.o struk.o bzinteg.o
 bands.o : kpoints.o 
 barcoul.o: constants.o kpoints.o mixbasis.o struk.o
 bzinteg.o : bands.o core.o freq.o kpoints.o struk.o constants.o  lebedev_laikov.o

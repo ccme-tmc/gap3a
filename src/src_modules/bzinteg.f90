@@ -7,7 +7,9 @@
       use task,    only: fid_outgw
 
 ! !PUBLIC VARIABLES:
-      integer:: iop_q0 = 0                      ! control how to handle q=0 singularity
+      integer:: iop_q0 = 0              ! control how to handle q=0 singularity
+                                        ! 0 : Use auxiliary functions
+                                        ! 1 : anisotropically integrate over supercell Brillouin zone
       complex(8), allocatable :: kcw(:,:,:,:,:)   ! Weights for convolutions  when k is the integration  variable
       
 !
@@ -28,8 +30,9 @@
       integer :: n_ang_grid              ! number of point for the angular grid
       real(8), allocatable :: grid_vec(:,:) ! coordinates of the grid
       real(8), allocatable :: ang_weight(:) ! weight of each point
-      real(8), allocatable :: k_max_gama(:) ! the length of each grid point on the unit sphere
+      real(8), allocatable :: qmax_gamma(:) ! the length of each grid point on the unit sphere
 
+      real(8) :: vol_gamma ! the volume in reciprocal space of $Z_{\Gamma}$
       real(8) :: singc1ex ! Coefficients for the 1/q singularity part of exchange self-energy
       real(8) :: singc2ex ! Coefficients for the 1/q^2 singularity part of exchange self-energy
       real(8) :: singc1co ! Coefficients for the 1/q singularity part of exchange self-energy
@@ -68,28 +71,42 @@
 
         kcw=0.d0
 
-        !write(fid_outgw, "(A10,I2)") "iop_q0:", iop_q0
-        if(iop_q0.eq.0) then 
-          call set_singc_ex
-          call set_singc_co
-!        else 
-!          if(n_ang_grid.le.0) n_ang_grid = 26
-!          allocate(grid_vec(1:3,n_ang_grid), ang_weight(n_ang_grid),    &
-!     &            k_max_gama(n_ang_grid),stat=ierr)
-!          if(ierr.ne.0) then
-!            write(fid_outgw,*) "init_bzinteg: Fail to allocate memory"
-!            stop
-!          endif
-!          grid_vec=0.0d0
-!          ang_weight=0.0d0
-!          call set_angular_grid
-!          call set_singc_1
+        ! set the coefficient for the head and wing integration
+        ! according to iop_q0
+        call linmsg(fid_outgw,'-',"set_sing")
+        write(fid_outgw, "(A10,I2)") "iop_q0:", iop_q0
+
+        ! Always generate the grid_vec, as the time cost is very small
+        ! for small n_ang_grid
+        if(n_ang_grid.le.0) n_ang_grid = 26
+        allocate(grid_vec(n_ang_grid,1:3), ang_weight(n_ang_grid),    &
+     &          qmax_gamma(n_ang_grid),stat=ierr)
+        if(ierr.ne.0) then
+          write(fid_outgw,*) "init_bzinteg: Fail to allocate memory"
+          stop
         endif
+        grid_vec=0.0d0
+        ang_weight=0.0d0
+        call set_angular_grid
+
+        if(iop_q0.eq.0) then 
+          call set_singc_0
+        elseif(iop_q0.eq.1)then
+          call set_singc_1
+        endif
+
+        singc1ex = 0.0
+        singc2ex = singc2
+        ! Note: singc1co and singc2co will be recalculated if anisotropy
+        ! is switched on !!!
+        singc1co = singc1
+        singc2co = singc2
 
         write(fid_outgw,'(a,2f12.6)') "singc1ex, singc2ex =", &
             singc1ex,singc2ex
         write(fid_outgw,'(a,2f12.6)') "singc1co, singc2co =", &
             singc1co,singc2co
+        call linmsg(fid_outgw,'-',"done init_bzinteg")
 
         end subroutine init_bzinteg
     
@@ -98,11 +115,13 @@
 !
         subroutine end_bzinteg
           deallocate(kcw) 
+          deallocate(grid_vec, ang_weight, qmax_gamma)
         end subroutine end_bzinteg
+
 
 ! Calculate coefficient of singular term at q->0 for exchange and
 ! correlation self-energy
-        subroutine set_singc_ex
+        subroutine set_singc_0
         use struk,   only: vi
         use kpoints, only: nqp
         integer:: iq
@@ -129,30 +148,28 @@
      &                                           "     SumF2 ",intf2
         singc1=intf1-singc1
         singc2=intf2-singc2
-
-        singc1ex = singc1
-        singc2ex = singc2
         singc=singc2
-        endsubroutine 
+        end subroutine set_singc_0
 
 
-        subroutine set_singc_co
-        use anisotropy, only: iop_aniso
-        integer:: iang
+        subroutine set_singc_1
 
-        if(iop_aniso.eq.-1)then
-            singc1co=singc1ex
-            singc2co=singc2ex
-        else
-            singc1co=singc1ex
-            singc2co=singc2ex
-            !singc2co=1.0D0
-        endif
-        !singc=0.0d0
-        !do iang=1,n_ang_grid
-        !  singc=singc+ang_weight(iang)*k_max_gama(iang)
-        !enddo
-        end subroutine 
+        use struk, only: vi
+        implicit none
+        integer :: iang
+        real(8) :: BZ_vol
+
+        real(8),external :: ddot
+        
+        BZ_vol= 8.0d0*pi**3*vi
+        singc1=ddot(n_ang_grid,ang_weight,1,qmax_gamma**2,1)/2.0D0
+        singc2=ddot(n_ang_grid,ang_weight,1,qmax_gamma,1)
+
+        singc1=singc1/BZ_vol
+        singc2=singc2/BZ_vol
+        singc=singc2
+
+        end subroutine set_singc_1 
 
 
         subroutine set_angular_grid
@@ -163,30 +180,27 @@
         use lebedev_laikov
         use struk,     only: vi
         implicit none
-        integer :: iang
-        real(8)    :: BZ_vol, prefactor
+        real(8) :: prefactor
 
-        BZ_vol= 8.0d0*pi**3*vi
-        prefactor = 4.0d0*pi/BZ_vol
+        prefactor = 4.0d0*pi
 
         !! Set the angular grid for integration
         call set_lebedev_laikov_grid(n_ang_grid)
-
         !! Store the grid
-        grid_vec(1,1:n_ang_grid)=xleb(1:n_ang_grid)
-        grid_vec(2,1:n_ang_grid)=yleb(1:n_ang_grid)
-        grid_vec(3,1:n_ang_grid)=zleb(1:n_ang_grid)
+        grid_vec(1:n_ang_grid,1)=xleb(1:n_ang_grid)
+        grid_vec(1:n_ang_grid,2)=yleb(1:n_ang_grid)
+        grid_vec(1:n_ang_grid,3)=zleb(1:n_ang_grid)
         ang_weight(1:n_ang_grid)=wleb(1:n_ang_grid)*prefactor
 
         call unset_lebedev_laikov_grid
 
         !! Set K_max for each vector of the grid
-        call set_kmax_gama
+        call set_qmax_gamma
 
         end subroutine set_angular_grid
 
 
-        subroutine set_kmax_gama
+        subroutine set_qmax_gamma
 ! !DESCRIPTION:
 !
 !! Determines the intersection of the grid vectors (for angular
@@ -202,18 +216,18 @@
 ! !USES:
 
         use kpoints,  only: nkdivs
-        use struk,    only: br2
+        use struk,    only: br2,vi
         implicit none
 
 ! !LOCAL VARIABLES:
         integer :: i1, i2, i3
         integer :: j, iang
-        integer :: isk
+        integer :: isq
 
         real(8) :: numerator, denominator
-        real(8) :: smallk(1:3,1:26)
-        real(8) :: k0(1:3)
-        real(8) :: maxk
+        real(8) :: smallq(1:3,1:26)
+        real(8) :: q0(1:3)
+        real(8) :: maxq
 !
 ! Created Jun. 2008, by RGA
 !
@@ -221,14 +235,14 @@
 !BOC
 !
         !! determine the k-points closet to gamma
-        isk=0
+        isq=0
         do i1=-1,1
           do i2=-1,1
             do i3=-1,1
               if(.not.((i1 .eq. 0) .and. (i2 .eq. 0) .and. (i3 .eq. 0)))then
-                isk=isk+1
+                isq=isq+1
                 do j=1,3
-                  smallk(j,isk)= dble(i1)*br2(j,1)/dble(nkdivs(1))+         &
+                  smallq(j,isq)= dble(i1)*br2(j,1)/dble(nkdivs(1))+         &
      &             dble(i2)*br2(j,2)/dble(nkdivs(2)) + dble(i3)*br2(j,3)   &
      &            /dble(nkdivs(3))
                 enddo ! j
@@ -237,21 +251,22 @@
           enddo ! i2
         enddo ! i1
 
+        vol_gamma = 8.0d0*pi**3*vi / dble(product(nkdivs))
         !! determine k_max_gamma
         do iang=1,n_ang_grid
-          k0(1:3)=grid_vec(1:3,iang)
-          k_max_gama(iang)=1.0d+3
-          do isk=1,26
-            denominator = k0(1)*smallk(1,isk)+k0(2)*smallk(2,isk)+k0(3)*  &
-     &                  smallk(3,isk)
+          q0(1:3)=grid_vec(iang,3)
+          qmax_gamma(iang)=1.0d+3
+          do isq=1,26
+            denominator = q0(1)*smallq(1,isq)+q0(2)*smallq(2,isq)+q0(3)*  &
+     &                  smallq(3,isq)
             if(denominator .gt. 1.0d-10)then
-              numerator = 0.5d0 * sum(smallk(1:3,isk)**2)
-              maxk = numerator/denominator
-              if(maxk .lt. k_max_gama(iang)) k_max_gama(iang) = maxk
+              numerator = 0.5d0 * sum(smallq(1:3,isq)**2)
+              maxq = numerator/denominator
+              if(maxq .lt. qmax_gamma(iang)) qmax_gamma(iang) = maxq
             endif
-          enddo ! isk
+          enddo ! isq
         enddo ! iang
-        end subroutine set_kmax_gama
+        end subroutine set_qmax_gamma
 
       end module bzinteg
 !EOC        

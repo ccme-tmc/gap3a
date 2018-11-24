@@ -108,3 +108,7 @@
 
   1. Use the scheme described as Eq.(36) in Freysoldt, et al CPC 176,1(2007).
 
+## 2018-11-23 (zmy)
+
+  1. Merge code for generation of angular grids in `anisotropy` and `bzinteg`
+
