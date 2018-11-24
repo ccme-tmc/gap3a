@@ -4,7 +4,7 @@
 !
 ! !MODULE: bzinteg
       module bzinteg
-      use task,    only: fid_outgw
+      use task,    only: fid_outgw, fid_outdbg
 
 ! !PUBLIC VARIABLES:
       integer:: iop_q0 = 0              ! control how to handle q=0 singularity
@@ -252,9 +252,10 @@
         enddo ! i1
 
         vol_gamma = 8.0d0*pi**3*vi / dble(product(nkdivs))
-        !! determine k_max_gamma
+        write(fid_outdbg,*) "qmax", n_ang_grid
+        !! determine q_max_gamma
         do iang=1,n_ang_grid
-          q0(1:3)=grid_vec(iang,3)
+          q0(1:3)=grid_vec(iang,:)
           qmax_gamma(iang)=1.0d+3
           do isq=1,26
             denominator = q0(1)*smallq(1,isq)+q0(2)*smallq(2,isq)+q0(3)*  &
@@ -265,6 +266,8 @@
               if(maxq .lt. qmax_gamma(iang)) qmax_gamma(iang) = maxq
             endif
           enddo ! isq
+          write(fid_outdbg,"(I2,4F12.5)") iang, grid_vec(iang,:),&
+     &        qmax_gamma(iang)
         enddo ! iang
         end subroutine set_qmax_gamma
 

@@ -16,7 +16,7 @@
       use bands,      only: ibgw,nbgw,nbandsgw
       use barcoul,    only: iop_coul
       use bzinteg,    only: singc1co,singc2co
-      use constants,  only: cone,czero,pi,fourpi,sqrt4pi
+      use constants,  only: cone,czero,pi,twopi,fourpi,sqrt4pi
       use core,       only: ncg_c
       use dielmat,    only: eps,head,epsw1,epsw2
       use kpoints,    only: nqp,kqid,idikp,kpirind,weightq
@@ -100,7 +100,8 @@
 !     This subroutine is used as a generic interface to calculate M*W*M
 ! 
         subroutine sub_setmwm(mst,mend)
-        use anisotropy, only: iop_aniso,angint_invq2_dhead
+        use anisotropy, only: iop_aniso,lmgsq,qmax_g_lm,h_g_lm
+        use bzinteg,    only: iop_q0
         implicit none 
         integer,intent(in):: mst, mend
 
@@ -108,12 +109,15 @@
         real(8):: wkq     ! Weight of the k-q combinatiion
         real(8):: coefs1,coefs2
         real(8):: t1,t2
+        complex(8) :: term_singular_h, term_singular_w
+        complex(8) :: accum_term_singular_h,accum_term_singular_w
         complex(8), allocatable :: wm(:,:,:)    ! (matsiz,nmdim) 
         complex(8), external :: zdotc,zdotu
         external zhemm
 
         coefs2=singc2co*fourpi*vi
         coefs1=singc1co*sqrt(fourpi*vi)
+        ! N_c = nqp
         wkq = dble(weightq(iq))/dble(nqp)
   
         nmdim = nbandsgw*(mend-mst+1) 
@@ -123,24 +127,40 @@
         write(fid_outdbg, *) "iop_coul = ", iop_coul
         call cpu_time(t1)
         do iom=iom_f,iom_l
+          write(fid_outdbg,"(A27,I5)")"Singu. Contrib. Freq ",iom
           call zhemm('l','u',matsiz,nmdim,cone,eps(:,:,iom),matsiz,  &
      &           minm,matsiz,czero,wm,matsiz)
           do ie1=ibgw,nbgw
-            do ie2=mst,mend
+            accum_term_singular_h = czero
+            accum_term_singular_w = czero
+            !iom, " Band ", ie1
+            do ie2=mst,mend ! ie2=n'
               mwm(ie2,ie1,iom)=wkq*zdotc(matsiz,minm(:,ie2,ie1),1, &
      &           wm(:,ie2,ie1),1)
               if(iq.eq.1.and.iop_coul.eq.-1.and.ie1.eq.ie2-ncg_c) then
-                if(iop_aniso.ne.-1)then
-                ! use \int{1/q^2 * head(q)} instead of head for iop_aniso.ne.-1
-                !  call angint_invq2_dhead(iom, head(iom))
-                endif
-                mwm(ie2,ie1,iom) = mwm(ie2,ie1,iom)                  &
-     &           + coefs2*head(iom)                                  &
-     &           + coefs1*( zdotu(matsiz,minm(:,ie2,ie1),1,epsw2,1)  &
+                if(iop_aniso.ne.-1.and.iop_q0.eq.1)then
+                ! 1/q term is approximated to have zero contribution !!!
+                  term_singular_h=zdotc(lmgsq,qmax_g_lm,1,h_g_lm(:,iom),1)&
+     &              /cmplx(twopi,0.0D0,8)
+                  term_singular_w=czero
+                else
+                  term_singular_h = coefs2*head(iom)
+                  term_singular_w = &
+     &             coefs1*( zdotu(matsiz,minm(:,ie2,ie1),1,epsw2,1)  &
      &                     +zdotc(matsiz,minm(:,ie2,ie1),1,epsw1,1) )    
+                endif
+                accum_term_singular_h=accum_term_singular_h + &
+                    term_singular_h
+                accum_term_singular_w=accum_term_singular_w + &
+                    term_singular_w
+                mwm(ie2,ie1,iom)=mwm(ie2,ie1,iom) + term_singular_h + &
+     &              term_singular_w
               endif  
-            enddo ! ie1
-          enddo ! ie2
+            enddo ! ie2
+            write(fid_outdbg,"(A6,I5,A3,2E15.6)") " Band ",ie1," H ",&
+     &          accum_term_singular_h
+            write(fid_outdbg,"(A14,2E15.6)") " W ",accum_term_singular_w
+          enddo ! ie1
         enddo ! iom 
         call cpu_time(t2)
         time_lapack=time_lapack+t2-t1

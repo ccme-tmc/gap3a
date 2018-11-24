@@ -25,12 +25,12 @@ MODULE ANISOTROPY
     integer :: lmgsq
 
 
-    complex(8), allocatable :: head_g(:,:)      ! the head (n_ang_grid,nomega) for q0 at some freq
-    complex(8), allocatable :: wv_g(:,:,:)      ! vertical wing for q0
-    complex(8), allocatable :: wh_g(:,:,:)      ! horizontal wing for q0
-    complex(8), allocatable :: sph_harms_g(:,:) ! Y_lm
+    complex(8), allocatable :: head_g(:,:)      ! the head (n_ang_grid,nomega) of eps^-1 at q0
+    complex(8), allocatable :: wv_g(:,:,:)      ! vertical wing of eps^-1 at q0
+    complex(8), allocatable :: wh_g(:,:,:)      ! horizontal wing of eps^-1 at q0
+    complex(8), allocatable :: sph_harms_g(:,:) ! Y_lm at q0
     complex(8), allocatable :: h_g_lm(:,:)      ! projection of head_g on Y_lm
-    complex(8), allocatable :: qmax_g_lm(:)   ! projection of qmax_gamma on Y_lm
+    complex(8), allocatable :: qmax_g_lm(:)     ! projection of qmax_gamma on Y_lm
 
     ! smallq define the proximity around Gamma point
     !real(8) :: smallq(26,3)
@@ -75,7 +75,7 @@ MODULE ANISOTROPY
                 &        wv_g(1:n_ang_grid,matsiz,iomfirst:iomlast),&
                 &        wh_g(1:n_ang_grid,matsiz,iomfirst:iomlast),&
             !    &        qmax_q0(1:nq0),                           &
-                &        w_gamma(1:n_ang_grid),                        &
+                &        w_gamma(1:n_ang_grid),                     &
                 &        sph_harms_g(lmgsq,n_ang_grid),             &
                 &        h_g_lm(lmgsq,iomfirst:iomlast),            &
                 &        qmax_g_lm(lmgsq),                          &
@@ -108,6 +108,8 @@ MODULE ANISOTROPY
             enddo
 
             do ilm=1,lmgsq
+!              qmax_g_lm(ilm)=zdotc(n_ang_grid,sph_harms_g(ilm,:),1,&
+!     &            cmplx(qmax_gamma(:),0.0D0,8),1)
               qmax_g_lm(ilm)=zdotc(n_ang_grid,sph_harms_g(ilm,:),1,qmax_gamma(:),1)
             enddo
 
@@ -131,86 +133,9 @@ MODULE ANISOTROPY
         END SUBROUTINE end_aniso
 
 
-!        SUBROUTINE init_smallq
-!        ! adopted from set_kmax_gama in bzinteg
-!        use kpoints,  only: nkdivs
-!        use struk,    only: br2, vi
-!        implicit none
-!! !LOCAL VARIABLES:
-!        integer :: i1, i2, i3
-!        integer :: j
-!        integer :: isq,iq0
-!        real(8) :: qmax_tmp, denominator, numerator
-!        logical :: ldbg = .true.
-!
-!        real(8),external :: ddot
-!!EOP
-!!BOC
-!        !if (smallq_div.le.0) then
-!        !  write(fid_outgw,*) " - init_smallq: illegal smallq_div"
-!        !  stop
-!        !endif
-!        !! determine the q-points closet to gamma
-!        isq=0
-!        do i1=-1,1
-!          do i2=-1,1
-!            do i3=-1,1
-!              if(.not.((i1 .eq. 0) .and. (i2 .eq. 0) .and. (i3 .eq. 0)))then
-!                isq=isq+1
-!                do j=1,3
-!!                  smallq(isq,j)=dble(i1)*br2(j,1)/dble(nkdivs(1)*smallq_div)+&
-!!     &                          dble(i2)*br2(j,2)/dble(nkdivs(2)*smallq_div)+&
-!!     &                          dble(i3)*br2(j,3)/dble(nkdivs(3)*smallq_div)
-!                  smallq(isq,j)=dble(i1)*br2(j,1)/dble(nkdivs(1))+&
-!     &                          dble(i2)*br2(j,2)/dble(nkdivs(2))+&
-!     &                          dble(i3)*br2(j,3)/dble(nkdivs(3))
-!                enddo ! j
-!              endif
-!            enddo ! i3
-!          enddo ! i2
-!        enddo ! i1
-!
-!        !! determine qmax with initialized by a large value 1000
-!        qmax_q0 = 1.0D3
-!
-!        ! calculate qmax along q0_sph in the region defined by smallq
-!        do iq0=1,nq0
-!          do isq=1,26
-!            denominator = sum(q0_sph(iq0,:)*smallq(isq,:))
-!            if(denominator .gt. 1.0d-10)then
-!              numerator = 0.5d0 * sum(smallq(isq,1:3)**2)
-!              qmax_tmp = numerator/denominator
-!              if(qmax_tmp .lt. qmax_q0(iq0)) qmax_q0(iq0) = qmax_tmp
-!            endif
-!          enddo ! isk
-!        enddo ! iq0
-!        !vol_q0 = vi*(2.0D0*pi)**3/dble(product(nkdivs)*smallq_div**3)
-!        vol_q0 = vi*(2.0D0*pi)**3/dble(product(nkdivs))
-!
-!        w_gamma(:) = qmax_q0(:)**3/3.0D0/vol_q0
-!        ! normalization of w_gamma(q) in the defined proximity
-!        norm_w_q0 = ddot(nq0,w_q0,1,wt_q0_sph,1)
-!
-!        !if(ldbg) then
-!        write(fid_aniso,"(A15)") "smallq list:"
-!        do isq=1,26
-!            write(fid_aniso,"(I3,3F12.6)") isq, smallq(isq,:)
-!        enddo
-!        write(fid_outgw,"(A40, f12.6)") "Volume of Gamma proximity (a.u.^-3): ", vol_q0
-!        write(fid_outgw,"(A40,I4)") "nq0: ", nq0
-!        write(fid_aniso,"(A40,I4)") "qmax with nq0: ", nq0
-!        do iq0=1,nq0
-!            write(fid_aniso,"(I4,4F12.6)") iq0, q0_sph(iq0,:),qmax_q0(iq0)
-!        enddo
-!        write(fid_outgw,"(A25,F12.7)") "Normalization of w(q) = ", norm_w_q0
-!        !endif
-!
-!        END SUBROUTINE init_smallq
-
-
         SUBROUTINE calc_h_w_inv_ang_grid(iom)
         ! calculate the head and wings of the inverse of dielectric matrix
-        use bzinteg, only: n_ang_grid,grid_vec
+        use bzinteg,   only: n_ang_grid,grid_vec
 
         implicit none
         integer,intent(in) :: iom
@@ -219,6 +144,7 @@ MODULE ANISOTROPY
         complex(8) :: ccoefcoul_g
 
         complex(8),external :: ten_rvctrv
+        external :: zgemm
 
         ccoefcoul_g=cmplx(4.0D0*pi,0.0D0,8)
 
@@ -240,12 +166,12 @@ MODULE ANISOTROPY
           wh_g(iang,:,iom) = wh_g(iang,:,iom) * head_g(iang,iom)
         enddo
 
-
         END SUBROUTINE calc_h_w_inv_ang_grid
 
 
         SUBROUTINE proj_head_on_ylm(iom)
         use bzinteg, only: n_ang_grid
+        use constants, only: sqrt4pi
 
         implicit none
         integer,intent(in) :: iom
@@ -255,6 +181,9 @@ MODULE ANISOTROPY
         do ilm=1,lmgsq
           h_g_lm(ilm,iom)=zdotc(n_ang_grid,sph_harms_g(ilm,:),1,head_g(:,iom),1)
         enddo
+
+        ! substract \sqrt{4\pi} for l=0,m=0 term to exclude bare Coulomb part
+        h_g_lm(1,iom) = h_g_lm(1,iom) - cmplx(sqrt4pi,0.0D0,8)
 
         END SUBROUTINE proj_head_on_ylm
         
@@ -302,41 +231,6 @@ MODULE ANISOTROPY
             enddo
           enddo
         endif
-!
-!        allocate(sph_harms(lmgsq,nq0), &
-!     &           h_w(nq0),            &
-!!    &           q_aob_q(nq0),        &
-!     &           qmax_g_lm(lmgsq),          &
-!     &           a_lm(lmgsq,matsiz),   &
-!     &           b_lm(lmgsq,matsiz)    &
-!     &          )
-!        ! calculate head_g and q0\cdot wing1, q0\cdot wing2
-!        do iq0=1,nq0
-!          ccoefcoul_q0=cmplx(4.0D0*pi,0.0D0,8)
-!          ! head
-!          head_g(iq0,iomega) = cone / &
-!     &     (cone+ccoefcoul_q0*ten_rvctrv(3,ten_a_ani(:,:,iomega),q0_sph(iq0,:)))
-!          ! wings
-!          do im=1,matsiz
-!          ! TODO optimize with ZGEMM
-!            q0_va(iq0,im)=sum(vec_a_ani(:,im,iomega)*cmplx(q0_sph(iq0,:),0.0D0,8))
-!            q0_vb(iq0,im)=sum(vec_b_ani(:,im,iomega)*cmplx(q0_sph(iq0,:),0.0D0,8))
-!          enddo
-!        enddo
-!
-!        ! calculate spherical harmonics at q0_sph
-!        do iq0=1,nq0
-!            call ylm(q0_sph(iq0,:),lmax_gamma,sph_harms(:,iq0))
-!            ! check the calculation
-!            !if(ldbg)then
-!            !    write(*,"(A20,I5,A1,3F10.4,A1)") "Ylm at iq0 = ",iq0, "(", q0_sph(iq0,:), ")"
-!            !    do l1=0,lmax_gamma
-!            !        do m1=1,2*l1+1
-!            !            write(*,"(A3,I2,A3,I2,2F13.4)") "l=",l1,"m=",m1-l1-1,sph_harms(l1**2+m1,iq0)
-!            !        enddo
-!            !    enddo
-!            !endif
-!        enddo
 !
 !        h_w(:) = head_g(:,iomega)*w_q0(:)
 !
@@ -430,20 +324,37 @@ MODULE ANISOTROPY
 !        deallocate(sph_harms, h_w, a_lm, b_lm, qmax_g_lm)
 !
         END SUBROUTINE angint_eps_sph
+
+!        subroutine aniso_calc_sing_q0_1(iom, term_sing)
 !
-        SUBROUTINE angint_invq2_dhead(iom, angint)
-        ! calcualte 
-        ! \frac{1}{V_{\Gamma}}\int_{V_{\Gamma}}
-        ! {\dd{\hat{\mathbf{q}}}\left\lbrace\varepsilon^{-1}_{00}(\mathbf{q}\to0,\textt{iomega})-1\right\rbrace}
-        ! $V_{\Gamma}$ is calculated by 
-        integer,intent(in) :: iom
-        complex(8),intent(out) :: angint
+!        use constants, only: twopi
+!        implicit none
+!        integer,intent(in) :: iom
+!        complex(8),intent(out) :: term_sing
+!
+!        complex(8),external :: zdotc
+!
+!        term_sing = czero
+!        term_sing = term_sing + zdotc(lmgsq,qmax_g_lm,1,h_g_lm,1)/cmplx(twopi,0.0D0,0)
+!
+!
+!
+!        end subroutine aniso_calc_sing_q0_1
+
+!
+!        SUBROUTINE angint_invq2_dhead(iom, angint)
+!        ! calcualte 
+!        ! \frac{1}{V_{\Gamma}}\int_{V_{\Gamma}}
+!        ! {\dd{\hat{\mathbf{q}}}\left\lbrace\varepsilon^{-1}_{00}(\mathbf{q}\to0,\textt{iomega})-1\right\rbrace}
+!        ! $V_{\Gamma}$ is calculated by 
+!        integer,intent(in) :: iom
+!        complex(8),intent(out) :: angint
 !        complex(8),external :: zdotu
 !
 !        angint = zdotu(nq0, head_g(:,iomega)-cone, 1, cmplx(qmax_q0(:)*wt_q0_sph(:),0.0D0,8), 1) &
 !     &                / cmplx(norm_w_q0 * vol_q0, 0.0D0, 8)
 !        
-        END SUBROUTINE angint_invq2_dhead
+!        END SUBROUTINE angint_invq2_dhead
 
 END MODULE ANISOTROPY
 

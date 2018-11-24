@@ -567,104 +567,37 @@
           call cpu_time(time2)
           time_lapack=time_lapack+time2-time1
 
-          ! test for bw1 and w2b
-!          if(iop_aniso.ne.-1)then
-!            do imats=1,matsiz
-!              bw1_tmp = bw1(imats)
-!              w2b_tmp = w2b(imats)
-!              bw1(imats)=sqrt(ccoefcoul)*sum(vec_a_ani(:,imats,iom)*cmplx(q0_eps(:),0.0D0,8))
-!              w2b(imats)=sqrt(ccoefcoul)*sum(vec_b_ani(:,imats,iom)*cmplx(q0_eps(:),0.0D0,8))
-!              if(ldbg) then
-!                  write(fid_outdbg,"(i3,i4,A2,4e13.5)") &
-!     &                  iom,imats,"O",bw1_tmp,w2b_tmp      
-!                  write(fid_outdbg,"(i3,i4,A2,4e13.5)") &
-!     &                  iom,imats,"N", bw1(imats),w2b(imats)
-!                  write(fid_outdbg,"(i3,i4,A2,2L26)") &
-!     &                  iom,imats,"D", &
-!     &                  abs(bw1(imats)-bw1_tmp).le.1.0D-12,&
-!     &                  abs(w2b(imats)-w2b_tmp).le.1.0D-12
-!              endif
-!            enddo
-!          endif ! iop_aniso.ne.-1
-
           emac(2,iom)=head(iom)
           ! head calculated from the following two ways should be equivalent
           !head(iom)=1.d0/(head(iom)-zdotu(matsiz,epsw2(:,iom),1,bw1,1))
           head(iom)=1.d0/(head(iom)-zdotu(matsiz,epsw1(:,iom),1,w2b,1))
-
-          ! test for head for anisotropy
-!          head_tmp = head(iom)
-!          if(iop_aniso.ne.-1)then
-!            head(iom) = cone / &
-!     &         (cone+ccoefcoul*ten_rvctrv(3,ten_a_ani(:,:,iom),q0_eps))
-!!            head(iom)=1.d0/ & 
-!!     &        (1.0D0-ccoefcoul*ten_rvctrv(3,ten_p_ani(:,:,iom),q0_eps)&
-!!     &            -zdotu(matsiz,epsw1(:,iom),1,w2b,1)) ! tested correct
-!            write(fid_outgw,"(A6,I3,A2,2e13.4)") "e-100",iom,"O",head_tmp
-!            write(fid_outgw,"(A6,I3,A2,2e13.4)") "e-100",iom,"N",head(iom)
-!            write(fid_outgw,"(A6,I3,A2,2e13.4)") "e-100",iom,"D",head(iom)-head_tmp
-!          endif
           emac(1,iom)=1.d0/head(iom)
 
           if(iop_aniso.ne.-1)then
-!            do im=1,matsiz
-!              epsw1(im,iom)=-head(iom)*sqrt(ccoefcoul)*&
-!     &            sum(vec_a_ani(:,im,iom)*q0_eps)
-!              epsw2(im,iom)=-head(iom)*sqrt(ccoefcoul)*&
-!     &            sum(vec_b_ani(:,im,iom)*q0_eps)
-!            enddo
             call zgemv('T',3,matsiz,-head(iom)*sqrt(ccoefcoul),&
      &          vec_a_ani(:,:,iom),3,cmplx(q0_eps,0.0D0,8),1,&
      &          czero,epsw1(:,iom),1,ierr)
             call zgemv('T',3,matsiz,-head(iom)*sqrt(ccoefcoul),&
      &          vec_b_ani(:,:,iom),3,cmplx(q0_eps,0.0D0,8),1,&
      &          czero,epsw2(:,iom),1,ierr)
-            ! TODO body of the eps^-1 could be optimized
-!            do im=1,matsiz
-!              do jm=1,matsiz
-!!                do i=1,3
-!!                  do j=1,3
-!!                    ten_aob_tmp(i,j)=vec_a_ani(i,im,iom)*vec_b_ani(j,jm,iom)
-!!                  enddo
-!!                enddo
-!!                eps(im,jm,iom)=eps(im,jm,iom) + &
-!!     &              ccoefcoul*head(iom)*ten_rvctrv(3,ten_aob_tmp,q0_eps)
-!                eps(im,jm,iom)=eps(im,jm,iom)+epsw1(im,iom)*epsw2(jm,iom)/head(iom)
-!              enddo
-!            enddo
-            ! Use eps averaged over smallq region for self energy calculation
-            ! Only use this in 3D.
-            ! TODO different treatment for 2D/1D cases
-!            if(ldbg) then
-!              write(fid_outdbg,"(A30)") "V/H wing before average"
-!              do im=1,matsiz
-!                write(fid_outdbg,"(I3,I4,A1,2e13.4)") iom,im,"V",epsw1(im,iom)
-!                write(fid_outdbg,"(I3,I4,A1,2e13.4)") iom,im,"H",epsw2(im,iom)
-!              enddo
-!            endif
-!            call cpu_time(time3)
+            call cpu_time(time3)
             call calc_h_w_inv_ang_grid(iom)
             call proj_head_on_ylm(iom)
-!            call cpu_time(time4)
-!            time_aniso = time_aniso + time4 - time3
-!            if(ldbg) then
-!              write(fid_outdbg,"(A30)") "V/H wing after average"
-!              do im=1,matsiz
-!                write(fid_outdbg,"(I3,I4,A1,2e13.4)") iom,im,"V",epsw1(im,iom)
-!                write(fid_outdbg,"(I3,I4,A1,2e13.4)") iom,im,"H",epsw2(im,iom)
-!              enddo
-!            endif
+            call cpu_time(time4)
+            time_aniso = time_aniso + time4 - time3
           else
             epsw1(:,iom)=-head(iom)*bw1(:)
             epsw2(:,iom)=-head(iom)*w2b(:)
           endif ! iop_aniso.ne.-1
 
+          ! body of dielectric matrix inverse
           do jm=1,matsiz
             do im=1,matsiz
               eps(im,jm,iom)=eps(im,jm,iom)+epsw1(im,iom)*epsw2(jm,iom)/head(iom)
             enddo
           enddo
 
+          ! include anisotropic term in the body part
           if(iop_aniso.ne.-1)then
             call angint_eps_sph(iom, eps(:,:,iom), .FALSE.)
           endif

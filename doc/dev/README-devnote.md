@@ -88,7 +88,7 @@
   integrate over q0, since the integration should be performed explicitly to account for anisotropy.
   However, they are still useful in calculating exchange self-energy.
   3. Figure out that `calcmwm` instead of `calc_mwm3` is used to calculate M*W*M for correlationi selfenergy.
-  Hence non-analyticity for head should be considered in this part.(TODO)
+  Hence non-analyticity for head should be considered in this part.(TODO: DONE)
 
 ## 2018-11-19 (zmy)
 
@@ -112,3 +112,8 @@
 
   1. Merge code for generation of angular grids in `anisotropy` and `bzinteg`
 
+## 2018-11-24 (zmy)
+
+  1. Implement contribution from head and wing singularity for direct 
+  integration in supercell BZ, i.e. `iop_q0=1`. Too small GW band gap, and
+  smaller GW0 gap than G0W0 one are obtained. (TO FODO)
