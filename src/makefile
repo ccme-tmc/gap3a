@@ -252,6 +252,7 @@ clean:
 
 cleanall:
 	make clean
+	rm -f *.mod
 	rm -f $(S_EXEC) $(P_EXEC) $(LIBS)  *.swp  $(SEQMODS) $(MPIMODS)
 	cd ../bin; rm -f gap*;cd ../src/
 	cd $(MODDIR); make clean; cd .. 

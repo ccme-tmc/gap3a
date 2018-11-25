@@ -19,7 +19,7 @@
       use kpoints
       use lapwlo,     only: nt,lomax,nlomax
       use mixbasis,   only: maxbigl,nmix,bigl,umix
-      use param
+      use param,      only: lmax
       use radwf
       use recipvec,   only: indgk, gindex
       use rspevec,     only: evecmt,evecmts,rg,rd

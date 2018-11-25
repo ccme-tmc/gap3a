@@ -116,4 +116,12 @@
 
   1. Implement contribution from head and wing singularity for direct 
   integration in supercell BZ, i.e. `iop_q0=1`. Too small GW band gap, and
-  smaller GW0 gap than G0W0 one are obtained. (TO FODO)
+  smaller GW0 gap than G0W0 one are obtained. (TO FODO: DONE on 2018-11-25)
+
+## 2018-11-25 (zmy)
+
+  1. Fix too small GW band gap, due to wrong projection on Ylm and a missing
+  of pi on the denominator of head singular contribution.
+  2. Rearrange makefile in `src_modules`. Add `rm -f \*.mod` to root directory
+  makefile to fix ifort compiler error #7013.
+

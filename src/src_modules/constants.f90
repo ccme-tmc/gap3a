@@ -21,7 +21,7 @@
         real(8), parameter :: sqrt2=1.41421356237d0
         real(8), parameter :: pisq= pi*pi
         real(8), parameter :: pisqrt= 1.772453850905516104D0
-        real(8), parameter :: HeV = 27.2113961D0
+        real(8), parameter :: hev = 27.2113961D0
         real(8), parameter :: Bohr2Ans=0.5292083D0
         complex(8), parameter :: ctwopi = cmplx(twopi,0.0D0,8)
         complex(8), parameter :: cpi = cmplx(pi,0.0D0,8)

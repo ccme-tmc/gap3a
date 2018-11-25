@@ -3,10 +3,10 @@ MODULE ANISOTROPY
     ! this module defines variables and subroutines utilized for dealing
     ! with the anisotropy of dielectric matrix for $q\to0$
 
-    use mixbasis, only: matsiz
-    use constants, only: czero,cone,pi
-    use task, only: fid_outgw, fid_outdbg, fid_aniso
-    use bzinteg, only: grid_vec,n_ang_grid,vol_gamma,qmax_gamma,ang_weight
+    use mixbasis,  only: matsiz
+    use constants, only: czero,cone,pi,ctwopi,cpi,sqrt4pi
+    use task,      only: fid_outgw, fid_outdbg, fid_aniso
+    use bzinteg,   only: grid_vec,n_ang_grid,vol_gamma,qmax_gamma,ang_weight
 
     implicit none
     integer :: iop_aniso = -1  ! control whether to consider the anisotropy of dielectric function around Gamma
@@ -189,13 +189,11 @@ MODULE ANISOTROPY
 
 
         SUBROUTINE proj_head_on_ylm(iom)
-        use constants, only: sqrt4pi
 
         implicit none
         integer,intent(in) :: iom
         integer :: ilm     ! Counter: runs over lmgsq
         integer :: iang    ! Counter: runs over n_ang_grid
-        complex(8),external :: zdotc
         complex(8) :: head_g_tmp
 
         do ilm=1,lmgsq
@@ -354,14 +352,11 @@ MODULE ANISOTROPY
 
         subroutine aniso_calc_sing_q0_1(iom, minm, singh, singw)
 !
-        use constants, only: ctwopi,cpi
         implicit none
         integer,intent(in) :: iom
         complex(8),intent(in) :: minm(matsiz)
         complex(8),intent(out) :: singh, singw
 !
-        complex(8),external :: zdotc
-
         ! Contribution from head
         ! Two equations below are equivalent, if the expansion of Ylm is complete
         !singh=cdot_over_lm('C',qmax_g_lm,h_g_lm(:,iom))/ctwopi
@@ -425,5 +420,6 @@ MODULE ANISOTROPY
         endif
 
         end function cdot_over_ang
+
 END MODULE ANISOTROPY
 

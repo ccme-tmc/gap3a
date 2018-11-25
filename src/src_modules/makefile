@@ -1,11 +1,13 @@
 include ../make.inc 
 .SUFFIXES:      .f90
 
-OBJS= task.o constants.o  modmpi.o  kpoints.o lebedev_laikov.o reallocate.o recipvec.o \
-	  acfd.o angintegrals.o bands.o barcoul.o mixbasis.o  anisotropy.o  bzinteg.o \
-	  core.o crpa.o eigenvec.o dielmat.o fouri.o freq.o \
-      hfexch.o kmeshintp.o  lapack.o  lapwlo.o minmmat.o modules.o  mommat.o    \
-      param.o prodfun.o radwf.o rspevec.o selfenergy.o struk.o  \
+OBJS= acfd.o lapwlo.o modules.o angintegrals.o lapack.o fouri.o freq.o task.o constants.o kpoints.o lebedev_laikov.o reallocate.o hfexch.o kmeshintp.o \
+	  modmpi.o  recipvec.o bands.o \
+      radwf.o  eigenvec.o \
+      barcoul.o mixbasis.o  anisotropy.o  bzinteg.o \
+      core.o crpa.o dielmat.o\
+      minmmat.o mommat.o \
+      param.o prodfun.o rspevec.o selfenergy.o struk.o  \
       xcpot.o   
       
 # objects that are needed in both sequential and parallel version 
@@ -27,7 +29,7 @@ para:  keep_para_files
 
 
 $(SEQMODS): $(OBJS) 
-	$(AR) $(ARFLAGS) $(SEQMODS) $(OBJS) 
+	$(AR) $(ARFLAGS) $(SEQMODS) $(OBJS);
 	$(RANLIB) $(SEQMODS)
 
 $(MPIMODS): $(OBJS)  
@@ -46,22 +48,85 @@ keep_para_files:
 	fi
 	touch .para
 
-anisotropy.o: task.o constants.o mixbasis.o kpoints.o struk.o bzinteg.o
+# independent modules and modules directly dependent on them
+#    acfd.o
+#    constants.o
+#    freq.o
+#    kpoints.o
 bands.o : kpoints.o 
-barcoul.o: constants.o kpoints.o mixbasis.o struk.o
-bzinteg.o : constants.o bands.o core.o freq.o kpoints.o struk.o  lebedev_laikov.o
-core.o: radwf.o
-dielmat.o: constants.o mixbasis.o recipvec.o 
-eigenvec.o: task.o bands.o struk.o lapwlo.o recipvec.o
-minmmat.o : task.o
-mixbasis.o: recipvec.o reallocate.o struk.o  core.o 
-modmpi.o : constants.o
-moments.o: lapwlo.o
-radwf.o :  lapwlo.o bands.o 
 recipvec.o : kpoints.o
-selfenergy.o : freq.o 
-xcpot.o: selfenergy.o bands.o kpoints.o struk.o
+#    lapwlo.o
+#    reallocate.o
+rotmat.o : reallocate.o
 struk.o : reallocate.o
+#    task.o
+modmpi.o : constants.o task.o
+
+radwf.o :  lapwlo.o \
+           bands.o struk.o
+eigenvec.o: task.o constants.o kpoints.o lapwlo.o \
+            bands.o struk.o recipvec.o
+
+core.o : \
+         \
+         radwf.o
+
+mommat.o: lapwlo.o constants.o \
+          struk.o bands.o \
+          \
+          core.o
+mixbasis.o: reallocate.o lapwlo.o \
+            struk.o bands.o recipvec.o \
+            \
+            core.o
+bzinteg.o : lebedev_laikov.o freq.o kpoints.o \
+            struk.o bands.o \
+            \
+            core.o
+minmmat.o : task.o bands.o kpoints.o \
+            \
+            mixbasis.o \
+            core.o
+dielmat.o: task.o constants.o kpoints.o \
+           bands.o \
+           \
+           core.o \
+           mixbasis.o
+anisotropy.o: task.o constants.o \
+              \
+			  \
+              \
+		      mixbasis.o bzinteg.o
+crpa.o: freq.o kpoints.o \
+        bands.o \
+        \
+        \
+        mixbasis.o
+barcoul.o: constants.o kpoints.o \
+           struk.o \
+           \
+           \
+           mixbasis.o 
+
+selfenergy.o : freq.o task.o kpoints.o \
+          bands.o \
+          \
+          \
+          \
+          crpa.o
+selfenergy-nov15.o : freq.o task.o kpoints.o \
+          	         bands.o \
+          	         \
+          	         \
+          	         \
+	                 crpa.o
+xcpot.o: kpoints.o \
+         bands.o struk.o \
+         \
+         \
+         \
+         \
+         selfenergy.o
 
 clean:
 	rm -f $(OBJS) *.mod .para .seq
