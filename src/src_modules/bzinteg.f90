@@ -76,18 +76,14 @@
         call linmsg(fid_outgw,'-',"set_sing")
         write(fid_outgw, "(A10,I2)") "iop_q0:", iop_q0
 
-        ! Always generate the grid_vec, as the time cost is very small
-        ! for small n_ang_grid
+        ! Always generate the grid_vec for the current stage
+        ! as the time cost is very small for small n_ang_grid
+        ! TODO check memory issue for large n_ang_grid
         if(n_ang_grid.le.0) n_ang_grid = 26
-        allocate(grid_vec(n_ang_grid,1:3), ang_weight(n_ang_grid),    &
-     &          qmax_gamma(n_ang_grid),stat=ierr)
-        if(ierr.ne.0) then
-          write(fid_outgw,*) "init_bzinteg: Fail to allocate memory"
-          stop
-        endif
-        grid_vec=0.0d0
-        ang_weight=0.0d0
-        call set_angular_grid
+        call set_angular_grid(n_ang_grid)
+        write(fid_outgw, "(A20,I5)") "Used n_ang_grid: ", n_ang_grid
+        !! Set q_max for each vector of the grid
+        call set_qmax_gamma
 
         if(iop_q0.eq.0) then 
           call set_singc_0
@@ -172,7 +168,7 @@
         end subroutine set_singc_1 
 
 
-        subroutine set_angular_grid
+        subroutine set_angular_grid(ngrid)
 !
 ! Sets the angular grid for the integration of the dielectric function around
 ! the $\Gamma$-point, including anisotropy.
@@ -180,22 +176,28 @@
         use lebedev_laikov
         use struk,     only: vi
         implicit none
+        integer,intent(inout) :: ngrid
+        integer :: ierr
         real(8) :: prefactor
 
-        prefactor = 4.0d0*pi
+        prefactor = 4.0D0*pi
 
         !! Set the angular grid for integration
-        call set_lebedev_laikov_grid(n_ang_grid)
+        call set_lebedev_laikov_grid(ngrid)
         !! Store the grid
-        grid_vec(1:n_ang_grid,1)=xleb(1:n_ang_grid)
-        grid_vec(1:n_ang_grid,2)=yleb(1:n_ang_grid)
-        grid_vec(1:n_ang_grid,3)=zleb(1:n_ang_grid)
-        ang_weight(1:n_ang_grid)=wleb(1:n_ang_grid)*prefactor
+        ngrid = nleb
+        allocate(grid_vec(ngrid,1:3), ang_weight(ngrid),  &
+     &          qmax_gamma(ngrid),stat=ierr)
+        if(ierr.ne.0) then
+          write(fid_outgw,*) "init_bzinteg: Fail to allocate memory"
+          stop
+        endif
+        grid_vec(1:ngrid,1)=xleb(1:ngrid)
+        grid_vec(1:ngrid,2)=yleb(1:ngrid)
+        grid_vec(1:ngrid,3)=zleb(1:ngrid)
+        ang_weight(1:ngrid)=wleb(1:ngrid)*prefactor
 
         call unset_lebedev_laikov_grid
-
-        !! Set K_max for each vector of the grid
-        call set_qmax_gamma
 
         end subroutine set_angular_grid
 

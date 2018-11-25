@@ -55,7 +55,7 @@ MODULE ANISOTROPY
         integer :: ierr
 
         external :: ylm
-        complex(8),external :: zdotc
+        complex(8),external :: zdotc,zdotu,ddot
 
 
         lmgsq = (lmax_gamma+1)**2
@@ -104,13 +104,30 @@ MODULE ANISOTROPY
             do iang=1,n_ang_grid
               call ylm(grid_vec(iang,:),lmax_gamma,sph_harms_g(:,iang))
               ! include the weight of angular grid in sph_harms
-              sph_harms_g(:,iang) = sph_harms_g(:,iang)*cmplx(ang_weight(iang),0.0D0,8)
+              !sph_harms_g(:,iang)=sph_harms_g(:,iang)*cmplx(ang_weight(iang),0.0D0,8)
             enddo
 
+            write(*,*) "1"
+            !qmax_gamma(:)=0.5D0/sqrt(pi)
+            !write(*,*) qmax_gamma(:)*qmax_gamma(:)
+            !write(*,*) ang_weight
+            write(*,*) size(qmax_gamma)
+            write(*,"(A25,F12.5)") "Summation of weight/4pi",sum(ang_weight)/4.0D0/pi
+!     &          ddot(n_ang_grid,qmax_gamma(:)*qmax_gamma(:),1,ang_weight,1)
+!     &          ddot(n_ang_grid,ang_weight,1,qmax_gamma**2,1)
+            write(*,*) "2"
             do ilm=1,lmgsq
-!              qmax_g_lm(ilm)=zdotc(n_ang_grid,sph_harms_g(ilm,:),1,&
-!     &            cmplx(qmax_gamma(:),0.0D0,8),1)
-              qmax_g_lm(ilm)=zdotc(n_ang_grid,sph_harms_g(ilm,:),1,qmax_gamma(:),1)
+              qmax_g_lm(ilm)=zdotc(n_ang_grid,sph_harms_g(ilm,:),1,&
+     &            cmplx(qmax_gamma(:)*ang_weight(:),0.0D0,8),1)
+!              qmax_g_lm(ilm)=zdotc(n_ang_grid,sph_harms_g(ilm,:),1,qmax_gamma(:),1)
+              write(*,"(I3,3F13.5)") ilm, qmax_g_lm(ilm)
+            enddo
+            write(*,*) "3"
+
+            ! check completeness of expansion
+            do iang=1,n_ang_grid
+              write(fid_outdbg,"(A4,I5,3F13.6)") "Ang ", iang, qmax_gamma(iang),&
+     &          zdotu(lmgsq,sph_harms_g(:,iang),1,qmax_g_lm,1)
             enddo
 
         endif ! iq.eq.1
