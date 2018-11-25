@@ -11,6 +11,7 @@ MODULE ANISOTROPY
     implicit none
     integer :: iop_aniso = -1  ! control whether to consider the anisotropy of dielectric function around Gamma
                                ! -1 -- use q0_eps, no anisotropy
+                               !  0 -- 3D anisotropy
 
     complex(8), allocatable :: vec_u_ani(:,:,:)   ! vector u
     complex(8), allocatable :: vec_t_ani(:,:,:)   ! vector t
@@ -18,14 +19,9 @@ MODULE ANISOTROPY
     complex(8), allocatable :: vec_b_ani(:,:,:)   ! vector b
     complex(8), allocatable :: ten_p_ani(:,:,:)   ! tensor P
     complex(8), allocatable :: ten_a_ani(:,:,:)   ! tensor A
-    ! Following quantities should be determined by a Lebedev-Laikov grid
-    !integer :: nq0 = 0                   ! number of q0 for angular integration
-    !real(8), allocatable :: q0_sph(:,:)  ! direction of q0, similar to q0_eps
-    !real(8), allocatable :: wt_q0_sph(:) ! weight of q0_sph
-    integer :: lmax_gamma = 8               ! maximum angular momentum to expand eps on q0
+
+    integer :: lmax_gamma = 8                   ! maximum angular momentum to expand eps on q0
     integer :: lmgsq
-
-
     complex(8), allocatable :: head_g(:,:)      ! the head (n_ang_grid,nomega) of eps^-1 at q0
     complex(8), allocatable :: wv_g(:,:,:)      ! vertical wing of eps^-1 at q0
     complex(8), allocatable :: wh_g(:,:,:)      ! horizontal wing of eps^-1 at q0
@@ -63,75 +59,68 @@ MODULE ANISOTROPY
 
         lmgsq = (lmax_gamma+1)**2
         if(iq.eq.1)then
-            if(iop_aniso.ne.-1)then
-                write(fid_outgw,*) "Anisotropy switched on"
-                ! TODO avoid body_q0 in future for integration 
-                allocate(vec_u_ani(3,matsiz,iomfirst:iomlast),      &
-                &        vec_t_ani(3,matsiz,iomfirst:iomlast),      &
-                &        vec_a_ani(3,matsiz,iomfirst:iomlast),      &
-                &        vec_b_ani(3,matsiz,iomfirst:iomlast),      &
-                &        ten_p_ani(3,3,iomfirst:iomlast),           &
-                &        ten_a_ani(3,3,iomfirst:iomlast),           &
-            !    &        q0_sph(1:nq0,3),                          &
-            !    &        wt_q0_sph(1:nq0),                         &
-                &        head_g(1:n_ang_grid,iomfirst:iomlast),     &
-                &        wv_g(1:n_ang_grid,matsiz,iomfirst:iomlast),&
-                &        wh_g(1:n_ang_grid,matsiz,iomfirst:iomlast),&
-            !    &        qmax_q0(1:nq0),                           &
-                &        w_gamma(1:n_ang_grid),                     &
-                &        sph_harms_g(lmgsq,n_ang_grid),             &
-                &        h_g_lm(lmgsq,iomfirst:iomlast),            &
-                &        qmax_g_lm(lmgsq),                          &
-                &        stat=ierr)
-                if(ierr.ne.0) then
-                    write(fid_outgw,*) " - init_aniso: Fail to allocate aniso"
-                    stop
-                else
-                    write(fid_outgw,*) " - init_aniso: success"
-                endif
+          if(iop_aniso.ne.-1)then
+            write(fid_outgw,*) "Anisotropy switched on"
+            ! TODO avoid body_q0 in future for integration 
+            allocate(vec_u_ani(3,matsiz,iomfirst:iomlast),      &
+            &        vec_t_ani(3,matsiz,iomfirst:iomlast),      &
+            &        vec_a_ani(3,matsiz,iomfirst:iomlast),      &
+            &        vec_b_ani(3,matsiz,iomfirst:iomlast),      &
+            &        ten_p_ani(3,3,iomfirst:iomlast),           &
+            &        ten_a_ani(3,3,iomfirst:iomlast),           &
+          !  &        q0_sph(1:nq0,3),                          &
+          !  &        wt_q0_sph(1:nq0),                         &
+            &        head_g(1:n_ang_grid,iomfirst:iomlast),     &
+            &        wv_g(1:n_ang_grid,matsiz,iomfirst:iomlast),&
+            &        wh_g(1:n_ang_grid,matsiz,iomfirst:iomlast),&
+          !  &        qmax_q0(1:nq0),                           &
+            &        w_gamma(1:n_ang_grid),                     &
+            &        sph_harms_g(lmgsq,n_ang_grid),             &
+            &        h_g_lm(lmgsq,iomfirst:iomlast),            &
+            &        qmax_g_lm(lmgsq),                          &
+            &        stat=ierr)
+            if(ierr.ne.0) then
+              write(fid_outgw,*) " - init_aniso: Fail to allocate aniso"
+              stop
+            else
+              write(fid_outgw,*) " - init_aniso: success"
             endif
+          endif
 
-            ten_p_ani = czero
-            ten_a_ani = czero
-            vec_u_ani = czero
-            vec_t_ani = czero
-            vec_a_ani = czero
-            vec_b_ani = czero
-            head_g = czero
-            wv_g = czero
-            wh_g = czero
-            w_gamma = qmax_gamma**3/vol_gamma/3.0
-            norm_w_gamma = sum(w_gamma*ang_weight)
+          ten_p_ani = czero
+          ten_a_ani = czero
+          vec_u_ani = czero
+          vec_t_ani = czero
+          vec_a_ani = czero
+          vec_b_ani = czero
+          head_g = czero
+          wv_g = czero
+          wh_g = czero
+          w_gamma = qmax_gamma**3/vol_gamma/3.0
+          norm_w_gamma = sum(w_gamma*ang_weight)
 
-            ! initialize spherical harmonics and projection of qmax_gamma
-            do iang=1,n_ang_grid
-              call ylm(grid_vec(iang,:),lmax_gamma,sph_harms_g(:,iang))
-            !  qmax_gamma(iang)=0.5D0/sqrt(pi)
-            !  qmax_gamma(iang)=qmax_gamma(iang)+1.0D0*real(sph_harms_g(13,iang))
-            !  qmax_gamma(iang)=qmax_gamma(iang)+0.2D0*real(sph_harms_g(21,iang))
-              ! include the weight of angular grid in sph_harms
-              do ilm=1,lmgsq
-                sph_harms_g(ilm,iang)=sph_harms_g(ilm,iang)*cmplx(ang_weight(iang),0.0D0,8)
-              enddo
-            enddo
-
-            !write(*,"(A25,F12.5)") "Summation of weight/4pi",sum(ang_weight)/4.0D0/pi
-!     &          ddot(n_ang_grid,qmax_gamma(:)*qmax_gamma(:),1,ang_weight,1)
-!     &          ddot(n_ang_grid,ang_weight,1,qmax_gamma**2,1)
+          ! initialize spherical harmonics and projection of qmax_gamma
+          do iang=1,n_ang_grid
+            call ylm(grid_vec(iang,:),lmax_gamma,sph_harms_g(:,iang))
+            ! include the weight of angular grid in sph_harms
             do ilm=1,lmgsq
-!              qmax_g_lm(ilm)=zdotc(n_ang_grid,sph_harms_g(ilm,:),1,&
-!     &            cmplx(qmax_gamma*ang_weight,0.0D0,8),1)
-              qmax_g_lm(ilm)=cdot_over_ang('C',sph_harms_g(ilm,:),cmplx(qmax_gamma(:),0.0D0,8))
-              write(*,"(I3,3F13.5)") ilm, qmax_g_lm(ilm)
+              sph_harms_g(ilm,iang)=sph_harms_g(ilm,iang)*cmplx(ang_weight(iang),0.0D0,8)
             enddo
+          enddo
 
-            ! check completeness of expansion
-            do iang=1,n_ang_grid
-!              write(fid_outdbg,"(A4,I5,3F13.6)") "Ang ", iang, qmax_gamma(iang),&
-!     &          zdotu(lmgsq,sph_harms_g(:,iang),1,qmax_g_lm,1)
-              write(fid_outdbg,"(A4,I5,3F13.6)") "Ang ", iang, qmax_gamma(iang),&
-     &          cdot_over_lm('N',sph_harms_g(:,iang),qmax_g_lm)/cmplx(ang_weight(iang),0.0D0,8)
-            enddo
+          !write(*,"(A25,F12.5)") "Summation of weight/4pi",sum(ang_weight)/4.0D0/pi
+          do ilm=1,lmgsq
+            qmax_g_lm(ilm)=cdot_over_ang('C',sph_harms_g(ilm,:),cmplx(qmax_gamma(:),0.0D0,8))
+            write(fid_outdbg,"(I4,3F13.5)") ilm, qmax_g_lm(ilm)
+          enddo
+
+          ! check completeness of expansion of qmax
+          ! TODO fail to output to fid_outdbg for gap3a-mpi
+          ! expansion of qmax is not as accurate as eps
+!          do iang=1,n_ang_grid
+!            write(fid_outdbg,"(A4,I6,3F13.6)") "Ang ", iang, qmax_gamma(iang),&
+!     &        cdot_over_lm('N',sph_harms_g(:,iang),qmax_g_lm)/cmplx(ang_weight(iang),0.0D0,8)
+!          enddo
 
         endif ! iq.eq.1
 
@@ -142,12 +131,12 @@ MODULE ANISOTROPY
 
         integer,intent(in) :: iq
         if(iq.eq.1)then
-            deallocate(vec_u_ani, vec_a_ani, vec_b_ani, vec_t_ani, &
-    &                  ten_p_ani, ten_a_ani, &
-    &                  head_g, wh_g, wv_g, w_gamma, h_g_lm, sph_harms_g )
-!    &                  q0_sph, wt_q0_sph, &
-!    &                  qmax_q0)
-            write(fid_outgw,*) " - end_aniso: success"
+          deallocate(vec_u_ani, vec_a_ani, vec_b_ani, vec_t_ani, &
+    &                ten_p_ani, ten_a_ani, &
+    &                head_g, wh_g, wv_g, w_gamma, h_g_lm, sph_harms_g )
+!    &                q0_sph, wt_q0_sph, &
+!    &                qmax_q0)
+          write(fid_outgw,*) " - end_aniso: success"
         endif
 
         END SUBROUTINE end_aniso

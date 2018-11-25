@@ -124,4 +124,5 @@
   of pi on the denominator of head singular contribution.
   2. Rearrange makefile in `src_modules`. Add `rm -f \*.mod` to root directory
   makefile to fix ifort compiler error #7013.
+  3. Bug to print debug info for `qmax_g_lm` in `fid_outdbg` in MPI version (TODO)
 
