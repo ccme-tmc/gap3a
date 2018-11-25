@@ -128,7 +128,7 @@
         alfa=(1.0d0/(6.0d0*pi2vi))**(1.0d0/3.0d0)
         singc1=0.d0
         singc2=0.d0
-        write(fid_outgw,'(A30,I3)') "Generating Coefs from nqp = ", nqp
+        write(fid_outgw,'(A30,I3)') "Generating F Coefs from nqp = ",nqp
         do iq=1,nqp
           call genauxf(iq,alfa,singf1,singf2)
           write(fid_outgw,'(I2,2F12.8)') iq, singf1, singf2

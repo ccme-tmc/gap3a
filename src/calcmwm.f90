@@ -16,7 +16,7 @@
       use bands,      only: ibgw,nbgw,nbandsgw
       use barcoul,    only: iop_coul
       use bzinteg,    only: singc1co,singc2co
-      use constants,  only: cone,czero,pi,twopi,fourpi,sqrt4pi
+      use constants,  only: cone,czero,pi,fourpi,sqrt4pi
       use core,       only: ncg_c
       use dielmat,    only: eps,head,epsw1,epsw2
       use kpoints,    only: nqp,kqid,idikp,kpirind,weightq
@@ -100,7 +100,7 @@
 !     This subroutine is used as a generic interface to calculate M*W*M
 ! 
         subroutine sub_setmwm(mst,mend)
-        use anisotropy, only: iop_aniso,lmgsq,qmax_g_lm,h_g_lm
+        use anisotropy, only: iop_aniso, aniso_calc_sing_q0_1
         use bzinteg,    only: iop_q0
         implicit none 
         integer,intent(in):: mst, mend
@@ -139,10 +139,8 @@
      &           wm(:,ie2,ie1),1)
               if(iq.eq.1.and.iop_coul.eq.-1.and.ie1.eq.ie2-ncg_c) then
                 if(iop_aniso.ne.-1.and.iop_q0.eq.1)then
-                ! 1/q term is approximated to have zero contribution !!!
-                  term_singular_h=zdotc(lmgsq,qmax_g_lm,1,h_g_lm(:,iom),1)&
-     &              /cmplx(twopi,0.0D0,8)
-                  term_singular_w=czero
+                  call aniso_calc_sing_q0_1(iom, minm(:,ie2,ie1), &
+     &              term_singular_h, term_singular_w)
                 else
                   term_singular_h = coefs2*head(iom)
                   term_singular_w = &

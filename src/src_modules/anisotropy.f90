@@ -6,6 +6,7 @@ MODULE ANISOTROPY
     use mixbasis, only: matsiz
     use constants, only: czero,cone,pi
     use task, only: fid_outgw, fid_outdbg, fid_aniso
+    use bzinteg, only: grid_vec,n_ang_grid,vol_gamma,qmax_gamma,ang_weight
 
     implicit none
     integer :: iop_aniso = -1  ! control whether to consider the anisotropy of dielectric function around Gamma
@@ -21,7 +22,7 @@ MODULE ANISOTROPY
     !integer :: nq0 = 0                   ! number of q0 for angular integration
     !real(8), allocatable :: q0_sph(:,:)  ! direction of q0, similar to q0_eps
     !real(8), allocatable :: wt_q0_sph(:) ! weight of q0_sph
-    integer :: lmax_gamma = 4               ! maximum angular momentum to expand eps on q0
+    integer :: lmax_gamma = 8               ! maximum angular momentum to expand eps on q0
     integer :: lmgsq
 
 
@@ -40,12 +41,14 @@ MODULE ANISOTROPY
     real(8),allocatable :: w_gamma(:)  ! previous w_q0
     real(8) :: norm_w_gamma ! previous norm_w_q0
 
+    private :: cdot_over_ang
+    private :: cdot_over_lm
+
 
     CONTAINS
 
         SUBROUTINE init_aniso(iq, iomfirst, iomlast)
 
-        use bzinteg, only: grid_vec,n_ang_grid,vol_gamma,qmax_gamma,ang_weight
         implicit none
         
         integer,intent(in) :: iq 
@@ -103,31 +106,31 @@ MODULE ANISOTROPY
             ! initialize spherical harmonics and projection of qmax_gamma
             do iang=1,n_ang_grid
               call ylm(grid_vec(iang,:),lmax_gamma,sph_harms_g(:,iang))
+            !  qmax_gamma(iang)=0.5D0/sqrt(pi)
+            !  qmax_gamma(iang)=qmax_gamma(iang)+1.0D0*real(sph_harms_g(13,iang))
+            !  qmax_gamma(iang)=qmax_gamma(iang)+0.2D0*real(sph_harms_g(21,iang))
               ! include the weight of angular grid in sph_harms
-              !sph_harms_g(:,iang)=sph_harms_g(:,iang)*cmplx(ang_weight(iang),0.0D0,8)
+              do ilm=1,lmgsq
+                sph_harms_g(ilm,iang)=sph_harms_g(ilm,iang)*cmplx(ang_weight(iang),0.0D0,8)
+              enddo
             enddo
 
-            write(*,*) "1"
-            !qmax_gamma(:)=0.5D0/sqrt(pi)
-            !write(*,*) qmax_gamma(:)*qmax_gamma(:)
-            !write(*,*) ang_weight
-            write(*,*) size(qmax_gamma)
-            write(*,"(A25,F12.5)") "Summation of weight/4pi",sum(ang_weight)/4.0D0/pi
+            !write(*,"(A25,F12.5)") "Summation of weight/4pi",sum(ang_weight)/4.0D0/pi
 !     &          ddot(n_ang_grid,qmax_gamma(:)*qmax_gamma(:),1,ang_weight,1)
 !     &          ddot(n_ang_grid,ang_weight,1,qmax_gamma**2,1)
-            write(*,*) "2"
             do ilm=1,lmgsq
-              qmax_g_lm(ilm)=zdotc(n_ang_grid,sph_harms_g(ilm,:),1,&
-     &            cmplx(qmax_gamma(:)*ang_weight(:),0.0D0,8),1)
-!              qmax_g_lm(ilm)=zdotc(n_ang_grid,sph_harms_g(ilm,:),1,qmax_gamma(:),1)
+!              qmax_g_lm(ilm)=zdotc(n_ang_grid,sph_harms_g(ilm,:),1,&
+!     &            cmplx(qmax_gamma*ang_weight,0.0D0,8),1)
+              qmax_g_lm(ilm)=cdot_over_ang('C',sph_harms_g(ilm,:),cmplx(qmax_gamma(:),0.0D0,8))
               write(*,"(I3,3F13.5)") ilm, qmax_g_lm(ilm)
             enddo
-            write(*,*) "3"
 
             ! check completeness of expansion
             do iang=1,n_ang_grid
+!              write(fid_outdbg,"(A4,I5,3F13.6)") "Ang ", iang, qmax_gamma(iang),&
+!     &          zdotu(lmgsq,sph_harms_g(:,iang),1,qmax_g_lm,1)
               write(fid_outdbg,"(A4,I5,3F13.6)") "Ang ", iang, qmax_gamma(iang),&
-     &          zdotu(lmgsq,sph_harms_g(:,iang),1,qmax_g_lm,1)
+     &          cdot_over_lm('N',sph_harms_g(:,iang),qmax_g_lm)/cmplx(ang_weight(iang),0.0D0,8)
             enddo
 
         endif ! iq.eq.1
@@ -152,7 +155,6 @@ MODULE ANISOTROPY
 
         SUBROUTINE calc_h_w_inv_ang_grid(iom)
         ! calculate the head and wings of the inverse of dielectric matrix
-        use bzinteg,   only: n_ang_grid,grid_vec
 
         implicit none
         integer,intent(in) :: iom
@@ -187,16 +189,24 @@ MODULE ANISOTROPY
 
 
         SUBROUTINE proj_head_on_ylm(iom)
-        use bzinteg, only: n_ang_grid
         use constants, only: sqrt4pi
 
         implicit none
         integer,intent(in) :: iom
         integer :: ilm     ! Counter: runs over lmgsq
+        integer :: iang    ! Counter: runs over n_ang_grid
         complex(8),external :: zdotc
+        complex(8) :: head_g_tmp
 
         do ilm=1,lmgsq
-          h_g_lm(ilm,iom)=zdotc(n_ang_grid,sph_harms_g(ilm,:),1,head_g(:,iom),1)
+          h_g_lm(ilm,iom)=cdot_over_ang('C',sph_harms_g(ilm,:),head_g(:,iom))
+        enddo
+
+        ! check completeness of expansion
+        write(fid_outdbg,"(A40,I3)") "Completeness of Ylm expansion of head_g, iom ", iom
+        do iang=1,n_ang_grid
+          write(fid_outdbg,"(I5,4F14.6)") iang, head_g(iang,iom), &
+     &      cdot_over_lm('N',sph_harms_g(:,iang),h_g_lm(:,iom))/cmplx(ang_weight(iang),0.0D0,8)
         enddo
 
         ! substract \sqrt{4\pi} for l=0,m=0 term to exclude bare Coulomb part
@@ -208,7 +218,6 @@ MODULE ANISOTROPY
         SUBROUTINE angint_eps_sph(iom, bodyinv, use_harm)
         ! calculate the anisotropic term in the body of the inverse of dielectric matrix
         ! by direct calculation, or by the use of spherical harmonics
-        use bzinteg, only: n_ang_grid, ang_weight
 
         implicit none
         integer,intent(in) :: iom  ! index of frequency
@@ -342,21 +351,26 @@ MODULE ANISOTROPY
 !
         END SUBROUTINE angint_eps_sph
 
-!        subroutine aniso_calc_sing_q0_1(iom, term_sing)
+
+        subroutine aniso_calc_sing_q0_1(iom, minm, singh, singw)
 !
-!        use constants, only: twopi
-!        implicit none
-!        integer,intent(in) :: iom
-!        complex(8),intent(out) :: term_sing
+        use constants, only: ctwopi,cpi
+        implicit none
+        integer,intent(in) :: iom
+        complex(8),intent(in) :: minm(matsiz)
+        complex(8),intent(out) :: singh, singw
 !
-!        complex(8),external :: zdotc
+        complex(8),external :: zdotc
+
+        ! Contribution from head
+        ! Two equations below are equivalent, if the expansion of Ylm is complete
+        !singh=cdot_over_lm('C',qmax_g_lm,h_g_lm(:,iom))/ctwopi
+        singh=cdot_over_ang('N',cmplx(qmax_gamma*ang_weight,0.0D0,8),head_g(:,iom)-cone)/ctwopi/cpi
+
+        ! Contribution from wings
+        singw=czero
 !
-!        term_sing = czero
-!        term_sing = term_sing + zdotc(lmgsq,qmax_g_lm,1,h_g_lm,1)/cmplx(twopi,0.0D0,0)
-!
-!
-!
-!        end subroutine aniso_calc_sing_q0_1
+        end subroutine aniso_calc_sing_q0_1
 
 !
 !        SUBROUTINE angint_invq2_dhead(iom, angint)
@@ -373,5 +387,43 @@ MODULE ANISOTROPY
 !        
 !        END SUBROUTINE angint_invq2_dhead
 
+
+! Private functions and subroutines
+        function cdot_over_lm(op,funca,funcb)
+        ! Calculate \sum_{lm}{op(funca_{lm}) * funcb_{lm}}
+
+        implicit none
+        character,intent(in) :: op
+        complex(8),intent(in) :: funca(lmgsq)
+        complex(8),intent(in) :: funcb(lmgsq)
+        complex(8) :: cdot_over_lm
+
+        complex(8),external :: zdotc,zdotu
+
+        if(op.eq.'C'.or.op.eq.'c')then
+          cdot_over_lm = zdotc(lmgsq,funca,1,funcb,1)
+        else
+          cdot_over_lm = zdotu(lmgsq,funca,1,funcb,1)
+        endif
+
+        end function cdot_over_lm
+
+        function cdot_over_ang(op,funca,funcb)
+        ! Calculate \sum_{iang}{op(funca_{iang}) * funcb_{iang}}
+        
+        character,intent(in) :: op
+        complex(8),intent(in) :: funca(n_ang_grid)
+        complex(8),intent(in) :: funcb(n_ang_grid)
+        complex(8) :: cdot_over_ang
+
+        complex(8),external :: zdotc,zdotu
+
+        if(op.eq.'C'.or.op.eq.'c')then
+          cdot_over_ang = zdotc(n_ang_grid,funca,1,funcb,1)
+        else
+          cdot_over_ang = zdotu(n_ang_grid,funca,1,funcb,1)
+        endif
+
+        end function cdot_over_ang
 END MODULE ANISOTROPY
 
