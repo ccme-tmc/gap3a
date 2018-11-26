@@ -73,7 +73,6 @@
 
         ! set the coefficient for the head and wing integration
         ! according to iop_q0
-        call linmsg(fid_outgw,'-',"set_sing")
         write(fid_outgw, "(A10,I2)") "iop_q0:", iop_q0
 
         ! Always generate the grid_vec for the current stage
@@ -131,7 +130,7 @@
         write(fid_outgw,'(A30,I3)') "Generating F Coefs from nqp = ",nqp
         do iq=1,nqp
           call genauxf(iq,alfa,singf1,singf2)
-          write(fid_outgw,'(I2,2F12.8)') iq, singf1, singf2
+          write(fid_outgw,'(I4,2F12.8)') iq, singf1, singf2
           singc1=singc1 + singf1  
           singc2=singc2 + singf2  
         enddo 
@@ -268,7 +267,7 @@
               if(maxq .lt. qmax_gamma(iang)) qmax_gamma(iang) = maxq
             endif
           enddo ! isq
-          write(fid_outdbg,"(I2,4F12.5)") iang, grid_vec(iang,:),&
+          write(fid_outdbg,"(I4,4F12.5)") iang, grid_vec(iang,:),&
      &        qmax_gamma(iang)
         enddo ! iang
         end subroutine set_qmax_gamma

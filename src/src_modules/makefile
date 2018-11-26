@@ -1,7 +1,9 @@
 include ../make.inc 
 .SUFFIXES:      .f90
 
-OBJS= acfd.o lapwlo.o modules.o angintegrals.o lapack.o fouri.o freq.o task.o constants.o kpoints.o lebedev_laikov.o reallocate.o hfexch.o kmeshintp.o \
+OBJS= acfd.o lapwlo.o modules.o angintegrals.o lapack.o fouri.o \
+	  freq.o task.o constants.o kpoints.o lebedev_laikov.o \
+	  reallocate.o hfexch.o kmeshintp.o \
 	  modmpi.o  recipvec.o bands.o \
       radwf.o  eigenvec.o \
       barcoul.o mixbasis.o  anisotropy.o  bzinteg.o \
@@ -48,6 +50,14 @@ keep_para_files:
 	fi
 	touch .para
 
+clean:
+	rm -f $(OBJS) *.mod .para .seq
+#
+#  generate distribution file
+#
+dist:
+	tar -cPzvf $(DIST_FILE) makefile $(MODFILES)
+
 # independent modules and modules directly dependent on them
 #    acfd.o
 #    constants.o
@@ -62,11 +72,13 @@ struk.o : reallocate.o
 #    task.o
 modmpi.o : constants.o task.o
 
+# ======================================
 radwf.o :  lapwlo.o \
            bands.o struk.o
 eigenvec.o: task.o constants.o kpoints.o lapwlo.o \
             bands.o struk.o recipvec.o
 
+# ======================================
 core.o : \
          \
          radwf.o
@@ -83,17 +95,20 @@ bzinteg.o : lebedev_laikov.o freq.o kpoints.o \
             struk.o bands.o \
             \
             core.o
+
+# ======================================
 minmmat.o : task.o bands.o kpoints.o \
             \
-            mixbasis.o \
-            core.o
+            \
+            core.o \
+            mixbasis.o 
 dielmat.o: task.o constants.o kpoints.o \
            bands.o \
            \
            core.o \
            mixbasis.o
 anisotropy.o: task.o constants.o \
-              \
+              modmpi.o \
 			  \
               \
 		      mixbasis.o bzinteg.o
@@ -108,6 +123,7 @@ barcoul.o: constants.o kpoints.o \
            \
            mixbasis.o 
 
+# ======================================
 selfenergy.o : freq.o task.o kpoints.o \
           bands.o \
           \
@@ -127,14 +143,7 @@ xcpot.o: kpoints.o \
          \
          \
          selfenergy.o
-
-clean:
-	rm -f $(OBJS) *.mod .para .seq
-#
-#  generate distribution file
-#
-dist:
-	tar -cPzvf $(DIST_FILE) makefile $(MODFILES)
+# ======================================
 
 %.o : %.f90
 	$(FC) $(FFLAGS) -c $< -o $@

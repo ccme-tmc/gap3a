@@ -284,7 +284,6 @@ contains
 !      iflag=0 --- reduce to the root process
 !              --- each process 
 !
-
   subroutine mpi_sum3c(iflag,a,n1,n2,n3,comm0)
     implicit none
     integer,intent(in)::  n1,n2,n3

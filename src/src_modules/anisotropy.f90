@@ -45,6 +45,7 @@ MODULE ANISOTROPY
 
         SUBROUTINE init_aniso(iq, iomfirst, iomlast)
 
+        use modmpi,    only: myrank_ra3
         implicit none
         
         integer,intent(in) :: iq 
@@ -111,16 +112,18 @@ MODULE ANISOTROPY
           !write(*,"(A25,F12.5)") "Summation of weight/4pi",sum(ang_weight)/4.0D0/pi
           do ilm=1,lmgsq
             qmax_g_lm(ilm)=cdot_over_ang('C',sph_harms_g(ilm,:),cmplx(qmax_gamma(:),0.0D0,8))
-            write(fid_outdbg,"(I4,3F13.5)") ilm, qmax_g_lm(ilm)
+            if(myrank_ra3.eq.0) write(fid_outdbg,"(I4,3F13.5)") ilm, qmax_g_lm(ilm)
           enddo
 
           ! check completeness of expansion of qmax
           ! TODO fail to output to fid_outdbg for gap3a-mpi
           ! expansion of qmax is not as accurate as eps
-!          do iang=1,n_ang_grid
-!            write(fid_outdbg,"(A4,I6,3F13.6)") "Ang ", iang, qmax_gamma(iang),&
-!     &        cdot_over_lm('N',sph_harms_g(:,iang),qmax_g_lm)/cmplx(ang_weight(iang),0.0D0,8)
-!          enddo
+          if(myrank_ra3.eq.0)then
+            do iang=1,n_ang_grid
+              write(fid_outdbg,"(A4,I6,3F13.6)") "Ang ", iang, qmax_gamma(iang),&
+     &          cdot_over_lm('N',sph_harms_g(:,iang),qmax_g_lm)/cmplx(ang_weight(iang),0.0D0,8)
+            enddo
+          endif
 
         endif ! iq.eq.1
 

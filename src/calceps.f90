@@ -349,34 +349,38 @@
           endif
         endif
       endif
-      write(fid_outgw,"(A28,I3,A10,I3)")"eps/w/h Sum done: myrank",&
-     & myrank_ra3, " in comm ",mycomm_ra3
+      write(fid_outgw,"(A28,I3,A10,I12)")"eps/w/h collocte done: myrank",&
+     & myrank_ra3," in comm ",mycomm_ra3
       call MPI_Barrier(mycomm_ra3, ierr)
-      write(fid_outgw,"(A28,I3,A10,I3,A2,I3)")"MPI_Barrier of myrank",&
-     & myrank_ra3, "in comm ",mycomm_ra3, " :", ierr
+      write(fid_outgw,"(A28,I3,A10,I12,A3,I2)")"MPI_Barrier of myrank",&
+     & myrank_ra3," in comm ",mycomm_ra3," : ", ierr
 #endif
 
       ! for anisotropy, calculate wings here with vec_u and vec_t
       if(iq.eq.1.and.iop_coul_c.eq.-1.and.iop_aniso.ne.-1) then
         call cpu_time(time1)
-        write(fid_outdbg, *) "diff epsw from iso and aniso"
-        write(fid_outdbg, "(A3,A4,A2,4A13)") "iom","imats", "ST",&
+        if(myrank_ra3.eq.0)then
+          write(fid_outdbg, *) "diff epsw from iso and aniso"
+          write(fid_outdbg, "(A3,A4,A2,4A13)") "iom","imats", "ST",&
      &                      "ReW1","ImW1","ReW2","ImW2"
+        endif
         do iom=iom_f, iom_l
-          do imats=1, matsiz
-            epsw1_tmp=epsw1(imats,iom)
-            epsw2_tmp=epsw2(imats,iom)
-            epsw1(imats,iom) = - sqrt(ccoefcoul) * & 
-     &          sum(vec_u_ani(:,imats,iom)*cmplx(q0_eps(:),0.0D0,8))
-            epsw2(imats,iom) = - sqrt(ccoefcoul) * & 
-     &          sum(vec_t_ani(:,imats,iom)*cmplx(q0_eps(:),0.0D0,8))
-            write(fid_outdbg, "(I3,I4,A2,4e13.5)") iom, imats,'O',&
+          do im=1, matsiz
+            epsw1_tmp=epsw1(im,iom)
+            epsw2_tmp=epsw2(im,iom)
+            epsw1(im,iom) = - sqrt(ccoefcoul) * & 
+     &          sum(vec_u_ani(:,im,iom)*cmplx(q0_eps(:),0.0D0,8))
+            epsw2(im,iom) = - sqrt(ccoefcoul) * & 
+     &          sum(vec_t_ani(:,im,iom)*cmplx(q0_eps(:),0.0D0,8))
+            if(myrank_ra3.eq.0)then
+              write(fid_outdbg, "(I3,I4,A2,4e13.5)") iom, im,'O',&
      &                            epsw1_tmp,epsw2_tmp
-            write(fid_outdbg, "(I3,I4,A2,4e13.5)") iom, imats,'N',&
-     &                            epsw1(imats,iom),epsw2(imats,iom)
-            write(fid_outdbg, "(I3,I4,A2,2L26)") iom, imats,'D',&
-     &               abs(epsw1(imats,iom)-epsw1_tmp).lt.1.0D-12, &
-     &               abs(epsw2(imats,iom)-epsw2_tmp).lt.1.0D-12
+              write(fid_outdbg, "(I3,I4,A2,4e13.5)") iom, im,'N',&
+     &                            epsw1(im,iom),epsw2(im,iom)
+              write(fid_outdbg, "(I3,I4,A2,2L26)") iom, im,'D',&
+     &               abs(epsw1(im,iom)-epsw1_tmp).lt.1.0D-12, &
+     &               abs(epsw2(im,iom)-epsw2_tmp).lt.1.0D-12
+            endif
           enddo
         enddo
         call cpu_time(time2)
@@ -442,7 +446,8 @@
 
       if(iq.ne.1) return 
       if(metallic) then
-        write(fid_outgw,'(a,f12.4)')"Plasmon frequency (eV):",sqrt(c0_head)*hev
+        write(fid_outgw,'(a,f12.4)')"Plasmon frequency (eV):",&
+     &                              sqrt(c0_head)*hev
       endif
       open(unit=99,file=trim(casename)//".emac",action='write')
 
@@ -535,12 +540,6 @@
      &             epsw1(:,iom),1,czero,bw1,1,ierr)
             call zgemv('t',matsiz,matsiz,cone,eps(:,:,iom),matsiz, &
      &             epsw2(:,iom),1,czero,w2b,1,ierr)
-            write(fid_outgw, "(I3,A10,6f12.3)") iom,"A before:",ten_a_ani(1,:,iom)
-            write(fid_outgw, "(   A13,6f12.3)") " ",ten_a_ani(2,:,iom)
-            write(fid_outgw, "(   A13,6f12.3)") " ",ten_a_ani(3,:,iom)
-            write(fid_outgw, "(I3,A10,6f12.3)") iom,"P       :",ten_p_ani(1,:,iom)
-            write(fid_outgw, "(   A13,6f12.3)") " ",ten_p_ani(2,:,iom)
-            write(fid_outgw, "(   A13,6f12.3)") " ",ten_p_ani(3,:,iom)
             ! calculate tensor A
             ! following two zgemm should give identical result
             call cpu_time(time3)
@@ -554,7 +553,7 @@
             !write(*,*) "ten_a_ani ZGEMM ierr = ",ierr
             call cpu_time(time4)
             time_aniso = time_aniso + time4 - time3
-            write(fid_outgw,"(I3,A10,6f12.3)") iom,"A after :",ten_a_ani(1,:,iom)
+            write(fid_outgw,"(I3,A10,6f12.3)") iom," tensor A ",ten_a_ani(1,:,iom)
             write(fid_outgw,"(   A13,6f12.3)") " ",ten_a_ani(2,:,iom)
             write(fid_outgw,"(   A13,6f12.3)") " ",ten_a_ani(3,:,iom)
           else
