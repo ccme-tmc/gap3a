@@ -210,6 +210,7 @@ keep_para_files:
 #  generate distribution file
 #
 pack: 
+	rm -f ../$(PACKNAME).tgz
 	mkdir -p ../$(PACKNAME)
 	$(MAKE) prepsrc
 	$(MAKE) prepdoc
@@ -252,6 +253,7 @@ clean:
 
 cleanall:
 	make clean
+	rm -f ../$(PACKNAME).tgz
 	rm -f *.mod
 	rm -f $(S_EXEC) $(P_EXEC) $(LIBS)  *.swp  $(SEQMODS) $(MPIMODS)
 	cd ../bin; rm -f gap*;cd ../src/

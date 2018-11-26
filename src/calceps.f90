@@ -29,13 +29,14 @@
      &                       iop_mommat
       use selfenergy,  only: qpwf_coef
       use struk,       only: nat,vi
-      use task,        only: casename,time_lapack,time_eps,l_save_dielmat, &
-     &                       fid_outgw, fid_outdbg,time_aniso
+      use task,        only: casename,time_lapack,l_save_dielmat, &
+     &                       fid_outgw,fid_outdbg,time_aniso,time_eps
       use modmpi
-      use anisotropy,  only: ten_a_ani,ten_p_ani,&
+      use anisotropy,  only: ten_a_ani,ten_p_ani, &
      &                       vec_a_ani,vec_b_ani,vec_t_ani,vec_u_ani,&
-     &                       iop_aniso,proj_head_on_ylm,&
-     &                       calc_h_w_inv_ang_grid,angint_eps_sph
+     &                       iop_aniso,proj_head_on_ylm,head_g,      &
+     &                       calc_h_w_inv_ang_grid,n_ang_grid,       &
+     &                       angint_eps_sph,lmgsq,h_g_lm,wh_g,wv_g
 
 ! !INPUT PARAMETERS:
       
@@ -138,10 +139,6 @@
       if(iq.eq.1.and.iop_coul_c.eq.-1) then
         call init_mommat(1,nomax,numin,nbmaxpol,nirkp,nspin)
         if(iop_aniso.ne.-1) then
-        !  call cpu_time(time1)
-        !  call init_aniso(iom_f,iom_l)
-        !  call cpu_time(time2)
-        !  time_aniso = time_aniso + time2 - time1
           allocate(u_ani_iom(3,matsiz))
         endif
 
@@ -333,7 +330,8 @@
       enddo ! isp
 
 #ifdef MPI 
-      if(nproc_ra3.gt.1) then 
+      if(nproc_ra3.gt.1) then
+        ! eps collected to root node in mycomm_ra3
         write(fid_outgw,*) "Collect eps: myrank_ra3=",myrank_ra3,"comm=",mycomm_ra3
         call mpi_sum_array(0,eps,matsiz,matsiz,nomg,mycomm_ra3)
         if(iq.eq.1) then
@@ -348,31 +346,29 @@
             time_aniso = time_aniso + time2 - time1
           endif
         endif
+        write(fid_outgw,"(A28,I3,A10,I12)")" Collect done: myrank_ra3",&
+     &   myrank_ra3," in comm ",mycomm_ra3
+        call MPI_Barrier(mycomm_ra3, ierr)
+        write(fid_outgw,"(A28,I3,A10,I12,A3,I2)")"MPI_Barrier of myrank",&
+     &   myrank_ra3," in comm ",mycomm_ra3," : ", ierr
       endif
-      write(fid_outgw,"(A28,I3,A10,I12)")"eps/w/h collocte done: myrank",&
-     & myrank_ra3," in comm ",mycomm_ra3
-      call MPI_Barrier(mycomm_ra3, ierr)
-      write(fid_outgw,"(A28,I3,A10,I12,A3,I2)")"MPI_Barrier of myrank",&
-     & myrank_ra3," in comm ",mycomm_ra3," : ", ierr
 #endif
 
       ! for anisotropy, calculate wings here with vec_u and vec_t
-      if(iq.eq.1.and.iop_coul_c.eq.-1.and.iop_aniso.ne.-1) then
-        call cpu_time(time1)
-        if(myrank_ra3.eq.0)then
-          write(fid_outdbg, *) "diff epsw from iso and aniso"
-          write(fid_outdbg, "(A3,A4,A2,4A13)") "iom","imats", "ST",&
-     &                      "ReW1","ImW1","ReW2","ImW2"
-        endif
+      if(myrank_ra3.eq.0)then
         do iom=iom_f, iom_l
-          do im=1, matsiz
-            epsw1_tmp=epsw1(im,iom)
-            epsw2_tmp=epsw2(im,iom)
-            epsw1(im,iom) = - sqrt(ccoefcoul) * & 
-     &          sum(vec_u_ani(:,im,iom)*cmplx(q0_eps(:),0.0D0,8))
-            epsw2(im,iom) = - sqrt(ccoefcoul) * & 
-     &          sum(vec_t_ani(:,im,iom)*cmplx(q0_eps(:),0.0D0,8))
-            if(myrank_ra3.eq.0)then
+          if(iq.eq.1.and.iop_coul_c.eq.-1.and.iop_aniso.ne.-1) then
+            write(fid_outdbg, *) "diff epsw from iso and aniso"
+            write(fid_outdbg, "(A3,A4,A2,4A13)") "iom","im", "ST",&
+     &                        "ReW1","ImW1","ReW2","ImW2"
+            call cpu_time(time1)
+            do im=1, matsiz
+              epsw1_tmp=epsw1(im,iom)
+              epsw2_tmp=epsw2(im,iom)
+              epsw1(im,iom) = - sqrt(ccoefcoul) * & 
+     &            sum(vec_u_ani(:,im,iom)*cmplx(q0_eps(:),0.0D0,8))
+              epsw2(im,iom) = - sqrt(ccoefcoul) * & 
+     &            sum(vec_t_ani(:,im,iom)*cmplx(q0_eps(:),0.0D0,8))
               write(fid_outdbg, "(I3,I4,A2,4e13.5)") iom, im,'O',&
      &                            epsw1_tmp,epsw2_tmp
               write(fid_outdbg, "(I3,I4,A2,4e13.5)") iom, im,'N',&
@@ -380,16 +376,11 @@
               write(fid_outdbg, "(I3,I4,A2,2L26)") iom, im,'D',&
      &               abs(epsw1(im,iom)-epsw1_tmp).lt.1.0D-12, &
      &               abs(epsw2(im,iom)-epsw2_tmp).lt.1.0D-12
-            endif
-          enddo
-        enddo
-        call cpu_time(time2)
-        time_aniso = time_aniso + time2 - time1
-      endif
-
-      !! add "1" to the diagonal elements
-      if(myrank_ra3.eq.0) then 
-        do iom=iom_f,iom_l
+            enddo
+            call cpu_time(time2)
+            time_aniso = time_aniso + time2 - time1
+          endif
+          !! add "1" to the diagonal elements
           do im=1,matsiz
             eps(im,im,iom) = eps(im,im,iom) + cone
           enddo
@@ -405,7 +396,7 @@
       else               !!  calculate inveps 
         if(myrank_ra3.eq.0) then
           call sub_invbody
-          call sub_calcinveps 
+          if(iq.eq.1) call sub_calcinveps 
           call sub_write_emac(1) 
         endif 
 #ifdef MPI 
@@ -421,6 +412,17 @@
      &                  mycomm_ra3,ierr)
             call mpi_bcast(epsw2, matsiz*nomg, mpi_double_complex,0, &
      &                  mycomm_ra3,ierr)
+            ! broadcast anistropy-related quantities among iq=1
+            if(iop_aniso.ne.-1)then
+              call mpi_bcast(head_g,n_ang_grid*nomg,mpi_double_complex,0,&
+     &                    mycomm_ra3,ierr)
+              call mpi_bcast(h_g_lm,lmgsq*nomg,mpi_double_complex,0,&
+     &                    mycomm_ra3,ierr)
+              call mpi_bcast(wv_g,n_ang_grid*matsiz*nomg,mpi_double_complex,0,&
+     &                    mycomm_ra3,ierr)
+              call mpi_bcast(wh_g,n_ang_grid*matsiz*nomg,mpi_double_complex,0,&
+     &                    mycomm_ra3,ierr)
+            endif
           endif
         endif
 #endif

@@ -127,7 +127,9 @@
         write(fid_outdbg, *) "iop_coul = ", iop_coul
         call cpu_time(t1)
         do iom=iom_f,iom_l
-          write(fid_outdbg,"(A27,I5)")"Singu. Contrib. Freq ",iom
+          write(fid_outdbg,"(A27)")"MWM Singu. Contrib. "
+          write(fid_outdbg,"(A6,I5,A6,I5)")"Freq=", iom, " irk=",irk
+          write(fid_outdbg,"(A6,I5,A6,I5)")"mst= ",mst," mend=",mend
           call zhemm('l','u',matsiz,nmdim,cone,eps(:,:,iom),matsiz,  &
      &           minm,matsiz,czero,wm,matsiz)
           do ie1=ibgw,nbgw
