@@ -396,7 +396,8 @@
       else               !!  calculate inveps 
         if(myrank_ra3.eq.0) then
           call sub_invbody
-          if(iq.eq.1) call sub_calcinveps 
+          !if(iq.eq.1) call sub_calcinveps 
+          call sub_calcinveps 
           call sub_write_emac(1) 
         endif 
 #ifdef MPI 
@@ -610,7 +611,6 @@
               write(fid_outdbg,"(I3,I4,A1,2e13.4)") iom,im,"H",epsw2(im,iom)
             enddo
           endif
-
         endif ! iq.eq.1.and.iop_coul_c.eq.-1
 
        ! iop == 2, inveps - 1 is calculated  
@@ -622,6 +622,14 @@
         endif ! iop.eq.2
       enddo ! iom
       deallocate(w2b,bw1)
+
+      !do iom=iom_f,iom_l
+      !  do im=1,matsiz
+      !    do jm=1,matsiz
+      !      write(*,"(4I5,2E18.9)") iq, iom, im, jm, eps(im,jm,iom)
+      !    enddo
+      !  enddo
+      !enddo
 
       l_eps_invd=.true.
 

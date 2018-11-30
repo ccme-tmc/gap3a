@@ -112,11 +112,14 @@
 
 ! setup some other I/O files
       open(fid_outmb, file=trim(save_prefix)//".outmb", action='write')
-      open(fid_outdbg,file=trim(save_prefix)//".outdbg",action='write')
+      open(fid_outdbg,file=trim(save_prefix)//".outdbg"//trim(procflag)&
+     &     ,action='write')
       open(fid_outmom,file=trim(save_prefix)//".outmom",action='write')
       open(fid_outkpt,file=trim(save_prefix)//".outkpt",action='write')
       open(fid_outqp, file=trim(save_prefix)//".outqp", action='write')
       open(fid_aniso, file=trim(save_prefix)//".aniso", action='write')
+
+      write(fid_outdbg,"(A20,I3)") "Debug info on proc ", myrank
 
       return
       end subroutine io_initfiles

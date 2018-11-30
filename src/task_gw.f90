@@ -35,15 +35,11 @@
 
       implicit none
 
-      integer :: iq        ! index for q-points
       integer :: iq0       ! index for starting k-points, needed for the restart mode 
       integer :: iop_mwm   ! control the treatment of mwm  
       integer :: iop_minm  ! control the treatment of mwm  
       integer :: iop_vxc   ! control how to handle vxc matrix 
       integer :: ierr      ! error code 
-
-!     variables used for parallelization
-      integer :: iq_f,iq_l     !! lower and upper bound for iq
 
       character(len=20):: sname="task_gw"
       character(len=20):: blk_gw="gw"

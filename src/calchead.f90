@@ -182,10 +182,8 @@
                   enddo
                   call cpu_time(time2)
                   time_aniso = time_aniso + time2 - time1
-                  head(iom)=head(iom)-ccoef_coul*ccoef*zdotu(nbmaxpol-ncbm+1,vwc,1,termcv,1)
-                else
-                  head(iom)=head(iom)-ccoef_coul*ccoef*zdotu(nbmaxpol-ncbm+1,vwc,1,termcv,1)
                 endif ! iop_aniso.ne.-1
+                head(iom)=head(iom)-ccoef_coul*ccoef*zdotu(nbmaxpol-ncbm+1,vwc,1,termcv,1)
               enddo ! iom 
               !write(*,*) "after iom"
             enddo ! icg

@@ -149,7 +149,7 @@
               sigc_q(:,ie1,irk,isp)=sigc_q(:,ie1,irk,isp) + sc_a(:,ie1,irk)
             enddo
           enddo
-        endif ! myrank_3rd.eq.0)
+        endif ! myrank_3rd.eq.0
       enddo ! isp
 
       sigc = sigc + sigc_q 

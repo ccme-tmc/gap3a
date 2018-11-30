@@ -185,7 +185,8 @@
         !close(6) 
         !stdout = trim(savdir)//'/'//trim(stdout)//'-p'//trim(int2str(myrank))
         !open(6,file= stdout,action='write') 
-        f_outgw = trim(savdir)//'/'//trim(f_outgw)//'-p'//trim(int2str(myrank))
+        f_outgw = &
+     &  trim(savdir)//'/'//trim(f_outgw)//'-p'//trim(int2str(myrank))
         open(fid_outgw,file=f_outgw ,action='write') 
       endif  
 !

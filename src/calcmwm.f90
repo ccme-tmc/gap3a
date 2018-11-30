@@ -54,7 +54,7 @@
 
       mwm = 0.d0 
 
-      write(fid_outgw,*) "Calculate M*W*M by ", sname
+      !write(fid_outgw,*) "Calculate M*W*M by ", sname
       call cpu_time(tstart)
       ik=idikp(irk)
       if(lrestart) then 
@@ -109,6 +109,7 @@
         real(8):: wkq     ! Weight of the k-q combinatiion
         real(8):: coefs1,coefs2
         real(8):: t1,t2
+        real(8) :: thres=1.0D-10
         complex(8) :: term_singular_h, term_singular_w
         complex(8) :: accum_term_singular_h,accum_term_singular_w
         complex(8), allocatable :: wm(:,:,:)    ! (matsiz,nmdim) 
@@ -132,13 +133,13 @@
           write(fid_outdbg,"(A6,I5,A6,I5)")"mst= ",mst," mend=",mend
           call zhemm('l','u',matsiz,nmdim,cone,eps(:,:,iom),matsiz,  &
      &           minm,matsiz,czero,wm,matsiz)
+          ! Note that ie1 are index of valence bands
           do ie1=ibgw,nbgw
             accum_term_singular_h = czero
             accum_term_singular_w = czero
-            !iom, " Band ", ie1
             do ie2=mst,mend ! ie2=n'
               mwm(ie2,ie1,iom)=wkq*zdotc(matsiz,minm(:,ie2,ie1),1, &
-     &           wm(:,ie2,ie1),1)
+     &          wm(:,ie2,ie1),1)
               if(iq.eq.1.and.iop_coul.eq.-1.and.ie1.eq.ie2-ncg_c) then
                 if(iop_aniso.ne.-1.and.iop_q0.eq.1)then
                   call aniso_calc_sing_q0_1(iom, minm(:,ie2,ie1), &
@@ -156,10 +157,16 @@
                 mwm(ie2,ie1,iom)=mwm(ie2,ie1,iom) + term_singular_h + &
      &              term_singular_w
               endif  
+!              write(*,"(A20,5I5,2E18.10)") "mwm iqirkome2e1 ", &
+!     &              iq,irk,iom,ie2,ie1,mwm(ie2,ie1,iom)
             enddo ! ie2
-            write(fid_outdbg,"(A6,I5,A3,2E15.6)") " Band ",ie1," H ",&
+            if(abs(accum_term_singular_h).ge.thres)then
+              write(fid_outdbg,"(A6,I5,A3,2E15.6)") " Band ",ie1," H ",&
      &          accum_term_singular_h
-            write(fid_outdbg,"(A14,2E15.6)") " W ",accum_term_singular_w
+            endif
+            if(abs(accum_term_singular_w).ge.thres)then
+              write(fid_outdbg,"(A14,2E15.6)")" W ",accum_term_singular_w
+            endif
           enddo ! ie1
         enddo ! iom 
         call cpu_time(t2)
