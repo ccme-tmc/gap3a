@@ -126,3 +126,7 @@
   makefile to fix ifort compiler error #7013.
   3. Bug to print debug info for `qmax_g_lm` in `fid_outdbg` in MPI version (TODO)
 
+## 2018-12-04 (zmy)
+
+  1. For a other than 1, LiF with k-mesh 1x1xa, `bz_setiksym` breaks with error message: 
+  "iksym not found for kpoint nr. 1"

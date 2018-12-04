@@ -703,6 +703,7 @@ MB_emax = 20.0          # LO orbitals with energy higher MB_emax are excluded wh
 LOmax = $lomax          # the LOMAX used in WIEN2k(lapw1,nmr) 
 
 %MixBasis               # Mixed basis parameters
+0.75                    # Q_mb  
 3    |    1.E-4  |  0   # lmbmax  | wftol  | lblmax 
 %
 

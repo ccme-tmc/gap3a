@@ -53,6 +53,7 @@
       allocate(idikp(nirkp))
       if(allocated(g0))deallocate(g0)
       allocate(g0(1:3,nkp))
+
       g0=0
       do ikp=1,nkp
         ikvec(1:3)=klist(1:3,ikp)
@@ -89,6 +90,7 @@
         dtk=rkvec(1)*tau(1,iksym(ikp))+rkvec(2)*tau(2,iksym(ikp))+&
             rkvec(3)*tau(3,iksym(ikp))
       enddo ! ikp
+
       dg(1:3)=1
       if(ortho.or.(lattic(1:3).eq.'CXZ'))then
         idivg0 = 1
