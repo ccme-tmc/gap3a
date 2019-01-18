@@ -17,6 +17,7 @@
 
       real(8) :: ex_hf        !! Hartree-Fock (exact) exchange energy
       real(8) :: ec_acfd      !! ACFD correlation energy 
+      real(8) :: etot_lda     !! Total energy in LDA/GGA calculation
       real(8) :: exc_lda      !! LDA/GGA exchange-correlation energy 
 
       real(8),allocatable :: exq(:)  !! q-dependent HF exchange energy

@@ -20,6 +20,7 @@
       use dielmat,  only: init_dielmat, end_dielmat
       use liboct_parser
       use modmpi
+      use task,     only: casename
       
       
 ! !LOCAL VARIABLES:
@@ -46,8 +47,21 @@
 
       write(6,*) 
       write(6,*) "------------------ task:acfd-------------------------"
-      write(6,*) 
+      write(6,*)
 
+! Read wien2k total and exchange-correlation energy 
+      if(myrank.eq.0) then
+        open(unit=999,file=trim(casename)//'.exc',status='old',iostat=ierr)
+        call errmsg(ierr.ne.0, sname, &
+     &        "Energy file not found: "//trim(casename)//'.exc')
+        read(999, '(A)') 
+        read(999, *) exc_lda
+        read(999, *) etot_lda
+        ! convert to Hartree
+        exc_lda = exc_lda / 2.0D0
+        etot_lda = etot_lda / 2.0D0
+        close(999)
+      endif
 !
 ! Read task-specific input parameters from *.ingw
 !     iop_acfd = 0 - just calculate exact exchange (EXX)  energy
@@ -121,11 +135,13 @@
 #endif
 
       if(myrank.eq.0) then
-        write(6,*) 
         call boxmsg(6,'-',"ACFD Exc Summary (in Hartree)")
-        write(6,'(a,f12.6)') " Exact exchange   =",ex_hf
-        write(6,'(a,f12.6)') " ACFD Correlation =",ec_acfd
-        write(6,'(a,f12.6)') " Total ACFD Exc   =",ex_hf+ec_acfd
+        write(6,'(a,f12.6)') " Exact exchange   = ",ex_hf
+        write(6,'(a,f12.6)') " ACFD Correlation = ",ec_acfd
+        write(6,'(a,f12.6)') " Total ACFD Exc   = ",ex_hf+ec_acfd
+        write(6,'(a,f12.6)') "    LDA/GGA Exc   = ",exc_lda
+        write(6,'(a,f12.6)') " Total ACFD Etot  = ",etot_lda - exc_lda &
+     &      + ex_hf + ec_acfd
       endif 
       call end_acfd
 
