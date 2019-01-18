@@ -48,6 +48,7 @@
       integer:: ik     ! (Counter) Runs over k-points
       integer:: ierr
       logical:: lprt=.false.
+      logical:: ltest_disable_sing=.true.
       real(8):: tstart,tend
       character(len=10)::sname='calcmwm'
       complex(8), allocatable :: minm(:,:,:)
@@ -150,6 +151,12 @@
      &             coefs1*( zdotu(matsiz,minm(:,ie2,ie1),1,epsw2,1)  &
      &                     +zdotc(matsiz,minm(:,ie2,ie1),1,epsw1,1) )    
                 endif
+                ! test the gap without head and wing contrib
+                if(ltest_disable_sing) then
+                  term_singular_h = czero
+                  term_singular_w = czero
+                endif
+
                 accum_term_singular_h=accum_term_singular_h + &
                     term_singular_h
                 accum_term_singular_w=accum_term_singular_w + &
