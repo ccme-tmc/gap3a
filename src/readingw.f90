@@ -188,7 +188,8 @@
         f_outgw = &
      &  trim(savdir)//'/'//trim(f_outgw)//'-p'//trim(int2str(myrank))
         open(fid_outgw,file=f_outgw ,action='write') 
-      endif  
+      endif
+      !write(*,*) myrank, f_outgw
 !
 !     set the DFT package used to generate Kohn-Sham inputs
 !

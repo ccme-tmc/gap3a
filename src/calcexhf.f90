@@ -41,7 +41,7 @@
       integer(4) :: isp  ! index for spin 
       integer(4) :: nmdim,ccdim,nomx 
 
-      real(8)::exq,exq0s
+      real(8)::exq=0.0D0,exq0s=0.0D0
       real(8) :: kwt
       real(8):: time1,time2
       complex(8):: mm 

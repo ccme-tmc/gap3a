@@ -24,15 +24,15 @@
         character(len=120) :: save_prefix   !! the prefix for files to be saved 
                                             !! all input and output file will start with this name 
         ! file names for various input and output
-        character(len=20),parameter :: f_inp="gw.inp"      !! name of the input file for parameters
-        character(len=20),parameter :: f_log="gw.log"      !! name of the log file for parameters
-        character(len=20) :: f_outgw        !! main output 
-        character(len=20) :: f_outmom       !! moment matrix
-        character(len=20) :: f_outdbg       !! debug
-        character(len=20) :: f_outmb        !! mixed basis
-        character(len=20) :: f_outqp        !! quasiparticle
-        character(len=20) :: f_outkpt       !! kpoint mesh
-        character(len=20) :: f_aniso        !! anisotropy-related
+        character(len=40),parameter :: f_inp="gw.inp"      !! name of the input file for parameters
+        character(len=40),parameter :: f_log="gw.log"      !! name of the log file for parameters
+        character(len=40) :: f_outgw        !! main output 
+        character(len=40) :: f_outmom       !! moment matrix
+        character(len=40) :: f_outdbg       !! debug
+        character(len=40) :: f_outmb        !! mixed basis
+        character(len=40) :: f_outqp        !! quasiparticle
+        character(len=40) :: f_outkpt       !! kpoint mesh
+        character(len=40) :: f_aniso        !! anisotropy-related
 
         character(2):: spflag(2)            !! spin flag ['up'/'dn',''] used for I/O files
         integer :: iop_scratch = 2     ! control how to use the scratch space

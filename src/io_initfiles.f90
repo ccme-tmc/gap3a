@@ -49,8 +49,8 @@
 !     check whether scrdir exisits 
       open(999,file=trim(scrdir)//'.scr'//trim(procflag),iostat=ierr)
       if(ierr.ne.0) then 
-        write(fid_outgw,*) "WARNING in io_initfiles: scratch unaccessible! ",& 
-     &            trim(scrdir)
+        write(fid_outgw,*) &
+     &    "WARNING in io_initfiles: scratch unaccessible! ",trim(scrdir)
         write(fid_outgw,*) "  -- using the current directory as scratch"
         scrdir='scr/'
         if(myrank.eq.0) ierr = system("mkdir -p "//trim(scrdir))
@@ -76,8 +76,8 @@
       if(myrank.eq.0) then 
         open(999,file=trim(savdir)//'/.sav'//trim(procflag),iostat=ierr)
         if(ierr.ne.0) then
-          write(fid_outgw,*) "WARNING in io_initfiles: savdir does not exist! ",&
-     &            trim(savdir)
+          write(fid_outgw,*) &
+     &    "WARNING in io_initfiles: savdir does not exist! ",trim(savdir)
           savdir='tmp/'
           ierr = system("mkdir -p "//trim(savdir))
         else 
