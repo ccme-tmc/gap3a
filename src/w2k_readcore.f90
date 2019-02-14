@@ -24,7 +24,7 @@
      &                  init_core,lcore,corind,clmind,ncg,nclm,      &
      &                  ncoremax,lcoremax,ucore,uscore,nelcor,nelfc
       use kpoints,only: nvel
-      use struk,  only: iatnr,nat,ndf,mult,zz,nrpt
+      use struk,  only: iatnr,nat,ndf,mult,zz,nrpt,neltot
       use task,   only: casename
 !
 ! !OUTPUT PARAMETERS:
@@ -292,6 +292,8 @@
         enddo
         nelcor= nelcor + mult(iat)*occoreat
       enddo
+
+      neltot = ntot
 
       if(nvel.lt.0.1) then 
         nvel = ntot - nelcor

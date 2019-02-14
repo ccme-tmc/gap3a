@@ -14,6 +14,7 @@ src/*.x
 src/src_dmftproj/dmftproj.x
 src/src_kgen/kgen
 src/make.inc
+src/make.inc_*
 src/.seq
 src/.para
 src/src_modules/.para

@@ -20,6 +20,7 @@
       use bzinteg,     only: kwt_bz
       use mixbasis,    only: matsiz
       use dielmat,     only: eps,head,epsw1,epsw2 
+      use task,        only: fid_outgw
 
 ! !LOCAL VARIABLES:
 
@@ -36,7 +37,7 @@
       
       
       real(8) :: tstart,tend
-      real(8) :: ecwq
+      real(8) :: ecwq0
      
       complex(8) :: tr,det                        
       complex(8), allocatable :: work(:)
@@ -52,7 +53,7 @@
   
       complex(8), external :: zdotu
 
-      external zgetrf
+      external zhetrf
 
        
 !
@@ -83,6 +84,7 @@
         if(iq.eq.1) then 
           eps0(1,1)=head(iom)
           eps0(2:msiz,1)=epsw1(1:matsiz,iom)
+          eps0(1,2:msiz)=epsw2(1:matsiz,iom)
           do im=1,matsiz
             eps0(im+1:msiz,im+1)=eps(im:matsiz,im,iom)
           enddo 
@@ -100,17 +102,18 @@
 !       Calculate the determinant of $ \epsilon(q,iu) $
 !
         call zhetrf('l',msiz,eps0,msiz,ipiv,work,lwork,info)
-
-        call errmsg0(info,sname,"Fail to call zgetrf")
+        call errmsg0(info,sname,"Fail to call zhetrf")
 
         det = cone
         do im=1,msiz
-          det = det*eps0(im,im) 
+          det = det*eps0(im,im)
         enddo
-        ecwq=(log(abs(det))+real(tr))/twopi
+        ecwq0=(log(abs(det))+real(tr))/twopi
 
-        if(ldbg) write(6,100) omega(iom),womeg(iom),real(tr),real(det),ecwq
-        ec_acfd=ec_acfd+ecwq*womeg(iom)*kwt_bz(iq)
+        if(ldbg)then
+          write(6,100) omega(iom),womeg(iom),real(tr),real(det),ecwq0
+        endif
+        ec_acfd=ec_acfd+ecwq0*womeg(iom)*kwt_bz(iq)
       enddo 
 
       deallocate(ipiv,work)

@@ -30,9 +30,8 @@ include  'mpif.h'
   integer :: mycomm_3rd         !! the communicator for "3rd" processes 
   integer :: mycomm_ra3         !! the communicator for "row"+"3rd" processes 
 
-  integer :: nproc_col, nproc_row, nproc_3rd, nproc_ra3 
-
   integer :: nproc=1      !! total number of processes
+  integer :: nproc_col=1, nproc_row=1, nproc_3rd=1, nproc_ra3=1
 
   integer :: iom_first,iom_last,iom_cnts(0:nproc_max),iom_dspl(0:nproc_max)
  
@@ -73,10 +72,10 @@ contains
     integer::namelen
     character(len=MPI_MAX_PROCESSOR_NAME)::processor_name
 
-    call mpi_init(ierr)
-    call mpi_comm_size( mpi_comm_world, nproc, ierr)
-    call mpi_comm_rank( mpi_comm_world, myrank, ierr)
-    call MPI_Get_processor_name(processor_name,namelen,ierr);
+    call MPI_INIT(ierr)
+    call MPI_COMM_SIZE(MPI_COMM_WORLD, nproc, ierr)
+    call MPI_COMM_RANK(MPI_COMM_WORLD, myrank, ierr)
+    call MPI_GET_PROCESSOR_NAME(processor_name,namelen,ierr);
     print *, "Process ", myrank, " of ", nproc, " running on ",     &
      &     trim(processor_name)
 
@@ -105,7 +104,7 @@ contains
 #ifdef MPI
 !    call MPI_barrier(MPI_COMM_WORLD,ierr)
 !    call mpi_free_grp
-    call MPI_Finalize(ierr)
+    call MPI_FINALIZE(ierr)
 #endif
   end subroutine end_mpi
 
@@ -184,7 +183,7 @@ contains
     if(lsetgroup) call mpi_free_group
 
     !! set the default nproc_col 
-    if( nproc_col.eq.0 .or. mod(nproc,nproc_col).ne.0 &
+    if(nproc_col.eq.0 .or. mod(nproc,nproc_col).ne.0 &
    &    .or. mod(nq,nproc_col).ne.0) then 
 
       call max_common_div( nq, nproc, nproc_col) 
@@ -246,10 +245,10 @@ contains
     nproc_col_old = nproc_col
     nproc_3rd_old = nproc_3rd 
     nproc_ra3_old = nproc_ra3
-    call mpi_comm_size( mycomm_col, nproc_col, ierr)
-    call mpi_comm_size( mycomm_row, nproc_row, ierr)
-    call mpi_comm_size( mycomm_3rd, nproc_3rd, ierr)
-    call mpi_comm_size( mycomm_ra3, nproc_ra3, ierr)
+    call MPI_COMM_SIZE( mycomm_col, nproc_col, ierr)
+    call MPI_COMM_SIZE( mycomm_row, nproc_row, ierr)
+    call MPI_COMM_SIZE( mycomm_3rd, nproc_3rd, ierr)
+    call MPI_COMM_SIZE( mycomm_ra3, nproc_ra3, ierr)
 
     !! some consistency check 
     if(nproc_row_old*nproc_col_old*nproc_3rd_old.eq.nproc &
@@ -271,10 +270,10 @@ contains
   endsubroutine 
 
   subroutine mpi_free_group
-    call MPI_comm_free(mycomm_row,ierr)
-    call MPI_comm_free(mycomm_col,ierr)
-    call MPI_comm_free(mycomm_3rd,ierr) 
-    call MPI_comm_free(mycomm_ra3,ierr) 
+    call MPI_COMM_FREE(mycomm_row,ierr)
+    call MPI_COMM_FREE(mycomm_col,ierr)
+    call MPI_COMM_FREE(mycomm_3rd,ierr) 
+    call MPI_COMM_FREE(mycomm_ra3,ierr) 
     lsetgroup = .false.
   end subroutine 
 
@@ -439,8 +438,8 @@ contains
       comm=MPI_COMM_WORLD
     endif
 
-    call mpi_comm_rank( comm, rank, ierr)
-    call MPI_Barrier(comm,ierr)
+    call MPI_COMM_RANK(comm, rank, ierr)
+    call MPI_BARRIER(comm, ierr)
 
     if(iflag.eq.0) then
       if(rank.eq.0) then 

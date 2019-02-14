@@ -9,16 +9,15 @@
       integer(4) :: ifxc     ! control xc kernel used in ACFD calculations  
                              ! ifxc = 0 RPA, integrate over $\lambda$ analytically
                              !      = 1 RPA, integrate over $\lambda$ numerically
-                             !      = 2 ALDA kernl 
-                             !      = 3 PGG  kernl 
+                             !      = 2 ALDA kernel 
+                             !      = 3 PGG  kernel 
       integer(4) :: ibzint   ! control the BZ integration scheme used in ACFD correlation energy 
                              ! ibzint = 0 
 
-
-      real(8) :: ex_hf        !! Hartree-Fock (exact) exchange energy
-      real(8) :: ec_acfd      !! ACFD correlation energy 
-      real(8) :: etot_lda     !! Total energy in LDA/GGA calculation
-      real(8) :: exc_lda      !! LDA/GGA exchange-correlation energy 
+      real(8) :: ex_hf = 0.0D0     ! Hartree-Fock (exact) exchange energy
+      real(8) :: ec_acfd = 0.0D0   ! ACFD correlation energy 
+      real(8) :: etot_lda = 0.0D0  ! Total energy in LDA/GGA calculation
+      real(8) :: exc_lda = 0.0D0   ! LDA/GGA exchange-correlation energy 
 
       real(8),allocatable :: exq(:)  !! q-dependent HF exchange energy
       real(8),allocatable :: ecwq(:,:)  !! w- and q-dependent ACFD correlation energy 

@@ -34,7 +34,7 @@
 
   1. In `calceps`, 
     - correctly calculate wings at `q0_eps` with `vec_u_aniso` and `vec_t_aniso` for `iop_aniso.ne.-1`
-    - add `coef_coul` to make the 4\\pi coefficient possible to be dimension-dependent (TODO later)
+    - add `coef_coul` to make the `4pi` coefficient possible to be dimension-dependent (TODO later)
   2. Initialize cutoff length in `readingw`
   3. Create `coul_coef` to calculate |q|-dependent coefficient for head and wing calculations
   4. In `barcoul`, `smallq` for isotropic dieletric function, since `q0_eps` only specifies direction (TODO)
@@ -116,7 +116,7 @@
 
   1. Implement contribution from head and wing singularity for direct 
   integration in supercell BZ, i.e. `iop_q0=1`. Too small GW band gap, and
-  smaller GW0 gap than G0W0 one are obtained. (TO FODO: DONE on 2018-11-25)
+  smaller GW0 gap than G0W0 one are obtained. (TODO: DONE on 2018-11-25)
 
 ## 2018-11-25 (zmy)
 
@@ -130,3 +130,22 @@
 
   1. For a other than 1, LiF with k-mesh 1x1xa, `bz_setiksym` breaks with error message: 
   "iksym not found for kpoint nr. 1"
+
+## 2018-01-18 (zmy)
+  1. Add ACFD function. Specifically, the extration of total energy and exchange-correlation 
+  eneryg within (semi-)local DFA is enabled.
+
+## 2018-02-13 (zmy)
+  1. Fix MPI error in when collecting ACFD energy from processes by `mpi_sum_scalar`
+  due to wrong communicator (verified 02-14)
+
+## 2018-02-14 (zmy)
+  1. Change all filename variables in `task` module to `character(len=40)`
+  2. Call `mpi_set_group` to allocate q- and freq-point to processors correctly
+  3. Switch original column and row allocation, to resemble the rule in GW calculation
+  4. Serial and parallel tests on 8 q- and 16 freq-point of diamond give diffenrent ACFDT
+  correlation energy at iq=5, with serial one 10 times larger. (TODO)
+  Parallel calculations at 2 and 4 cores give the same ACFD total energy 
+
+## 2018-02-15 (zmy)
+  1. 
