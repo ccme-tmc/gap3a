@@ -147,5 +147,3 @@
   correlation energy at iq=5, with serial one 10 times larger. (TODO)
   Parallel calculations at 2 and 4 cores give the same ACFD total energy 
 
-## 2018-02-15 (zmy)
-  1. 
