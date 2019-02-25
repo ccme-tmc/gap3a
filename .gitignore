@@ -20,5 +20,9 @@ src/.para
 src/src_modules/.para
 src/src_modules/.seq
 
+# vscode
+.vscode/
+
+# releases
 *.tgz
 *.tar.gz
