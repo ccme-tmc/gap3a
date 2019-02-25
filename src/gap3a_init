@@ -43,6 +43,7 @@ set nproc=1
 set para
 set spflag 
 set lomax=3 
+set qmb=0.75
 set emax=1000
 set lom10_flag 
 set batch_flag=''
@@ -109,6 +110,8 @@ while ($#argv)
       echo $1
       set newin1_opt = "$1" ; sb 
 
+    case -qmb:
+      shift; set qmb = $1; sb
     case -newin1test:
       set newin1test; sb 
   
@@ -731,7 +734,7 @@ MB_emax = 20.0          # LO orbitals with energy higher MB_emax are excluded wh
 LOmax = $lomax          # the LOMAX used in WIEN2k(lapw1,nmr) 
 
 %MixBasis               # Mixed basis parameters
-0.75                    # Q_mb  
+$qmb                    # Q_mb (kmr)
 3    |    1.E-4  |  0   # lmbmax  | wftol  | lblmax 
 %
 
@@ -989,6 +992,7 @@ help:
                             WARNING: option 1 seems to work now except for systems with the body-center(B)-type structure , 
                                      but still needs some caution. The option 2 is definitely not working
 
+        -qmb              # Maximum G for the mixed basis. Default 0.75
         -t <task> 
                
         -w <wf_method>      # CPRA: control how to obtain Wannier projectors

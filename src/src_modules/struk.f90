@@ -30,6 +30,7 @@
         real(8),    allocatable :: ro(:)  ! first radial mesh point  for atom iat, set in readstruct.f90
 
         real(8), pointer :: pos(:,:)   ! position vector of atom idf (including equivalent atoms) in the unit-cell
+        real(8) :: vol                 ! volume of the direct lattice unit-cell.
         real(8) :: vi                  ! inverse volume of the direct lattice unit-cell.
         real(8) :: br2(3,3)            ! reciprocal bravais matrix: br2(:,i) -> i-th reciprocal vector 
         real(8) :: rbas(3,3)           ! real space lattice vectors rbas(i,:) --> i-th lattice vector 

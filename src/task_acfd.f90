@@ -77,8 +77,8 @@
 
 #ifdef MPI
       write(6,*) "task_acfd: parallel q-loop"
-     ! call mpi_set_group(nkp,nomeg)
-      call mpi_set_group(nkp,nirkp)
+      call mpi_set_group(nkp,nomeg)
+     !call mpi_set_group(nkp,nirkp)
 
      ! call mpi_set_range(nproc_row,myrank_row,nkp,1,iqfirst,iqlast)
      ! call mpi_set_range(nproc_col,myrank_col,nomeg,1,iom_first,iom_last, &
