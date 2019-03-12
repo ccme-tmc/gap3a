@@ -126,20 +126,20 @@
   makefile to fix ifort compiler error #7013.
   3. Bug to print debug info for `qmax_g_lm` in `fid_outdbg` in MPI version (TODO)
 
-## 2018-12-04 (zmy)
+## 2019-12-04 (zmy)
 
   1. For a other than 1, LiF with k-mesh 1x1xa, `bz_setiksym` breaks with error message: 
   "iksym not found for kpoint nr. 1"
 
-## 2018-01-18 (zmy)
+## 2019-01-18 (zmy)
   1. Add ACFD function. Specifically, the extration of total energy and exchange-correlation 
   eneryg within (semi-)local DFA is enabled.
 
-## 2018-02-13 (zmy)
+## 2019-02-13 (zmy)
   1. Fix MPI error in when collecting ACFD energy from processes by `mpi_sum_scalar`
   due to wrong communicator (verified 02-14)
 
-## 2018-02-14 (zmy)
+## 2019-02-14 (zmy)
   1. Change all filename variables in `task` module to `character(len=40)`
   2. Call `mpi_set_group` to allocate q- and freq-point to processors correctly
   3. Switch original column and row allocation, to resemble the rule in GW calculation
