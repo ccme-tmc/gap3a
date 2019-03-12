@@ -78,7 +78,7 @@
       complex(8), allocatable :: sgi(:,:)    ! transformation matrix from IPW to its orthogonalized form 
       complex(8), allocatable :: ipwint(:)   ! the integral of a plane waves over the interstitial region
       complex(8), allocatable :: mpwipw(:,:) ! the tranformation matrix between mixed basis and plane waves
-      complex(8), allocatable :: mpwmix(:,:) ! the tranformation matrix between mixed basis and  plane waves
+      complex(8), allocatable :: mpwmix(:,:) ! the tranformation matrix between mixed basis and plane waves
       complex(8), allocatable :: wi0(:)      
 
 
@@ -126,6 +126,7 @@
   101 format(/,8x,'Mixed basis for q-point nr.:',i4,/,10x, &
      &           'Number of atomic basis functions:       ',i4,/,10x,   &
      &           'Number of interstitial basis functions: ',i4,/,10x,   &
+     &           '          for Coulomb matrix (ngqbarc): ',i4,/,10x,   &
      &           'Total number of basis functions:        ',i4,/)
 
       endsubroutine 

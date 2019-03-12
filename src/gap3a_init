@@ -44,6 +44,7 @@ set para
 set spflag 
 set lomax=3 
 set qmb=0.75
+set pwm=2.0
 set emax=1000
 set lom10_flag 
 set batch_flag=''
@@ -112,6 +113,8 @@ while ($#argv)
 
     case -qmb:
       shift; set qmb = $1; sb
+    case -pwm:
+      shift; set pwm = $1; sb
     case -newin1test:
       set newin1test; sb 
   
@@ -739,7 +742,7 @@ $qmb                    # Q_mb (kmr)
 %
 
 %BareCoul               # Bare Coulomb interaction
-2.0  |  1.E-15
+$pwm  |  1.E-15         # pwm, stctol
 %
 
 iop_aniso = -1
@@ -993,6 +996,7 @@ help:
                                      but still needs some caution. The option 2 is definitely not working
 
         -qmb              # Maximum G for the mixed basis. Default 0.75
+        -pwm              # Maximum G for the pw basis (in kmax*qmb units)
         -t <task> 
                
         -w <wf_method>      # CPRA: control how to obtain Wannier projectors

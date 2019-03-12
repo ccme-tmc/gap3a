@@ -23,6 +23,7 @@ src/src_modules/.seq
 # vscode
 .vscode/
 
+.cache/
 # releases
 *.tgz
 *.tar.gz
