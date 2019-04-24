@@ -39,7 +39,8 @@
       integer(4) :: icg,idf,iat,ic1,ic2,iclm,jclm 
       integer(4) :: ierr
       integer(4) :: isp  ! index for spin 
-      integer(4) :: nmdim,ccdim,nomx 
+      integer(4) :: nmdim, ccdim, nomx ! combined indices for LAPW and
+                                       ! core states
 
       real(8)::exq=0.0D0,exq0s=0.0D0
       real(8) :: kwt
@@ -76,9 +77,9 @@
           irk=kpirind(ik)
           jrk=kpirind(jk)
 
-          call readvector(ik,1,isp,0)          !! Read the eigenvector corresponding to the k-point ik
+          call readvector(ik,1,isp,0)        !! Read the eigenvector corresponding to the k-point ik
           call expand_evec(ik,1,.true.,isp)  !! Calculate the expansion coeficients of the eigenvectors
-          call readvector(jk,2,isp,0)          !! Read the eigenvector corresponding to the k'-point jk
+          call readvector(jk,2,isp,0)        !! Read the eigenvector corresponding to the k'-point jk
           call expand_evec(jk,2,.true.,isp)  !! Calculate the expansion coeficients of the eigenvectors
 
           !! m,n both are band states 
@@ -100,7 +101,6 @@
           !! n => band m => core 
           if(ncg.eq.0) cycle 
 
-          ccdim=sum(nclm(1:ndf)**2)*ndf 
           call calcminc(ik,iq,1,nomx,1,ncg,isp,minm) 
           ie12=0
           do icg=1,ncg
@@ -125,6 +125,8 @@
             enddo
           enddo
 
+          !ccdim=sum(nclm(1:ndf)**2)*ndf 
+          ccdim=sum(nclm(1:ndf)**2)
           !! n => core, m => core
           call calcmicc(isp,ccdim,minm)
           kwt = kiw(1,1,1)
@@ -140,8 +142,10 @@
           enddo
         enddo !! ikp 
       enddo !! isp 
-
       deallocate(minm)
+      write(6, *) "In calcexhf: "
+      write(6, *) "    ccdim=", ccdim, "nclm=", nclm, "ndf=", ndf
+      write(6, *) "    nmdim=", nmdim
       ex_hf=ex_hf+kwt_bz(iq)*exq
 
       return 

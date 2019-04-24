@@ -129,6 +129,7 @@
         read(fid,5060) ((rotloc(i,j,iat),i=1,3),j=1,3)        !* local rotation matrices
       enddo
       ndf = idf 
+      write(6, *) "Number of all atoms: ", ndf
 !
 !     reallocate the arrays to their actual sizes
 !

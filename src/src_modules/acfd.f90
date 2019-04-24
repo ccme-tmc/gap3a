@@ -31,7 +31,7 @@
       integer:: iq0,iq1,iom0,iom1  !! ranges for q and \omega index 
 
       ec_acfd = 0.d0
-      ex_hf=0.d0
+      ex_hf = 0.d0
       allocate(ecwq(iom0:iom1,iq0:iq1),&
      &          exq(iq0:iq1),                 &
      &         stat=ierr)

@@ -27,7 +27,7 @@
       use mixbasis,    only: init_mixbasis,end_mixbasis,matsiz
       use mommat,      only: init_mommat,end_mommat
       use selfenergy,  only: init_selfenergy,end_selfenergy,sigx,sigc,  & 
-     &                       flag_sxc,fn_selfe,isxc 
+     &                       flag_sxc,fn_selfe
       use xcpot,       only: init_xcpot,end_xcpot
       use task,        only: lrestart,casename,nmax_sc,time_aniso
       use anisotropy,  only: init_aniso,end_aniso,iop_aniso

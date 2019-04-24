@@ -7,17 +7,23 @@
 #LAPACK = -L$(MKLROOT)/lib/intel64 -lmkl_intel_lp64 -lmkl_core -lmkl_sequential -lpthread -lm
 LAPACK=  -L$(LAPACK_HOME) -llapack -lblas
 
-CC = cc
+CC = gcc
 CFLAGS = -O2
 
 #options for debug version 
-FC = gfortran -FR
-F77 = gfortran -fixed 
-# incompati
-DOPTS =  -debug-parameters all -traceback -g -fpe0 -warn all  -check all -check noarg_temp_created -warn nounused -DDEBUG
-OOPTS =  -O3 -mp1 -w -prec_div -pc80 -nopad -ip -fpe0 
+FC = gfortran -ffree-form
+F77 = gfortran -ffixed-form
+
+DOPTS = -fbacktrace -O0 -g -Wall -Wextra -fcheck=all -ffpe-trap=inexact,zero,invalid -DDEBUG 
+OOPTS = -O3 -Wall
 FPP= -cpp
-FFLAGS = -r8 $(FPP) $(DOPTS) # -convert big_endian
+
+ifeq ($(debug), yes)
+    FFLAGS = -k8 $(FPP) $(DOPTS)
+else
+    FFLAGS = -k8 $(FPP) $(OOPTS)
+endif
+
 LDFLAGS = -Bstatic $(LAPACK) -Bdynamic -lpthread
 
  
@@ -34,3 +40,6 @@ AR  = ar
 ARFLAGS= crv 
 RANLIB  = ar s
 
+# fix No rule to make target 'calcemac_nlf.o'
+.SUFFIXES:  .F90
+.SUFFIXES:  .f90

@@ -68,8 +68,11 @@
       integer :: ie2_f,ie2_l  
       integer :: ie1_f,ie1_l  
       integer :: ik_f, ik_l 
-      
+#ifdef DEBUG
       logical :: ldbg=.true.
+#else
+      logical :: ldbg=.false.
+#endif
       logical :: l_eps_invd=.false.  ! label if eps,epsw and head inverted
       logical :: l_body_invd=.false. ! label if eps (body only) inverted
 
@@ -277,7 +280,6 @@
               enddo  
 
               call cpu_time(time1)
-              ! TODO is coulomb interacton included in minm?
               call zgemm('n','c',matsiz,matsiz,nmdim,-coefks,tmat,matsiz, &
      &            minm,matsiz,cone,eps(:,:,iom),matsiz)   
 

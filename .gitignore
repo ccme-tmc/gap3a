@@ -1,24 +1,20 @@
 # binaries
 bin/
 # source build
-src/*.o
-src/*.mod
-src/*.pyc
-src/*__genmod.*
-src/src_*/*.o
-src/src_*/*.mod
-src/src_*/*.pyc
-src/src_*/*__genmod.*
-src/*.a
-src/*.x
-src/src_dmftproj/dmftproj.x
-src/src_kgen/kgen
-src/make.inc
-src/make.inc_*
-src/.seq
-src/.para
-src/src_modules/.para
-src/src_modules/.seq
+*.o
+*.mod
+*.pyc
+*__genmod.*
+*.a
+*.x
+#src_dmftproj/dmftproj.x
+kgen
+make.inc
+make.inc_*
+.seq
+.para
+#src_modules/.para
+#src_modules/.seq
 
 # vscode
 .vscode/

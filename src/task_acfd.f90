@@ -8,8 +8,7 @@
 ! !DESCRIPTION:
 !
 ! This subroutine calculate the ACFD total energy 
-!
-! !USES:
+!  !USES:
 
       use acfd
       use freq,     only: nomeg
@@ -76,8 +75,8 @@
       endif
 
 #ifdef MPI
-      write(6,*) "task_acfd: parallel q-loop"
-      call mpi_set_group(nkp,nomeg)
+      write(6,*) "task_acfd: parallel q-loop and w-loop"
+      call mpi_set_group(nkp, nomeg)
      !call mpi_set_group(nkp,nirkp)
 
      ! call mpi_set_range(nproc_row,myrank_row,nkp,1,iqfirst,iqlast)
@@ -124,7 +123,8 @@
         endif 
 
         if(iop_acfd.ne.0) then 
-          write(6,'(a,f8.4)')" - Use reduced basis, barcevtol = ",barcevtol
+          write(fid_outgw,'(a,f8.4)')&
+     &        " - Use reduced basis, barcevtol = ",barcevtol
           call coul_setev(iq,barcevtol,iop_coul_c)
           call init_dielmat(iq,iom_first,iom_last)
           ! Calculate the dielectric matrix
@@ -141,7 +141,7 @@
         !! Deallocate arrays with q-dependent sizes
         call end_barcoul(iq)
         call end_mixbasis
-        call flushbuf(6)
+        call flushbuf(fid_outgw)
       enddo ! iq
 !
 !    Calculate acfd correlation energy by integrating over q-points  
@@ -161,11 +161,12 @@
 
       if(myrank.eq.0) then
         call boxmsg(fid_outgw,'-',"ACFD Exc Summary (in Hartree)")
-        write(fid_outgw,'(a,f14.8)') "   Exact exchange = ",ex_hf
-        write(fid_outgw,'(a,f14.8)') " ACFD Correlation = ",ec_acfd
-        write(fid_outgw,'(a,f14.8)') "         ACFD Exc = ",ex_hf+ec_acfd
-        write(fid_outgw,'(a,f14.8)') "      LDA/GGA Exc = ",exc_lda
-        write(fid_outgw,'(a,f14.8)') "        ACFD Etot = ",etot_lda - exc_lda &
+        write(fid_outgw,'(a,f20.8)') "   Exact exchange = ",ex_hf
+        write(fid_outgw,'(a,f20.8)') " ACFD Correlation = ",ec_acfd
+        write(fid_outgw,'(a,f20.8)') "      LDA/GGA Exc = ",exc_lda
+        write(fid_outgw,'(a,f20.8)') "         ACFD Exc = ",ex_hf+ec_acfd
+        write(fid_outgw,'(a,f20.8)') "     LDA/GGA Etot = ",etot_lda
+        write(fid_outgw,'(a,f20.8)') "        ACFD Etot = ",etot_lda - exc_lda &
      &      + ex_hf + ec_acfd
       endif 
       call end_acfd
