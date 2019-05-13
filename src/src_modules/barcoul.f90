@@ -11,18 +11,22 @@
 ! !PUBLIC VARIABLES:
       implicit none 
       integer :: iop_coul = -1    ! option to coulumb potential  
-                                  ! -1 -- standard bare Coulomb interaction 
-                                  !  0 -- truncated Coulomb interaction with truncation radius being rcut_coul
-                                  !  1 -- truncated Coulomb interaction for 1D system
-                                  !  2 -- truncated Coulomb interaction for 2D system
-                                  !  3 -- Thomas-Fermi screened Coulomb interaction 
-                                  !  4 -- erfc-screened Coulomb interaction 
+      !                     -1 -- standard bare Coulomb interaction 
+      !                      0 -- truncated Coulomb interaction with truncation radius being rcut_coul
+      !                      1 -- truncated Coulomb interaction for 1D system
+      !                      2 -- truncated Coulomb interaction for 2D system
+      !                      3 -- Thomas-Fermi screened Coulomb interaction 
+      !                      4 -- erfc-screened Coulomb interaction 
       integer :: iop_coul_x = -1  ! option to coulumb potential for exchange  
       integer :: iop_coul_c = -1  ! option to coulumb potential for correlation 
+      integer :: axis_cut_coul = 3  ! the axis related to truncation of Coulomb interaction
+                               ! For 2D system, interaction is cutoff in the direction of axis_cut-th lattice vector
+                               ! For 1D system, interaction is only preserved along axis_cut
+      real(8) :: vec_cut_coul(3) ! the vector of the direction of axis_cut
 
-      integer :: iop_coulvm      ! option to control how to calculate v-matrix 
+      integer :: iop_coulvm     ! option to control how to calculate v-matrix 
                                 !  0 -- the "standard" scheme 
-                                !  1 -- via plane wave expansion 
+                                !  1 -- via plane wave expansion (expt.)
 
       ! TODO check the usage of im_g0 with Prof. Jiang
       integer :: im_g0 = 1                ! the index for the basis function corresponding to G=0
@@ -30,10 +34,10 @@
       real(8) :: barcevtol=-1.d-10        ! tolenrance to choose basis functions from bare Coulomb matrix eigenvectors 
       real(8) :: barcevtol2=0.001d0       ! barc eigenvectors that whose overlap with the G=0 plane wave   
                                           ! is larger than this value is kept for new basis set (used for iopmbq0 == 2 )
-      real(8) :: rcut_coul= -1.0d0        ! truancation radius for the bare Coulomb interaction (for 0D)
-      real(8) :: acut_coul= -1.0d0        ! truancation radius for the bare Coulomb interaction (for 1D)
-      real(8) :: bcut_coul= -1.0d0        ! truancation radius for the bare Coulomb interaction (for 1D)
-      real(8) :: zcut_coul= -1.0d0        ! truancation radius for the bare Coulomb interaction (for 2D)
+      real(8) :: rcut_coul=-1.0d0        ! cutoff radius of Coulomb interaction (for 0D)
+      real(8) :: acut_coul=-1.0d0        ! cutoff radius of Coulomb interaction (for 1D)
+      real(8) :: bcut_coul=-1.0d0        ! cutoff radius of Coulomb interaction (for 1D)
+      real(8) :: zcut_coul=-1.0d0        ! cutoff radius of Coulomb interaction (for 2D)
                                           ! if negative, set the default value in terms of the cell size  
       real(8),allocatable::barcev(:)      ! Eigenvalues of bare Coulomb matrix 
       real(8),allocatable::barcevsq(:)    ! square root of eigenvalues of bare Coulomb matrix 
@@ -93,8 +97,8 @@
         gcf=2.0d+0*gcutoff(stctol,eta,10)
         write(6,'(4x,a,3f12.6)') 'Parameters for structure constants:&
      &eta,rcf,gcf=',eta,rcf,gcf
-
-        if(rcut_coul.lt.0.0) then !! truncated/screened Coulomb interaction 
+        !! automatic set truncated/screened Coulomb interaction
+        if(rcut_coul.lt.0.0) then 
           if(nint(rcut_coul).eq.-2) then
             rcut_coul=maxval(alat(1:3)*nkdivs(1:3))/2
           else
@@ -103,21 +107,12 @@
           endif
           write(6,'(4x,a,f12.4)') "set default rcut_coul=",rcut_coul
         endif 
-
       else  !! q-dependent initialization 
         allocate(vmat(mbsiz,mbsiz),ev(mbsiz),stat=ierr )
         call errmsg(ierr.ne.0,sname,"Fail to allocate vmat")
-        ! NO vmat or ev for iq=0??
         vmat=0.d0
         ev = 0.d0 
       endif
-      ! TODO initialize cut-off distances for 1D and 2D
-      ! Note that the truncation directio is fixed !!!
-      ! i.e. for 2D, the third direction
-      !      for 1D, the first and second directions (NOT verified!!!)
-      if(zcut_coul.lt.0.0) zcut_coul = alat(3)/2.0D0
-      if(acut_coul.lt.0.0) acut_coul = alat(1)/2.0D0
-      if(bcut_coul.lt.0.0) bcut_coul = alat(2)/2.0D0
       end subroutine 
 
       subroutine end_barcoul(iq)
@@ -132,9 +127,38 @@
       subroutine end_barcev
         deallocate(barcev,barcevsq,barcvm) 
         if(allocated(barcs)) deallocate(barcs,sqbarcs)
-      end subroutine 
+      end subroutine
 
-      subroutine genrstr(rmax,rshift,rbs,nr)
+      subroutine set_coul_cutoff(iop)
+        ! Set up the truncation parameters by iop. 
+        ! For meaning of each value
+        implicit none
+        integer, intent(in) :: iop
+        integer :: iz, ia, ib
+       
+        vec_cut_coul = rbas(axis_cut_coul, :)
+        if (iop.eq.-1) then
+          ! very large cut-off length, for safety
+          zcut_coul = 1.0D10
+          acut_coul = 1.0D10
+          bcut_coul = 1.0D10
+        elseif ((iop.eq.0).or.(iop.eq.3).or.(iop.eq.4)) then
+          ! spherical cut-off
+          zcut_coul = 1.0D10
+          acut_coul = 1.0D10
+          bcut_coul = 1.0D10
+        else
+          ! 1D and 2D cut-off
+          iz = mod(axis_cut_coul+2,3)
+          ia = mod(iz+1,3)
+          ib = mod(iz+2,3)
+          zcut_coul = alat(iz+1)/2.0D0
+          acut_coul = alat(ia+1)/2.0D0
+          bcut_coul = alat(ib+1)/2.0D0
+        end if
+      end subroutine set_coul_cutoff
+
+      subroutine genrstr(iop,rmax,rshift,rbs,nr)
 ! Generates the indexes of the lattice vectors to be included in the
 !calculation of the structure constants, under the condition:
 !
@@ -142,13 +166,14 @@
 !|\vec{R}+\vec{r}_{aa'}|\le R_{cutoff}
 !\end{equation}
       implicit none
+      integer, intent(in) :: iop  ! cut-off option
       real(8), intent(in) :: rmax ! Maximum radius
       real(8), intent(in) :: rshift(3) ! Shift of the origin
       real(8), intent(in) :: rbs(3,3) ! Bravais lattice basis
       
       integer(4), intent(out) :: nr  !number of vectors
       
-      integer(4) :: i,imax,ir,rdim,i1,i2,i3,gap
+      integer(4) :: i,ir,rdim,i1,i2,i3,gap,imax(3),iz,ia,ib
       
       real(8) :: lrmin              ! minimum length of the basis vectors.
       real(8) :: rleng
@@ -160,20 +185,30 @@
       logical :: done
       
       do i=1,3
-        lrbs(i)=sqrt(sum( rbs(:,i)**2) )
+        lrbs(i)=sqrt(sum(rbs(:,i)**2))
       enddo
 
       lrmin=minval(lrbs)
       imax=idint(rmax/lrmin)+1
-      rdim=(2*imax+1)*(2*imax+1)*(2*imax+1)
+      ! cutoff for 1D and 2D system
+      iz = mod(axis_cut_coul+2,3)
+      ia = mod(iz+1,3)
+      ib = mod(iz+2,3)
+      if (iop.eq.1) then
+        imax(ia+1) = 0
+        imax(ib+1) = 0
+      elseif (iop.eq.2) then
+        imax(iz+1) = 0
+      end if
+      rdim=(2*imax(1)+1)*(2*imax(2)+1)*(2*imax(3)+1)
      
       if(allocated(rstr)) deallocate(rstr) 
       allocate(rstr(4,rdim))
       
       ir=0
-      do i1=-imax,imax
-        do i2=-imax,imax
-          do i3=-imax,imax
+      do i1=-imax(1),imax(1)
+        do i2=-imax(2),imax(2)
+          do i3=-imax(3),imax(3)
             do i=1,3
               r(i) = dble(i1)*rbs(i,1)+dble(i2)*rbs(i,2)+               &
      &             dble(i3)*rbs(i,3)

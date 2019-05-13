@@ -120,10 +120,12 @@
       do jm=1,mbsiz 
         if(im_kept(jm).eq.1) then 
           im=im+1
+          ! - zmy start
           ! We cannot decompose qgeff to q_para and q_perp.
           ! We should not rely on this kind of update for 1D 2D
+          ! - zmy end
           if(icoul.gt.-1) then 
-            !  ! TODO how im_g0 is set for icoul = -1
+            ! TODO how im_g0 is set for icoul = -1
             !! reset eigenvalues for icoul > -1 (truncated/screened Coulomb interaction)
             if(iq.eq.1.and.jm.eq.immax) then 
               if(icoul.eq.0) then     !! truncated Coulomb interaction for 0D

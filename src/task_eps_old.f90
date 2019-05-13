@@ -88,7 +88,7 @@
           call init_mixbasis(iq)
           call init_barcoul(iq)
 
-          call coul_barc(iq, iop_coul_c)           !! bare Coulomb matrix 
+          call coul_barc(iq)           !! bare Coulomb matrix 
           call coul_setev(iq,barcevtol,iop_coul_c)
 
           call init_dielmat(iq,iom_f,iom_l)  !! initialize

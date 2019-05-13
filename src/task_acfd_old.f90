@@ -85,17 +85,16 @@
         call bz_calcqdepw(iq)
 
         !! calculate the bare coulomb matrix and its square root
-        call coul_barc(iq, iop_coul_x)
+        call coul_barc(iq)
 
         if(myrank_col.eq.0) then 
-          call coul_setev(iq, 0.d0, iop_coul_x)
+          call coul_setev(iq,0.d0,iop_coul_x)
           call calcexhf(iq)
           call end_barcev
         endif 
 
         if(iop_acfd.ne.0) then 
 
-          call coul_barc(iq, iop_coul_c)
           write(6,'(a,f8.4)')" -Use reduced basis,barcevtol =",barcevtol
           call coul_setev(iq,barcevtol,iop_coul_c)
           call init_dielmat(iq,iom_first,iom_last)

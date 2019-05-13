@@ -3,7 +3,7 @@
 ! !ROUTINE: calceps
 !
 ! !INTERFACE:
-      subroutine calceps(iq,iom_f,iom_l,isym,isc,iop,lread)
+      subroutine calceps_2d(iq,iom_f,iom_l,isym,isc,iop,lread)
 
 ! !DESCRIPTION:
 !
@@ -34,7 +34,7 @@
       use modmpi
       use anisotropy,  only: ten_a_ani,ten_p_ani, &
      &                       vec_a_ani,vec_b_ani,vec_t_ani,vec_u_ani,&
-     &                       iop_aniso,proj_head_on_ylm,head_g,      &
+     &                       iop_aniso,proj_head_on_ylm, head_g,     &
      &                       calc_h_w_inv_ang_grid,n_ang_grid,       &
      &                       angint_eps_sph,lmgsq,h_g_lm,wh_g,wv_g
 
@@ -82,7 +82,7 @@
       complex(8):: ten_a_ani_tmp(3,3)
 
       real(8) :: time1,time2,time3,time4,tstart,tend
-      character(len=15)::sname='calceps'
+      character(len=15)::sname='calceps_2d'
 
       real(8),   allocatable :: enk(:)        !! local array for eigen-energies 
       complex(8),allocatable :: tmat(:,:),pm(:),wtmp(:),minm(:,:,:) 
@@ -634,6 +634,6 @@
 
       end subroutine ! sub_calcinveps
 
-      end subroutine calceps
+      end subroutine calceps_2d
 !EOC
 

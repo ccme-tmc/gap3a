@@ -76,7 +76,7 @@
       do iq=iq_f,iq_l
         call init_mixbasis(iq)
         call init_barcoul(iq)
-        call coul_barc(iq, iop_coul_c)
+        call coul_barc(iq)
         call coul_setev(iq,barcevtol,iop_coul_c)
 
         do iom=1,nomeg,nomeg_blk 

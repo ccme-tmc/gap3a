@@ -18,7 +18,7 @@
      &                       emaxpol,eminpol,emaxsc,eminsc,efermi
       use barcoul,     only: barcevtol,rcut_coul,stctol,iop_coul, &
      &                       iop_coul_x,iop_coul_c,iop_coulvm, &
-     &                       zcut_coul,acut_coul,bcut_coul
+     &                       axis_cut_coul
 
       use bzint,       only: iop_bzint,iop_bzintq,n_gauq,eta_freq,     &
      &                       ztol_sorteq,tol_taylor,tol_unphys_weight, &
@@ -760,10 +760,13 @@
 
       !! set the trancation radius for the bare Coulomb interaction, needed for finite systems
       call loct_parse_int  ("iop_coulvm",  0,iop_coulvm )
-      !call loct_parse_int  ("iop_coul"  , -1,iop_coul   )
       call loct_parse_int  ("iop_coul", -1,iop_coul )
       call loct_parse_int  ("iop_coul_x", -1,iop_coul_x )
       call loct_parse_int  ("iop_coul_c", -1,iop_coul_c )
+      call loct_parse_int  ("axis_cut_coul", 3, axis_cut_coul)
+      if((axis_cut_coul.gt.3).or.(axis_cut_coul.lt.0)) then
+        call outerr(sname, "axis_cut_coul should be 1, 2 or 3")
+      endif
 
 ! block::q0eps -- the direction q --> 0  
 !
@@ -792,9 +795,9 @@
 !        iop_coulvm = 1
 !      endif    
       call loct_parse_float("rcut_coul",-1.0d0,rcut_coul)
-      call loct_parse_float("zcut_coul",-1.0d0,zcut_coul)
-      call loct_parse_float("acut_coul",-1.0d0,acut_coul)
-      call loct_parse_float("bcut_coul",-1.0d0,bcut_coul)
+      !call loct_parse_float("zcut_coul",-1.0d0,zcut_coul)
+      !call loct_parse_float("acut_coul",-1.0d0,acut_coul)
+      !call loct_parse_float("bcut_coul",-1.0d0,bcut_coul)
 
       !! Set parameters for anisotropy
       call loct_parse_int("iop_aniso", -1, iop_aniso)

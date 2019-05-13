@@ -3,7 +3,7 @@
 ! !ROUTINE: coul_setvm1
 !
 ! !INTERFACE:
-      subroutine coul_setvm1(iop,iq)
+      subroutine coul_setvm1(iop,iq,icutoff)
       
 ! !DESCRIPTION:
 !
@@ -27,6 +27,7 @@
       integer, intent(in):: iop ! 0 -- calculate v matrix 
                                 ! 1 -- calculate v^{1/2} matrix 
       integer, intent(in) :: iq ! index of the q-point
+      integer, intent(in) :: icutoff ! the cut-off option. See barcoul
 
 !
 ! !LOCAL VARIABLES:

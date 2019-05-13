@@ -109,7 +109,7 @@
         call init_mixbasis(iq)
         call init_barcoul(iq)
 
-        call coul_barc(iq, iop_coul_x)           !! bare Coulomb matrix 
+        call coul_barc(iq)           !! bare Coulomb matrix 
         call coul_setev(iq,0.d0,iop_coul_x) 
 
         call calcselfx(iq,-1) 

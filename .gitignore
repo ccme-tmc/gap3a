@@ -21,6 +21,7 @@ src/src_modules/.seq
 
 # editor
 .vscode
+.cache
 
 *.tgz
 *.tar.gz

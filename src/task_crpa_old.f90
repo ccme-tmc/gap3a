@@ -119,7 +119,7 @@
 
         call init_barcoul(iq)
         call bz_calcqdepw(iq)                     !! Calc the q-dependent integration weights
-        call coul_barc(iq, iop_coul_c)            !! bare coulomb matrix
+        call coul_barc(iq)                        !! bare coulomb matrix
         call coul_setev(iq,barcevtol,iop_coul_c)  !! filter eigenvectors of barcoul
 
         call init_crpa(iq)                        !! initializes mill

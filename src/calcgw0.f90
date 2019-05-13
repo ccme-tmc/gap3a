@@ -99,13 +99,14 @@
         call init_mixbasis(iq)
         call init_barcoul(iq)
 
-        call coul_barc(iq)           !! bare Coulomb matrix 
+        call coul_barc(iq, iop_coul_x)           !! bare Coulomb matrix 
 
         !! exchange self-energies 
         call sub_calc_sigx 
 
         !! Calculate GW or COHSEX correlation self-energy 
         if(isxc.eq.0.or.isxc.eq.2.or.isxc.eq.3) then
+          call coul_barc(iq, iop_coul_c)           !! bare Coulomb matrix 
           call sub_calc_sigc
         endif
 

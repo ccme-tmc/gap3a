@@ -3,7 +3,7 @@
 ! !ROUTINE: coul_barc
 !
 ! !INTERFACE:
-      subroutine coul_barc(iq, icutoff)
+      subroutine coul_barc(iq)
 
 ! !DESCRIPTION:
 !
@@ -23,7 +23,6 @@
       implicit none
 
       integer, intent(in) :: iq  ! index of the q-point
-      integer, intent(in) :: icutoff ! the cut-off option. See barcoul
 
 !
 ! !LOCAL VARIABLES:
@@ -69,9 +68,9 @@
 !     calculate bare coulomb potential matrix via plane waves expansion 
 !
       if(iop_coulvm.eq.1) then 
-        call coul_setvm1(0,iq, icutoff)
+        call coul_setvm1(0,iq)
       else
-        call coul_setvm0(iq, icutoff) 
+        call coul_setvm0(iq) 
       endif 
 
       if(lprt) then 

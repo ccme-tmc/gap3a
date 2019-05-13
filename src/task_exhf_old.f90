@@ -79,7 +79,7 @@
         call init_barcoul(iq)
         call init_minmmat(5)
 
-        call coul_barc(iq, -1) ! no cut-off
+        call coul_barc(iq)
 
 !
 !        Calculate the Minm matrix elements

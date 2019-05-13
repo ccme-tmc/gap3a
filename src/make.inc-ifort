@@ -12,13 +12,18 @@ LAPACK = -L$(MKLROOT)/lib/intel64 -lmkl_intel_lp64 -lmkl_core -lmkl_sequential -
  #options for debug version 
  FC = ifort -FR
  F77 = ifort -fixed 
- DOPTS =  -O0 -nogen-interfaces -warn interfaces -debug-parameters all -traceback -g -fpe0 -warn all -check uninit -check bounds -ftrapuv  -check noarg_temp_created -warn nounused -DDEBUG
+ DOPTS =  -O0 -nogen-interfaces -warn interfaces -debug-parameters all -traceback -g -fpe0 -warn all -check uninit -check bounds -ftrapuv  -check noarg_temp_created -warn nounused -DDEBUG 
  OOPTS =  -O3 -mp1 -w -prec_div -pc80 -nopad -ip -fpe0 
  FPP= -fpp -DINTEL
- FFLAGS = -r8  $(FPP) $(OOPTS) # -convert big_endian
  LDFLAGS = $(LAPACK) 
+
+ ifeq ($(debug),yes)
+   FFLAGS = -r8  $(FPP) $(DOPTS) # -convert big_endian
+ else
+   FFLAGS = -r8  $(FPP) $(OOPTS) # -convert big_endian
+ endif
  
- MPIFC=mpif90
+ MPIFC=mpiifort
  MPITAG = mpi
  MPIFFLAGS = -fc=ifort  $(FFLAGS) -DMPI 
 

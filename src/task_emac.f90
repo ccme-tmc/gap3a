@@ -105,7 +105,7 @@
         call init_barcoul(iq)
       
         write(fid_outgw,*) "task_emac: coul_barc"
-        call coul_barc(iq)
+        call coul_barc(iq, iop_coul_c)
         call coul_setev(iq,barcevtol,iop_coul_c)
       endif 
 !

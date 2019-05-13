@@ -48,7 +48,7 @@
       integer:: ik     ! (Counter) Runs over k-points
       integer:: ierr
       logical:: lprt=.false.
-      logical:: ltest_disable_sing=.true.
+      logical:: ltest_disable_sing=.false.
       real(8):: tstart,tend
       character(len=10)::sname='calcmwm'
       complex(8), allocatable :: minm(:,:,:)
