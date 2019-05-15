@@ -3,7 +3,7 @@
 ! !ROUTINE: calcescgw
 !
 ! !INTERFACE:
-      subroutine calcescgw(isxc)  
+      subroutine calcescgw_cutoff(isxc)
       
 ! !DESCRIPTION:
 !
@@ -32,7 +32,7 @@
       implicit none
       integer, intent(in) :: isxc 
 
-      character(len=20):: sname="calcescgw"
+      character(len=20):: sname="calcescgw_cutoff"
       integer(4) :: iq        ! (Counter) Runs over q-points
       integer(4) :: ierr
       integer(4) :: isc
@@ -97,16 +97,17 @@
         do iq=iq_f,iq_l
           call init_mixbasis(iq)
           call init_barcoul(iq)
-          call coul_barc(iq)           !! bare Coulomb matrix 
 
           !! exchange part needs to be calculated only at the first
           !iteration 
           if(isc.eq.0) then 
+            call coul_barc(iq, iop_coul_x)           !! bare Coulomb matrix 
             call coul_setev(iq,0.d0,iop_coul_x)
             call calcselfx(iq,-1)
             call end_barcev
           endif 
 
+          call coul_barc(iq, iop_coul_c)           !! bare Coulomb matrix 
           call coul_setev(iq,barcevtol,iop_coul_c)
 
           if(isc.eq.0) then

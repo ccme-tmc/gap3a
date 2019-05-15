@@ -3,7 +3,7 @@
 ! !ROUTINE: coul_setvm0
 !
 ! !INTERFACE:
-      subroutine coul_setvm0(iq)
+      subroutine coul_setvm0_cutoff(iq, icutoff)
 
 ! !DESCRIPTION:
 !
@@ -29,6 +29,7 @@
       implicit none
 
       integer, intent(in) :: iq  ! index of the q-point
+      integer, intent(in) :: icutoff ! the cut-off option. See barcoul
 
 !
 ! !LOCAL VARIABLES:
@@ -87,7 +88,7 @@
 !! debug 
 
       logical :: lprt =.true.
-      character(len=20)::sname='coul_setvm0'
+      character(len=20)::sname='coul_setvm0_cutoff'
   
  
 ! !EXTERNAL ROUTINES: 
@@ -133,7 +134,7 @@
 
       !! Calculate the matrix sigma for the structure constants
       if(lprt) write(6,*) "Calculate the matrix sigma"
-      call coul_strcnst(iq,4*(lmbmax+1))
+      call coul_strcnst_cutoff(iq, 4*(lmbmax+1), icutoff)
 
       !! calculate the cartesian coordinates of the q-point
       iqvec(1:3)=qlist(1:3,iq)
@@ -141,7 +142,7 @@
 
       !! For q=0 calculate the corrections of the structure constants
       if(lprt) write(6,*)" For q=0 calc the corr. of struc. const"
-      if(iq.eq.1) call coul_barcq0
+      if(iq.eq.1) call coul_barcq0_cutoff(icutoff)
 
       !! Calculate all the products rtl*rtl
       if(lprt) write(6,*) " Calculate all the products rtl*rtl"
@@ -303,4 +304,4 @@
       enddo
       deallocate(mat1,mat2)
 
-      end subroutine  
+      end subroutine coul_setvm0_cutoff

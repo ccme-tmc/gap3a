@@ -19,7 +19,7 @@
       use selfenergy,  only: init_selfenergy,end_selfenergy,  &
      &                       sigx,sigc,sxcmn
       use barcoul,     only: init_barcoul,end_barcoul,barcevtol,end_barcev,&
-     &                       iop_coul_x,iop_coul_c
+     &                       iop_coul_x,iop_coul_c, lcutoff_in_coul_barc
       use dielmat,     only: init_dielmat,end_dielmat
       use xcpot,       only: init_xcpot, end_xcpot
       use task,        only: lrestart,casename,nmax_sc
@@ -98,16 +98,24 @@
           call init_mixbasis(iq)
           call init_barcoul(iq)
 
+          !! bare Coulomb matrix 
+          if (lcutoff_in_coul_barc) then 
+            call coul_barc_cutoff(iq, iop_coul_x)
+          else
+            call coul_barc(iq)
+          endif
+
           !! exchange part needs to be calculated only at the first
           !iteration 
           if(isc.eq.0) then 
-            call coul_barc(iq, iop_coul_x)           !! bare Coulomb matrix 
             call coul_setev(iq,0.d0,iop_coul_x)
             call calcselfx(iq,-1)
             call end_barcev
           endif 
 
-          call coul_barc(iq, iop_coul_c)           !! bare Coulomb matrix 
+          if (lcutoff_in_coul_barc) then 
+            call coul_barc_cutoff(iq, iop_coul_c)
+          endif
           call coul_setev(iq,barcevtol,iop_coul_c)
 
           if(isc.eq.0) then

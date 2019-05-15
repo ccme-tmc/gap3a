@@ -16,7 +16,7 @@
       use kpoints,  only: nirkp,idikp,nkp
       use mixbasis, only: init_mixbasis,end_mixbasis
       use barcoul,  only: init_barcoul,end_barcoul,barcevtol,end_barcev,&
-                          iop_coul_x, iop_coul_c
+                          iop_coul_x, iop_coul_c, lcutoff_in_coul_barc
       use dielmat,  only: init_dielmat, end_dielmat
       use liboct_parser
       use modmpi
@@ -85,18 +85,25 @@
         call bz_calcqdepw(iq)
 
         !! calculate the bare coulomb matrix and its square root
-        call coul_barc(iq, iop_coul_x)
+        if (lcutoff_in_coul_barc) then
+          call coul_barc_cutoff(iq, iop_coul_x)
+        else
+          call coul_barc(iq)
+        endif
 
-        if(myrank_col.eq.0) then 
-          call coul_setev(iq, 0.d0, iop_coul_x)
+        if(myrank_col.eq.0) then
+          call coul_setev(iq,0.d0,iop_coul_x)
           call calcexhf(iq)
           call end_barcev
         endif 
 
         if(iop_acfd.ne.0) then 
 
-          call coul_barc(iq, iop_coul_c)
           write(6,'(a,f8.4)')" -Use reduced basis,barcevtol =",barcevtol
+          ! reconstrcut the bare Coulomb
+          if (lcutoff_in_coul_barc) then
+            call coul_barc_cutoff(iq, iop_coul_c)
+          endif
           call coul_setev(iq,barcevtol,iop_coul_c)
           call init_dielmat(iq,iom_first,iom_last)
 
@@ -105,10 +112,10 @@
 
           call calcecrpa(iq,iom_first,iom_last) 
           call end_dielmat(iq)
+          call end_barcev
         endif 
 
         !! Deallocate arrays with q-dependent sizes
-        call end_barcev
         call end_barcoul(iq)
         call end_mixbasis
         call flushbuf(6)

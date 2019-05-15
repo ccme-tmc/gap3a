@@ -18,7 +18,7 @@
      &                       emaxpol,eminpol,emaxsc,eminsc,efermi
       use barcoul,     only: barcevtol,rcut_coul,stctol,iop_coul, &
      &                       iop_coul_x,iop_coul_c,iop_coulvm, &
-     &                       axis_cut_coul
+     &                       axis_cut_coul, lcutoff_in_coul_barc
 
       use bzint,       only: iop_bzint,iop_bzintq,n_gauq,eta_freq,     &
      &                       ztol_sorteq,tol_taylor,tol_unphys_weight, &
@@ -200,7 +200,7 @@
       write(fid_outgw,100) "Task: "//taskname
 
         
-      call loct_parse_logical('Restart',.false.,lrestart) 
+      call loct_parse_logical('Restart', .false., lrestart)
       if(lrestart) then 
         !write(6,100) "Restart= .TRUE. (Restart from previous run"
         write(fid_outgw,100) "Restart= .TRUE. (Restart from previous run"
@@ -213,6 +213,7 @@
  
       call loct_parse_logical('SaveDielmat',.true.,l_save_dielmat)
 
+      call loct_parse_logical('CutoffInCoulBarc', .false., lcutoff_in_coul_barc)
 !
 ! Set spin polarization option 
 !
@@ -795,9 +796,6 @@
 !        iop_coulvm = 1
 !      endif    
       call loct_parse_float("rcut_coul",-1.0d0,rcut_coul)
-      !call loct_parse_float("zcut_coul",-1.0d0,zcut_coul)
-      !call loct_parse_float("acut_coul",-1.0d0,acut_coul)
-      !call loct_parse_float("bcut_coul",-1.0d0,bcut_coul)
 
       !! Set parameters for anisotropy
       call loct_parse_int("iop_aniso", -1, iop_aniso)

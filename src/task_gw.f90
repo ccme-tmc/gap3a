@@ -62,7 +62,7 @@
       ierr = loct_parse_isdef(blk_gw)
       if(ierr.ne.1) then 
         iop_sxc = 0 
-        iop_vxc =  0 
+        iop_vxc = 0 
       else 
         call loct_parse_block_int(blk_gw,0,0,iop_sxc)
         call loct_parse_block_int(blk_gw,0,1,iop_vxc)
@@ -72,7 +72,7 @@
      &      "unsupported iop_sxc value!! ")
 
 
-      call calcgw0(iop_sxc,0)
+      call calcgw0(iop_sxc, 0)
 
       end subroutine task_gw
 !EOC      

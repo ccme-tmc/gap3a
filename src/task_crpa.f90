@@ -18,7 +18,7 @@
       use freq,     only: nomeg,nomeg_blk
       use kpoints,  only: nkp,nqp
       use barcoul,  only: init_barcoul,end_barcoul,barcevtol,end_barcev,&
-                          iop_coul_c,iop_coul_x
+                          iop_coul_c,iop_coul_x,lcutoff_in_coul_barc
       use dielmat,  only: init_dielmat, end_dielmat,iop_mask_eps
       use minmmat,  only: init_minm, end_minm
       use mixbasis, only: init_mixbasis,end_mixbasis,matsiz
@@ -119,7 +119,12 @@
 
         call init_barcoul(iq)
         call bz_calcqdepw(iq)                     !! Calc the q-dependent integration weights
-        call coul_barc(iq, iop_coul_c)            !! bare coulomb matrix
+        if (lcutoff_in_coul_barc) then
+          call coul_barc_cutoff(iq, iop_coul_c)   !! bare coulomb matrix with cutoff
+        else
+          call coul_barc(iq)                      !! bare coulomb matrix
+        endif
+
         call coul_setev(iq,barcevtol,iop_coul_c)  !! filter eigenvectors of barcoul
 
         call init_crpa(iq)                        !! initializes mill

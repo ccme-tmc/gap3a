@@ -139,3 +139,8 @@
 3. Add `icutoff` parameter to `coul_barc` and `coul_barcq0` and related subroutines
   donwstream.
 
+## 2019-05-15 (zmy)
+
+1. Add profiling switch in make.inc-ifort
+2. Allow switch between original and new workflows related to `coul_barc` by specifying
+  `CutoffInCoulBarc` logical in "gw.inp" file.

@@ -80,7 +80,7 @@ DOCTOT_FILE = ./doc/gwtot.tex
 MPIOBJS =  
 
 # files used by both sequential and parallel code 
-SP_OBJS = calcemac_nlf.o calceps.o calcgw0.o calcscgw0.o calcescgw.o \
+SP_OBJS = calcemac_nlf.o calceps.o calceps_2d.o calcgw0.o calcscgw0.o calcescgw.o \
           calcselfx.o calcselfc.o  calc_mwm3.o calcselfcmn.o calcselfxmn.o \
 		  coul_coef.o \
           io_cleanup.o io_initfiles.o io_sxcmn.o io_utils.o main.o \
@@ -99,6 +99,7 @@ OBJS =  $(SP_OBJS) \
         calcvhmn.o  calcvorbnn.o calcudot.o calcu.o    \
         calc_spectfun_nk.o calc_spectfun.o \
         coul_barcq0.o coul_barc.o coul_setvm0.o coul_setvm1.o coul_mpwmix.o coul_mpwipw.o coul_setev.o coul_strcnst.o coul_wmix0.o  \
+        coul_barcq0_cutoff.o coul_barc_cutoff.o coul_setvm0_cutoff.o coul_setvm1_cutoff.o coul_strcnst_cutoff.o \
         crpa_calcmill.o crpa_calcumat.o crpa_calcvmat.o crpa_check_unitary.o crpa_output.o \
         crpa_readpln.o crpa_readw2w.o crpa_setmask.o \
         diagipw.o \

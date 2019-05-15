@@ -1,4 +1,4 @@
-      subroutine coul_barcq0(icutoff)
+      subroutine coul_barcq0
 !This subroutine calculates the matrix of the bare coulomb potential for
 ! q=0 and atomic functions with L=0
 
@@ -7,13 +7,9 @@
       use mixbasis,   only: bigl, maxbigl, mbl, nmix, nmixmax
       use q0barc,     only: nglen, glen0, sing, phase
       use struk,      only: mult, ndf, vi, pos, rmt,nat,rotij,rotloc
-
+! !LOCAL VARIABLES:
 
       implicit none
-
-      integer, intent(in) :: icutoff ! the cut-off option. See barcoul
-
-! !LOCAL VARIABLES:
       integer(4) :: iat       ! Indexes the atoms (inequivalent) 
       integer(4) :: idf       ! Indexes all the atoms 
       integer(4) :: ieq       ! Indexes the equivalent atoms 

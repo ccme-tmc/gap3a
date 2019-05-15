@@ -20,7 +20,7 @@
       use bands,       only: nbandsgw,nspin,bande,ibgw,nbgw,eqp,bande0, &
      &                       numin,nomax,nbmax,nbmaxpol,eferqp,efermi
       use barcoul,     only: init_barcoul,end_barcoul,barcevtol,        &
-     &                       end_barcev,iop_coul_x,iop_coul_c
+     &                       end_barcev,iop_coul_x,iop_coul_c, lcutoff_in_coul_barc
       use dielmat,     only: init_dielmat,end_dielmat
       use freq,        only: nomeg,omega
       use kpoints,     only: nkp,nqp,nirkp,kirvecs
@@ -99,14 +99,21 @@
         call init_mixbasis(iq)
         call init_barcoul(iq)
 
-        call coul_barc(iq, iop_coul_x)           !! bare Coulomb matrix 
+        !! bare Coulomb matrix 
+        if (lcutoff_in_coul_barc) then
+          call coul_barc_cutoff(iq, iop_coul_x)
+        else
+          call coul_barc(iq)
+        endif
 
         !! exchange self-energies 
         call sub_calc_sigx 
 
         !! Calculate GW or COHSEX correlation self-energy 
         if(isxc.eq.0.or.isxc.eq.2.or.isxc.eq.3) then
-          call coul_barc(iq, iop_coul_c)           !! bare Coulomb matrix 
+          if (lcutoff_in_coul_barc) then
+            call coul_barc_cutoff(iq, iop_coul_c)
+          endif
           call sub_calc_sigc
         endif
 
@@ -208,10 +215,19 @@
             time_aniso = time_aniso + time2 - time1
           endif
 
-          call calceps(iq,1,nomeg,0,-1,2,lread_eps)
+          if (iop_coul_c.eq.2)then
+            call calceps_2d(iq,1,nomeg,0,-1,2,lread_eps)
+          else
+            call calceps(iq,1,nomeg,0,-1,2,lread_eps)
+          endif
 
-          call calcselfc(iq,iop_minm)
-
+          if (iop_coul_c.eq.2)then
+            !call calcselfc_2d(iq,iop_minm)
+            call calcselfc(iq,iop_minm)
+          else
+            call calcselfc(iq,iop_minm)
+          endif
+            
           if(myrank_ra3.eq.0) then
             call io_sxcmn('w','d',iq,isxc,1,ierr)
           endif
@@ -243,7 +259,12 @@
           sigc=0.d0
           lrestart = .true.
           do iq=iq_f,iq_l
-            call calcselfc(iq,0)
+            if (iop_coul_c.eq.2)then
+              !call calcselfc_2d(iq,iop_minm)
+              call calcselfc(iq,0)
+            else
+              call calcselfc(iq,0)
+            endif
           enddo
 
 #ifdef MPI

@@ -18,7 +18,7 @@
       use kpoints,   only: nkp,nirkp
       use mixbasis,  only: matsiz,init_mixbasis,end_mixbasis
       use barcoul,   only: init_barcoul,end_barcoul,barcevtol,end_barcev,&
-                           iop_coul_c
+                           iop_coul_c, lcutoff_in_coul_barc
       use dielmat,   only: bandtype,c0_head,emac,init_dielmat,end_dielmat
       use freq,      only: nomeg
       use mommat,    only: iop_mommat
@@ -105,7 +105,11 @@
         call init_barcoul(iq)
       
         write(fid_outgw,*) "task_emac: coul_barc"
-        call coul_barc(iq, iop_coul_c)
+        if (lcutoff_in_coul_barc) then
+          call coul_barc_cutoff(iq, iop_coul_c)
+        else
+          call coul_barc(iq)
+        endif
         call coul_setev(iq,barcevtol,iop_coul_c)
       endif 
 !

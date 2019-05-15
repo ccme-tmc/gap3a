@@ -3,7 +3,7 @@
 ! !ROUTINE: coul_strcnst
 !
 ! !INTERFACE:
-      subroutine coul_strcnst(iq,lammax)
+      subroutine coul_strcnst_cutoff(iq, lammax, icutoff)
 
 ! !DESCRIPTION:
 !
@@ -25,6 +25,7 @@
       implicit none
 
       integer(4), intent(in) :: iq        ! index of the q-point for which sigma is calculated
+      integer(4), intent(in) :: icutoff ! the cut-off option. See barcoul
       integer(4), intent(in) :: lammax ! Maximum value of lambda
      
 ! !LOCAL VARIABLES:
@@ -87,7 +88,7 @@
 !EOP
 !BOC      
     
-      if(ldbg)  call boxmsg(fid_outdbg,'+',"structure constant (Sigma)")
+      if(ldbg)  call boxmsg(fid_outdbg,'+',"structure constant (Sigma), cutoff version")
 
       call k2cart(qlist(1:3,iq),idvq,qtemp)
       qvec(1:3)=-1.0d0*qtemp(1:3)
@@ -109,7 +110,7 @@
 
           !! Calculate all the R's such that R+r_aa < rcf
           rbs=transpose(rbas)
-          call genrstr(rcf,raa,rbs,np)
+          call genrstr(icutoff,rcf,raa,rbs,np)
 
           !! Initialize the temporal storage of the lattice sums
           stmp1=czero
@@ -141,7 +142,7 @@
 
           !! calculate the vectors for the sum in reciprocal space
           qtemp(1:3)=-1.0d0*qvec(1:3)
-          call genrstr(gcf,qtemp,br2,ng)
+          call genrstr(icutoff,gcf,qtemp,br2,ng)
 
           !! Calculate the reciprocal lattice sum
           pref=4.0d0*pi*dsqrt(pi)*vi
@@ -208,4 +209,4 @@
      &         21x,'reciprocal sum')
    11 format(4(i3,1x),e16.8,e16.8,1x,e16.8,e16.8,1x,e16.8,e16.8)
       return
-      end subroutine coul_strcnst
+      end subroutine coul_strcnst_cutoff

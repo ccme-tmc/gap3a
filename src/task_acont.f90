@@ -156,6 +156,7 @@
      &  "Re\Sigma'","Im\Sigma'"
 
         do iom=1,nomeg
+          !ein=cmplx(0.d0,sign(omega(iom),enk))
           ein=cmplx(0.d0,sign(omega(iom),enk),8)
           call getsac(iop_ac,nomeg,npar_ac,enk,ein,omega,a,sig,dsig)
           if(enk.le.0.d0) sig=conjg(sig)
@@ -170,6 +171,7 @@
 
         do iom=0,nwout
           omg=wzero+(iom-nwout/2)*(lwout/nwout)
+          !ein=cmplx(omg,0.d0) 
           ein=cmplx(omg,0.d0,8) 
           call getsac(iop_ac,nomeg,npar_ac,enk,ein,omega,a,sig,dsig)
 !          sig=sig +sigx(ie,irk,isp)   !-vxc(ie,irk,isp)

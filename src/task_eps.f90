@@ -13,7 +13,8 @@
       use bands,       only: nbandsgw,nspin,bande,ibgw,nbgw,eqp,bande0, &
      &                       numin,nomax,nbmax,nbmaxpol,eferqp,efermi,metallic
       use barcoul,     only: init_barcoul,end_barcoul,barcevtol,        &
-     &                       end_barcev,iop_coul_x,iop_coul_c
+     &                       end_barcev,iop_coul_x,iop_coul_c, &
+     &                       lcutoff_in_coul_barc
       use dielmat,     only: init_dielmat,end_dielmat,eps,epsw1,epsw2,head
       use freq,        only: nomeg,nomeg_blk
       use kpoints,     only: nkp,nqp,nirkp
@@ -88,7 +89,13 @@
           call init_mixbasis(iq)
           call init_barcoul(iq)
 
-          call coul_barc(iq, iop_coul_c)           !! bare Coulomb matrix 
+          !! bare Coulomb matrix 
+          if (lcutoff_in_coul_barc) then
+            call coul_barc_cutoff(iq, iop_coul_c)
+          else
+            call coul_barc(iq)
+          endif
+
           call coul_setev(iq,barcevtol,iop_coul_c)
 
           call init_dielmat(iq,iom_f,iom_l)  !! initialize

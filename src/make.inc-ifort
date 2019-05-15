@@ -22,6 +22,11 @@ LAPACK = -L$(MKLROOT)/lib/intel64 -lmkl_intel_lp64 -lmkl_core -lmkl_sequential -
  else
    FFLAGS = -r8  $(FPP) $(OOPTS) # -convert big_endian
  endif
+
+ ifeq ($(profile),yes)
+   FFLAGS = $(FFLAGS) -p
+ endif
+ 
  
  MPIFC=mpiifort
  MPITAG = mpi

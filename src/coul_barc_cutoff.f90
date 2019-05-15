@@ -3,7 +3,7 @@
 ! !ROUTINE: coul_barc
 !
 ! !INTERFACE:
-      subroutine coul_barc(iq)
+      subroutine coul_barc_cutoff(iq, icutoff)
 
 ! !DESCRIPTION:
 !
@@ -23,6 +23,7 @@
       implicit none
 
       integer, intent(in) :: iq  ! index of the q-point
+      integer, intent(in) :: icutoff ! the cut-off option. See barcoul
 
 !
 ! !LOCAL VARIABLES:
@@ -34,7 +35,7 @@
 !! debug 
       integer :: ierr 
       logical :: lprt =.false.
-      character(len=20)::sname='coul_barc'
+      character(len=20)::sname='coul_barc_cutoff'
       real(8) :: tstart,tend        !! variables related to cputime
   
  
@@ -58,7 +59,7 @@
 !EOP
 !BOC
       call cpu_time(tstart)
-      if(lprt) call linmsg(6,'-','coul_barc')
+      if(lprt) call linmsg(6,'-','coul_barc_cutoff')
 !
 !     calculates the matrix between PW's and orthogonalized IPW's. 
 !
@@ -68,9 +69,9 @@
 !     calculate bare coulomb potential matrix via plane waves expansion 
 !
       if(iop_coulvm.eq.1) then 
-        call coul_setvm1(0,iq)
+        call coul_setvm1_cutoff(0,iq, icutoff)
       else
-        call coul_setvm0(iq) 
+        call coul_setvm0_cutoff(iq, icutoff) 
       endif 
 
       if(lprt) then 
@@ -121,4 +122,5 @@
 #endif
       call cpu_time(tend)
       time_coul = time_coul + tend - tstart
-      end subroutine  
+
+      end subroutine coul_barc_cutoff

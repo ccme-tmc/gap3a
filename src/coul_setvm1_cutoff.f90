@@ -3,7 +3,7 @@
 ! !ROUTINE: coul_setvm1
 !
 ! !INTERFACE:
-      subroutine coul_setvm1(iop,iq)
+      subroutine coul_setvm1_cutoff(iop,iq,icutoff)
       
 ! !DESCRIPTION:
 !
@@ -27,6 +27,7 @@
       integer, intent(in):: iop ! 0 -- calculate v matrix 
                                 ! 1 -- calculate v^{1/2} matrix 
       integer, intent(in) :: iq ! index of the q-point
+      integer, intent(in) :: icutoff ! the cut-off option. See barcoul
 
 !
 ! !LOCAL VARIABLES:
@@ -37,6 +38,10 @@
       real(8) :: ev,qgl,ks_tf2
       real(8) :: pow
       complex(8), allocatable :: tmat(:,:)
+
+! ! Debugging
+      logical :: lprt =.true.
+      character(len=20)::sname='coul_setvm1_cutoff'
       
 ! !EXTERNAL ROUTINES: 
  
@@ -95,7 +100,7 @@
       deallocate(tmat,mpwmix)
       
       
-      end subroutine coul_setvm1
+      end subroutine coul_setvm1_cutoff
 !EOC            
      
                

@@ -31,6 +31,10 @@
       ! TODO check the usage of im_g0 with Prof. Jiang
       integer :: im_g0 = 1                ! the index for the basis function corresponding to G=0
 
+      ! Experimental switch
+      logical :: lcutoff_in_coul_barc = .False. ! truncate the Coulomb interaction
+      ! this switch must be switched on when testing 1D and 2D Coulomb cutoff scheme
+
       real(8) :: barcevtol=-1.d-10        ! tolenrance to choose basis functions from bare Coulomb matrix eigenvectors 
       real(8) :: barcevtol2=0.001d0       ! barc eigenvectors that whose overlap with the G=0 plane wave   
                                           ! is larger than this value is kept for new basis set (used for iopmbq0 == 2 )
@@ -52,7 +56,7 @@
       real(8),allocatable:: ev(:)               ! full set of the eigenvalues of barcoul matrix
       complex(8), allocatable:: vmat(:,:)       ! full set of eigenvectors of barcoul matrix 
 
-!!    parameters related to structure constant (\Sigma
+!!    parameters related to structure constant (\Sigma)
       real(8) :: eta
       real(8) :: rcf                      ! cutoff for the real space summation
       real(8) :: gcf                      ! cutoff for the reciprocal space summation
@@ -66,6 +70,11 @@
       interface gammaincc
         module procedure gammaincc_int
         module procedure gammaincc_hin
+      end interface
+
+      interface genrstr
+        module procedure genrstr_no_cut
+        module procedure genrstr_cutoff
       end interface
 
       contains
@@ -149,16 +158,16 @@
           bcut_coul = 1.0D10
         else
           ! 1D and 2D cut-off
-          iz = mod(axis_cut_coul+2,3)
-          ia = mod(iz+1,3)
-          ib = mod(iz+2,3)
+          iz = mod(axis_cut_coul+2, 3)
+          ia = mod(iz+1, 3)
+          ib = mod(iz+2, 3)
           zcut_coul = alat(iz+1)/2.0D0
           acut_coul = alat(ia+1)/2.0D0
           bcut_coul = alat(ib+1)/2.0D0
         end if
       end subroutine set_coul_cutoff
 
-      subroutine genrstr(iop,rmax,rshift,rbs,nr)
+      subroutine genrstr_cutoff(iop,rmax,rshift,rbs,nr)
 ! Generates the indexes of the lattice vectors to be included in the
 !calculation of the structure constants, under the condition:
 !
@@ -243,7 +252,83 @@
         enddo
         gap=gap/2
       enddo
-      end subroutine genrstr
+      end subroutine genrstr_cutoff
+      
+      subroutine genrstr_no_cut(rmax,rshift,rbs,nr)
+! Generates the indexes of the lattice vectors to be included in the
+!calculation of the structure constants, under the condition:
+!
+!\begin{equation}
+!|\vec{R}+\vec{r}_{aa'}|\le R_{cutoff}
+!\end{equation}
+      implicit none
+      real(8), intent(in) :: rmax ! Maximum radius
+      real(8), intent(in) :: rshift(3) ! Shift of the origin
+      real(8), intent(in) :: rbs(3,3) ! Bravais lattice basis
+      
+      integer(4), intent(out) :: nr  !number of vectors
+      
+      integer(4) :: i,ir,rdim,i1,i2,i3,gap,imax
+      
+      real(8) :: lrmin              ! minimum length of the basis vectors.
+      real(8) :: rleng
+      
+      real(8), dimension(3) :: r     ! vector belonging to the real space lattice
+      real(8), dimension(3) :: lrbs ! length of the basis vectors
+      real(8), dimension(3) :: rps
+      real(8), dimension(4) :: rtmp
+      logical :: done
+      
+      do i=1,3
+        lrbs(i)=sqrt(sum(rbs(:,i)**2))
+      enddo
+
+      lrmin=minval(lrbs)
+      imax=idint(rmax/lrmin)+1
+      rdim=(2*imax+1)*(2*imax+1)*(2*imax+1)
+     
+      if(allocated(rstr)) deallocate(rstr) 
+      allocate(rstr(4,rdim))
+      
+      ir=0
+      do i1=-imax,imax
+        do i2=-imax,imax
+          do i3=-imax,imax
+            do i=1,3
+              r(i) = dble(i1)*rbs(i,1)+dble(i2)*rbs(i,2)+               &
+     &             dble(i3)*rbs(i,3)
+            enddo
+            rps=r+rshift
+            rleng=sqrt(sum(rps*rps))
+
+            if((rleng.le.rmax).and.(rleng.gt.1.0d-6))then
+              ir=ir+1
+              rstr(1:3,ir)=rps(1:3)
+              rstr(4,ir)=rleng 
+            endif
+          enddo  
+        enddo      
+      enddo
+      nr=ir
+
+      !!sort by increasing length using shell algorithm
+      gap=nr/2
+      do while(gap.ge.1)
+        done=.false.
+        do while(.not.done)
+          done=.true.
+          do i=1,nr-gap
+            if(rstr(4,i).gt.rstr(4,i+gap))then
+              rtmp(1:4)=rstr(1:4,i)
+              rstr(1:4,i)=rstr(1:4,i+gap)
+              rstr(1:4,i+gap)=rtmp(1:4)
+              done=.false.
+            endif
+          enddo
+        enddo
+        gap=gap/2
+      enddo
+      end subroutine genrstr_no_cut
 
       function calceta() result(neta)
 ! This function calculates the optimal value of $\eta $ for the lattice
@@ -432,9 +517,9 @@
 !     Calculates the incomplete gamma function of halfinteger order
 !
       real(8), external :: derfc
-      real(8) :: pi
+      !real(8) :: pi
       if(in.eq.0)then
-        pi = 4.0d0*datan(1.0d0)
+        !pi = 4.0d0*datan(1.0d0)
         gmh=dsqrt(pi)*derfc(sqx)
       else
         gmh = (x**(in-1))*sqx*etx+(n-1.0d0)*&
@@ -557,7 +642,7 @@
       real(8) :: combjpm    ! value of (l1+l2+m1+m2)!/(l1+m1)!(l2+m2)!
       real(8) :: combjmm    ! value of (l1+l2-m1-m2)!/(l1-m1)!(l2-m2)!
       real(8) :: denom
-      real(8), parameter :: pi = 3.1415926536d0
+      !real(8), parameter :: pi = 3.1415926536d0
 
 ! !EXTERNAL ROUTINES:
       real(8), external :: factr
