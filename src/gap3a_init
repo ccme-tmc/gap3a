@@ -280,15 +280,23 @@ end
   # TODO: 
   #   - hybrid functional startpoint is not considered here for ACFD!!!
   if($task == 'acfd') then
+    # get EXC from lapw0
     if(`awk ' NR == 1 {print $1}' $file.in0` != "KXC") then
       mv $file.in0 $file.in0.tmp
       AWK '{kxc="KXC  ";if(NR == 1){print kxc $2}else{print $0}}' $file.in0.tmp > $file.in0
       exec lapw0
     endif
+    set w2k_e_xc = `AWK '/:EXC/ { print $6 }' $file.output0`
+    # get ETOT from mixer, using the new charge only
+    mv $file.inm $file.inm.tmp
+    AWK '{ if(NR == 2 ){printf "%5.2f\n",1.0} else{print $0} }' $file.inm.tmp >>& $file.inm
+    rm -f $file.inm.tmp
+    rm -f $file.broyd*
+    rm -f $file.clmsum_old 
+    exec mixer
 	print 
     print '--- Collect WIEN2k EXC and ENE for ACFD ---'
 	print 
-    set w2k_e_xc = `AWK '/:EXC/ { print $6 }' $file.output0`
     set w2k_e_tot = `AWK '/:ENE/ { print $9 }' $file.outputm`
 	print "Extracted  EXC from $file.output0 : $w2k_e_xc (in Ry!)"
     print "Extracted ETOT from $file.outputm : $w2k_e_tot (in Ry!)"
@@ -361,6 +369,7 @@ r2v:
   rm -f $file.clmsum_old 
   exec mixer
 
+  # back up the all-electron potential before computing frozen-core energies
   print "   - make a copy of original potential files"
   switch($sp)
   case 0:
@@ -375,6 +384,25 @@ r2v:
     cp -f $file.vnsdn $file.vnsdn.bak
     breaksw
   endsw
+
+  # In frozen-core calculation of ACFD, the total and exchange-correlation energies
+  # are extracted from lapw0 and mixer calculation without density of frozen-core states
+  if(($?frozen_core) && ($task == 'acfd')) then
+    # mixer already calculated above
+    print "   - frozen core used, recollect EXC"
+    #set w2k_e_tot = `AWK '/:ENE/ { print $9 }' $file.outputm`
+    mv $file.in0 $file.in0.tmp
+    AWK '{kxc="KXC  ";if(NR == 1){print kxc $2}else{print $0}}' $file.in0.tmp > $file.in0
+    print "   - run lapw0"
+    exec lapw0
+    set w2k_e_xc = `AWK '/:EXC/ { print $6 }' $file.output0`
+    # print in log
+    print "     Extracted frozen-core EXC from $file.output0 : $w2k_e_xc (in Ry!)"
+    echo "#EXC ENE (Ry)" > $file.exc
+    echo "$w2k_e_xc" >> $file.exc
+    echo "$w2k_e_tot" >> $file.exc
+    print 
+  endif
 
   print "   - Recover original potential files"
   switch($sp)

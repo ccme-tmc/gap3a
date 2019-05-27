@@ -111,6 +111,8 @@
             read(fin,*) qn_n,qn_kappa,occ
             occ_inc(iorb,iat) = occ
             if(lprt) write(6,103) qn_n,qn_kappa,occ_inc(iorb,iat) 
+            ! for OCCUP < 0.01, treat as frozen-core state
+            ! dispose it from core
             if(occ.lt.1.e-2) ncore(iat) = ncore(iat) - 1
           end do 
           if(lprt) write(6,101) iat,ncore(iat)
@@ -166,8 +168,10 @@
         enddo
       endif 
  200  format(/20x,a10,11x,i2,12x)              
- 202  format(1x,i1,a2,5x,a3,8x,f20.6) 
- 204  format(9x,a3,8x,f20.6) 
+! 202  format(1x,i1,a2,5x,a3,8x,f20.6) 
+ 202  format(1x,i1,a2,5x,a3,8x,f21.9) 
+! 204  format(9x,a3,8x,f20.6) 
+ 204  format(9x,a3,8x,f21.9) 
 
 !
 ! setup nclm and lcoremax
