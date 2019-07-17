@@ -1,8 +1,16 @@
 # object files
 src/*.o
+src/*.a
+src/*.x
+src/seq
+src/para
 src/*.mod
 src/*genmod*
+src/src_kgen/kgen
 src/src_*/*.o
+src/src_*/*.x
+src/src_modules/.seq
+src/src_modules/.para
 src/src_*/*.mod
 src/src_*/*genmod*
 

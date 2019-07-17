@@ -8,7 +8,7 @@ To compile and use GAP, you need the following facilities installed on your work
 
 * GNU ``make``
 * libtools such as ``ar``, ``ranlib`` etc.
-* GNU Bison and a C compiler and for compiling the ``libparser`` utility.
+* GNU Bison and a C compiler for compiling the parser library ``libparser``.
 * a Fortran compiler for the main program.
 * an MPI fortran compiler to compile the MPI version of the program.
 * LAPACK and BLAS libraries, compiled with the same Fortran compiler.
@@ -16,10 +16,10 @@ To compile and use GAP, you need the following facilities installed on your work
 Additionally, Python (>=2.7 or >=3.6) are necessary to use the scripts for band analysis.
 
 
-Compilation
+Installation
 -----------
 
-To compile GAP
+To install GAP, the following steps should be followed.
 
 1. Modify "make.inc" to specify the prerequisites according to the target system
    
@@ -46,8 +46,8 @@ To compile GAP
    By default, the excutables for the sequential and parallel version are ``gap{ver}.x`` and ``gap{ver}-mpi.x``, respectively.
    ``ver`` is the version number, e.g. 2c, 3a.
 
-4. Modify the alias ``AWK`` in ``init_gap<ver>`` if necessary (as on SunOS) 
+4. Modify the alias ``AWK`` in ``gap<ver>_init`` if necessary (as on SunOS) 
 
    In some systems like SunOS, ``awk`` does not support ``-v < variable = value >`` but ``nawk`` does. 
-   In that case, one should change alias for ``awk`` in ``init_gwx``
+   In that case, one should change alias for ``nawk`` in ``gap<ver>_init``
 

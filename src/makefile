@@ -34,15 +34,18 @@
 #
 include ./make.inc
 
-version = 2e
-PACKNAME = gap$(version)
-S_EXECNAME = gap$(version).x
-P_EXECNAME = gap$(version)-mpi.x  
+ver = 3a
+PACKNAME = gap$(ver)
+S_EXECNAME = gap$(ver).x
+P_EXECNAME = gap$(ver)-mpi.x  
 DESTDIR = .
 S_EXEC = $(DESTDIR)/$(S_EXECNAME)
 P_EXEC = $(DESTDIR)/$(P_EXECNAME)
 
-SCRIPTS = gap${version}_init gap2_analy gap2_bandanaly gap2_gwnvf gap2_initwann gap2_kgen gap2_newin1 gap2_save gap2_utils.py gap2_w2kset gap2_w2w gap2_scaninp 
+SCRIPTS = gap${ver}_init gap${ver}_analy gap${ver}_bandanaly \
+		  gap${ver}_gwnvf gap${ver}_initwann gap${ver}_kgen \
+		  gap${ver}_w2kset gap${ver}_w2w gap${ver}_scaninp \
+		  gap${ver}_newin1 gap${ver}_save gap_utils.py
 
 BZDIR= ./src_libbzint
 LIBBZ = ./libbzint.a

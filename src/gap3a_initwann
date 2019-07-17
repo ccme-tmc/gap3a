@@ -1,0 +1,254 @@
+#!/usr/bin/env python
+"""initwann: a Python script to prepare input files to generate Wannier projectors
+
+Usage: initwann [options]
+
+  options: 
+    -b               # batch mode 
+    -D               # set the debug mode
+    -f <case_name>   # case name 
+    -h               # print out this information 
+    -r <bot top>     # indicate the range of KS bands used to generate WFs 
+    -so              # for cases with spin-orbit coupling 
+    -p <proj_info>   # indicate the site and the orbital-type in the form "atom1:orb1[[,orb2...];atom2:orb2]"
+                       orb can be the following 
+                       "s/p/d/f" -- d/f orbital in the cubic spherical harmonic 
+                       "ds/fs" -- d/f orbitals in the sphericalharmonics representatioin
+                       "dt2g"   -- the t2g manifold of the d orbitals  
+                       'deg"    -- the eg manifold of the d-orbitals
+    -w <wf_method>     # indicate which code is used
+                        1 -- use dmftproj 
+                        2 -- use MLWF obtained by wannier90+wien2wannier 
+"""
+from __future__ import print_function
+#import sys
+import os
+#import shutil
+#import commands
+from gap_utils import f_Getopt, f_Get_Atoms, \
+                      f_Check_Complex, f_Check_Name, f_Get_Natom, \
+                      f_Get_Mult, f_Get_iat, f_Read_Efer, write_orb_inwf
+
+editor = 'vi ' 
+#myname_full = sys.argv[0]
+#myname = os.path.basename(myname_full)
+
+#pylint:disable=bad-whitespace
+def initwann():
+    if f_Getopt('-h', 0, False):
+        print(__doc__)
+        return
+    
+    debug     = f_Getopt('-D',   0, True  ) 
+    batch_mode= f_Getopt('-b',   0, False ) 
+    case_name = f_Getopt('-f',   1, ''    )
+    proj_info = f_Getopt('-p',   1, 'd'  )
+    wf_method = f_Getopt('-w',   1, 1     )
+    l_withSO  = f_Getopt('-so',  0, False ) 
+    
+    if wf_method == 1 :
+        range_wf = f_Getopt('-r', 2,[0.0,0.0])
+    else:
+        range_wf = f_Getopt('-r', 2,[0,0]) 
+    
+    case_name = f_Check_Name(case_name)
+    cmplx     = f_Check_Complex(case_name)
+    nat       = f_Get_Natom(case_name) 
+    mult      = f_Get_Mult(case_name) 
+    atoms     = f_Get_Atoms(case_name) 
+    efer      = f_Read_Efer(case_name) 
+    ljmax = 3
+    
+    print("atoms=", atoms)
+    print("mult= ", mult)
+    
+    # extract the information on the projections 
+    
+    proj_info_s = proj_info.split(';') 
+    n_sites = len(proj_info_s)   # get the number of sites 
+    print("The number of sites with WFs:",n_sites)
+    
+    proj=[]
+    for i in range(nat):
+        proj.append( 'null') 
+    
+    nwann=0
+    iat_wann=[]
+    
+    for i in range(n_sites):
+        tmp = proj_info_s[i].split(':') 
+        atm = tmp[0]
+        typ = tmp[1] 
+    
+        iat = f_Get_iat(atoms,atm) 
+        if iat == 0:
+            raise ValueError("fail to find the target atom", atm)
+    
+        proj[iat-1] = typ
+    
+        iat_wann.append(iat)
+    
+        mlt = mult[iat-1] 
+        print("%4d %4s %4s %4d"%(iat,atm,typ,mlt))
+
+        typ_dict = {
+            's': 1, 'p': 3, 'ps': 3,
+            'd': 5, 'ds': 5, 
+            'f': 7, 'fs': 7,
+            'dt2g': 3, 'sdeg': 3, 'deg': 2,
+            'sp3': 4, 'sp1': 2, 'sp2': 3, 'sp': 4,
+            'spd': 9, 'spdf': 16,
+            }
+        mlt_wf = typ_dict.get(typ, None)
+        if mlt_wf is None:
+            raise ValueError("unsupported value for typ=%s !!!" % typ)
+        #if typ == 's' :
+        #  mlt_wf = 1
+        #elif typ == 'p' or typ == 'ps':
+        #  mlt_wf = 3
+        #elif typ == 'd' or typ == 'ds':
+        #  mlt_wf = 5
+        #elif typ == 'f' or typ == 'fs':
+        #  mlt_wf = 7
+        #elif typ == 'dt2g':
+        #  mlt_wf = 3
+        #elif typ == 'sdeg':
+        #  mlt_wf = 3
+        #elif typ == 'deg':
+        #  mlt_wf = 2
+        #elif typ == 'sp3':
+        #  mlt_wf = 4 
+        #elif typ == 'sp1':
+        #  mlt_wf = 2
+        #elif typ == 'sp2':
+        #  mlt_wf = 3 
+        #elif typ == 'sp':
+        #  mlt_wf = 4
+        #elif typ == 'spd':
+        #  mlt_wf = 9 
+        #elif typ == 'spdf':
+        #  mlt_wf = 16
+        #else:
+        #  print "ERROR: unsupported value for typ=%s !!!"%(typ)
+        #  sys.exit(1)
+        nwann += mlt_wf*mlt 
+    
+    print("nwann=",nwann)
+    
+    print("iat_wann=", iat_wann)
+    print("proj=", proj)
+    
+    if wf_method==1:
+        ofile = open(case_name.strip()+".indmftpr",'w')
+    
+        ofile.write("%4d \t\t ! Nsort\n"%(nat))
+    
+        info=''
+        for iat in range(nat):
+            info += "%2d "%(mult[iat])
+        ofile.write(info+"! Mult(Nsort)\n")
+    
+        ofile.write("%4d\t\t ! lmax\n"%(3))
+
+        proj_strs_dict = {
+            'null': ('complex', '1 1 1 0', '0 0 0 0'),
+            's':    ('cubic',   '2 1 1 0', '0 0 0 0'),
+            'p':    ('cubic',   '1 2 1 0', '0 0 0 0'),
+            'ps':   ('cubic',   '1 2 1 0', '0 0 0 0'),
+            'd':    ('cubic',   '1 2 1 0', '0 0 0 0'),
+            'ds':   ('complex', '1 1 2 0', '0 0 0 0'),
+            'deg':  ('cubic',   '1 1 2 0', '0 0 2 0'),
+            'dt2g': ('cubic',   '1 1 2 0', '0 0 2 0'),
+            'sdeg': ('cubic',   '2 1 2 0', '0 0 2 0'),
+            'f':    ('cubic',   '1 1 1 2', '0 0 0 0'),
+            'fs':   ('complex', '1 1 1 2', '0 0 0 0'),
+            }
+        proj_comments = (
+            '! choice of angular harmonics : complex or cubic',
+            '! l included for each sort',
+            '! If split into ireps, gives nb ireps. for orbital (otherw 0)'
+            )
+    
+        for i in range(nat):
+            typ = proj[i]
+
+            proj_strs = proj_strs_dict.get(typ, None)
+            if proj_strs is None:
+                raise ValueError("unsupported orbital type", typ)
+            for j, s in enumerate(proj_strs):
+                print("%-17s%s" % (s, proj_comments[j]), file=ofile)
+            if typ in ['sdeg', 'deg']:
+                ofile.write("10               ! eg(0)-t2g(1)\n")
+            elif typ == 'dt2g':
+                ofile.write("01               ! eg(0)-t2g(1)\n")
+
+            if not l_withSO:  
+                ofile.write("0                ! no SO\n")
+            else:
+                ofile.write("1                ! no SO\n")
+      # end of the loop for iat
+        ofile.write("%-6.3f %-6.3f .false.  ! Energy window (in eV) w.r.t. E_Fermi, l_wholeband\n"%(range_wf[0],range_wf[1]))
+        ofile.write("%-12.6f      ! Fermi energy\n"%(efer))        
+        ofile.close()
+        if not batch_mode:
+            os.system(editor + case_name.strip()+".indmftpr" ) 
+    
+    elif wf_method == 2:
+        ofile = open(case_name.strip()+".inwf", 'w')
+        ofile.write("BOTH\n")
+        ofile.write("%4d%4d # min band Nmin, max band Nmax\n"%(range_wf[0],range_wf[1]))
+    
+        ofile.write("%3d%3d # LJMAX max in exp(ibr) expansion, #Wannier functions\n"%(ljmax,nwann))
+    
+        iat_all=0
+        for i in range(nat):
+            typ = proj[i]
+            atm = atoms[i] 
+            if typ == 'null':
+                iat_all = iat_all + mult[i]
+            else:   
+                for _j in range(mult[i]):
+                    iat_all += 1 
+                    if typ == 's':
+                        write_orb_inwf(ofile, 0, iat_all, atm, 's')
+                    elif typ == 'p':
+                        write_orb_inwf(ofile, 1, iat_all, atm, 'p')
+                    elif typ == 'd' :
+                        write_orb_inwf(ofile, 2, iat_all, atm, 'd')
+                    elif typ == 'deg':
+                        write_orb_inwf(ofile, 2, iat_all, atm, 'deg')
+                    elif typ == 'dt2g':
+                        write_orb_inwf(ofile, 2, iat_all, atm, 'dt2g')
+                    elif typ == 'sdeg':
+                        write_orb_inwf(ofile, 0, iat_all, atm, 's')  
+                        write_orb_inwf(ofile, 2, iat_all, atm, 'deg')
+                    elif typ == 'f':
+                        write_orb_inwf(ofile, 3, iat_all, atm, 'f')
+                    elif typ == 'sp':
+                        write_orb_inwf(ofile, 0, iat_all, atm, 's')
+                        write_orb_inwf(ofile, 1, iat_all, atm, 'p')
+                    elif typ == 'spd':
+                        write_orb_inwf(ofile, 0, iat_all, atm, 's')
+                        write_orb_inwf(ofile, 1, iat_all, atm, 'p')
+                        write_orb_inwf(ofile, 2, iat_all, atm, 'd')
+                    elif typ == 'spdf':
+                        write_orb_inwf(ofile, 0, iat_all, atm, 's')
+                        write_orb_inwf(ofile, 1, iat_all, atm, 'p')
+                        write_orb_inwf(ofile, 2, iat_all, atm, 'd')
+                        write_orb_inwf(ofile, 3, iat_all, atm, 'f')
+                    elif typ == 'sp3':
+                        write_orb_inwf(ofile, -3, iat_all, atm)
+    
+                    else:
+                        ofile.close()
+                        raise ValueError("unsupported orbital type!", typ)
+                
+            # end of loop over mult
+           
+        ofile.close()
+        if not batch_mode:
+            os.system(editor + case_name.strip() + ".inwf" ) 
+
+
+if __name__ == "__main__":
+    initwann()   
