@@ -113,12 +113,12 @@
       call errmsg(ierr.ne.0,sname,'Fail to diag. barc by zheev')
       deallocate(work,rwork)
 
-#ifdef DEBUG
-       write(fid_outdbg,*) "### barc eigenvalues ###"
+!#ifdef DEBUG
+       write(fid_outdbg,*) "### barc eigenvalues ### ", mbsiz
        do im=1,mbsiz
          write(fid_outdbg,'(i5,e16.6)') im,ev(im)
        enddo
-#endif
+!#endif
       call cpu_time(tend)
       time_coul = time_coul + tend - tstart
       end subroutine  

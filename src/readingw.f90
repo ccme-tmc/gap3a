@@ -288,8 +288,8 @@
 !
       call loct_parse_float("eminpol",-1.0D10,eminpol) 
       call loct_parse_float("emaxpol",-1.0D10,emaxpol) 
-      call loct_parse_float("emaxsc", -1.0D10,emaxsc) 
       call loct_parse_float("eminsc", -1.0D10,eminsc) 
+      call loct_parse_float("emaxsc", -1.0D10,emaxsc) 
       eminpol = eminpol * 0.5D0
       emaxpol = emaxpol * 0.5d0  !! convert to unit of Ha. 
       emaxsc  = emaxsc  * 0.5d0  !! convert to unit of Ha. 

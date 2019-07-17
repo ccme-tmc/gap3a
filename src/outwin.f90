@@ -121,6 +121,9 @@
       df1 = d(2,1)
       df2 = d(2,2)
       df3 = d(2,3)
+      !write(*, *) dh
+      !write(*, *) d
+      write(*, *) v(1:5)
       do  4  k = 4, jri
         r = rnet(k)
         drdi = dh*r

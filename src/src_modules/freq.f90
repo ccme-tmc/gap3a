@@ -36,7 +36,7 @@
 !!
 !! subroutine for the following frequency convolution 
 !!            S(i\omega; \epsilon ) 
-!!             = 1/\pi \int_0^\infity \frac{ \epsilon - i \omega ) W(i\omega')} 
+!!             = 1/\pi \int_0^\infity \frac{ (\epsilon - i \omega ) W(i\omega')} 
 !!                  { (\epsilon - i \omega)^2 + \omega'^2} d\omega'
 !!    
         implicit none
