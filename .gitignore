@@ -1,3 +1,12 @@
-*.o
-src_*/*.o
-src_*/*.mod
+# object files
+src/*.o
+src/*.mod
+src/*genmod*
+src/src_*/*.o
+src/src_*/*.mod
+src/src_*/*genmod*
+
+# documentation
+doc/build/
+doc/make.bat
+bin
