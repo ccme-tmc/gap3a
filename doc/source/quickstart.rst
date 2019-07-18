@@ -1,9 +1,12 @@
+===========
 Quick Start
 ===========
 
+--------------
 GW Calculation
 --------------
 
+^^^^^^^^^^^^^^
 Basic Workflow
 ^^^^^^^^^^^^^^
 
@@ -47,7 +50,7 @@ The basic workflow for the GW calculation is as follows.
 
 5. To restart a GW calculation, set in the "gw.inp"
 
-   .. code-block::
+   .. code-block:: 
 
       Restart = T
 

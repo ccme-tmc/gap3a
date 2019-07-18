@@ -17,7 +17,7 @@ Fortran
 
    * Extra indentation of *2* columns should be added inside each loop level.
    * For non-procedure, continued lines should indent with double the number of spaces that each block is indented.
-   * For procedures, indentation should take place at 2 columns before the left parentheses, followed by ``& `` and then continued parameters.
+   * For procedures, indentation should take place at 2 columns before the left parentheses, followed by ``&`` and then continued parameters.
 
 #. Variables:
 

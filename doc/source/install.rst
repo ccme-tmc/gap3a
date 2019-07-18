@@ -1,6 +1,8 @@
-Installing GAP
-==============
+============
+Installation
+============
 
+-------------
 Prerequisites
 -------------
 
@@ -16,8 +18,9 @@ To compile and use GAP, you need the following facilities installed on your work
 Additionally, Python (>=2.7 or >=3.6) are necessary to use the scripts for band analysis.
 
 
-Installation
------------
+----------
+Installing
+----------
 
 To install GAP, the following steps should be followed.
 
