@@ -11,15 +11,15 @@ set bindir=$fullname:h
 set name=$fullname:t
 set gwinp="gw.inp"
 setenv SCRATCH '.'
-
-set gap_prefix=gap2
+set version=3a
 
 alias AWK gawk
-alias KGEN $bindir/${gap_prefix}_kgen
+alias KGEN $bindir/gap${version}_kgen
 alias DMFTPR $bindir/src_dmftproj/dmftproj.x
+alias INITWANN   $bindir/gap${version}_initwann
+alias WIEN2WANN  $bindir/gap${version}_w2w 
+alias W2KSET  $bindir/gap${version}_w2kset
 alias print 'echo  \!:* | tee -a $outfile '
-alias INITWANN   $bindir/gap2_initwann
-alias WIEN2WANN  $bindir/gap2_w2w 
 
 alias   teststatus      'if ($error) goto recover'
 alias   exec   '(x_lapw  -f $file \!:*) ; set error=$status ; teststatus ' 
@@ -768,7 +768,7 @@ EOF
 # In more recent versions of wien2k, core wave functions are not written to files by default, so it is necessary to 
 # run x lcore to creat case.corewf 
 #
- gap2_w2kset -o inc -f $file 
+ W2KSET -o inc -f $file 
 
  switch($sp)
  case 0: 

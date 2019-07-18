@@ -1,7 +1,7 @@
 Quick Start
 ===========
 
-GW calculation
+GW Calculation
 --------------
 
 Basic Workflow

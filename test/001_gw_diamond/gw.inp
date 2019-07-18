@@ -1,0 +1,92 @@
+#Initialization options: gap3a_init -nkp 8
+#WIEN2k version used: /home/stevezhang/wien2k/v14.2
+
+Task    = 'gw'
+%gw
+  0 | 0                       # iop_sxc | iop_vxc 
+%
+
+%gwsc 
+ 0  | 2   # iop_sxc | iop_sc 
+ 0  | 1  | 0.5 | 0      # iop_sxc_sc | iop_dvh | beta_sc | iop_restart 
+%
+
+%gw2wann
+  0     |  |  1    |  0   # iop_sxc   | iop_wf  | isym_kbz |  iop_hgw
+  1000  |  40.0  |   0              # nomg_mats |  beta_mats (in 1/eV) |  iop_intpl_mats (0 -- Pade analytic continuation) 
+%
+
+%BZConv                 # BZ convolution options
+ "tetra" | "imfreq"
+%
+
+%FreqGrid                         # Frequency grid parameters
+  3   |  16  | 0.42  |  0.0   |  0       # iop_fgrid | nomeg | omegmax | omegmin | nomeg_blk
+%      
+
+%eps_mask 
+  0  | 0.0    # iop_mask_eps |  wt_mask
+  0  | 0      # noc_excl   | iocc_excl 
+  0  | 0      # nunoc_excl | iunoc_excl
+%
+
+CaseName = "001_gw_diamond"           # case name, used as prefix for input/output files
+dftpkg  = 0                  # indicate which package is used for DFT calculations ( 0 -> wien2k ) 
+Restart = F
+SavDir ="./tmp"              # directory to store temporary data that might be reused 
+                             # once you are sure you are not going to reuse them, you should remove this directory 
+                             # since it may occupy large space especially with large N_k
+
+emingw = -2.0                # emingw and emaxgw ( unit --  Ry. ) are used to control the range of bands 
+emaxgw =  2.0                # for which GW correction are going to be calculated. Only states whose LDA energies 
+                             # falls between E_Fermi+emingw and E_Fermi+emaxgw are calculated 
+
+nspin = 1               # 1 for spin-unpolarized and 2 for spin-polarized calculations 
+ComplexVector = F      # T for for sytems without inversal symmetry 
+UseScratch = 2               # 0 - if not using scratch space in which zzk are all kept in core 
+                             #     and minm is always calculated from scratch. 
+                             # 1 - use the scratch and different vectord files for different processes
+                             # 2 - use the scratch and different processes share the single vectord 
+
+SymVector = T         # whether use symmetrized output from wien2k 
+SaveDilemat = T              # set this as F if you are running out of disk space (but then you can not restart a calculation)
+
+esmear = 0.001               # the smearing parameter (in the unit of Hartree)
+%bzint                       # set the scheme for BZ integration 
+  1  |   1                   # iop_bzint | iop_bzintq 
+%                            #   iop_bzint  -- standard BZ integration(0/1: tetrahedral/smearing) 
+                             #   iop_bzintq -- q-dependent BZ integration weights(0/1:tetrahedon/smearing)
+
+Minm_mblksiz = 48            # block size to split m-index for the calculations of minm 
+
+%SelfEnergy             # option for correlation self-energy 
+  0  |  0   |   0       # <npol> |  <iopes>  |  <iopac> 
+%                       # Number of poles ( valid range: 2.. nomeg/2, or 0 meaning the default for the chozen AC scheme ) 
+                        # iopes: 0/1/2/3 - without or with itereration > 
+                        # iopsac:0/1     - Pade's approximation / multipole fitting 
+
+emaxpol =  1.0E10       # the upper bound for unoccupied states considered in polarizatioin 
+emaxsc  =  1.0E10       # the upper bound for unoccupie states considered in the self-energies
+eminpol = -1.0E10       # the lower bound for deep core states considered in polarization 
+barcevtol = 0.1         # tolerance used to reduce the bare Coulomb matrix eigenvectors as the basis set 
+MB_ludot = F            # whether considering the contribution of udot when setting up the mixed basis
+MB_emin = -1.E10        # only core states with energy above MB_emin are considered when setting up MB basis 
+MB_emax = 20.0          # LO orbitals with energy higher MB_emax are excluded when setting up MB basis 
+
+LOmax = 3          # the LOMAX used in WIEN2k(lapw1,nmr) 
+
+%MixBasis               # Mixed basis parameters
+0.75                    # Q_mb  
+3    |    1.E-4  |  0   # lmbmax  | wftol  | lblmax 
+%
+
+%BareCoul               # Bare Coulomb interaction
+2.0  |  1.E-15
+%
+
+nvel = 8.00                  # the number of valence electrons
+
+%kmesh 
+ 2 | 2 | 2           # the number of k-points along each axis
+ 0 | 0 | 0 | 2  # shift from k=0 (in integer coordidate) and their common division
+%

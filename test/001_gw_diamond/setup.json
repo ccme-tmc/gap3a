@@ -1,0 +1,7 @@
+{
+    "w2k_version": "14.2",
+    "init_lapw": "init_lapw -b -numk 1000 -rkmax 5",
+    "run_lapw": "run_lapw -ec 0.00000001 ",
+    "gap_version": "3a",
+    "gap_init": "-nkp 8 " 
+}

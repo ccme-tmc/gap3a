@@ -15,6 +15,8 @@ GAP - GW with Augmented Planewave
    :caption: Develop
 
    dev/release_notes
+   dev/todos
+   dev/bugs
 
 
 Indices and tables

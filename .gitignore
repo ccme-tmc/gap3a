@@ -2,8 +2,10 @@
 src/*.o
 src/*.a
 src/*.x
-src/seq
-src/para
+src/*.pyc
+src/make.inc
+src/.seq
+src/.para
 src/*.mod
 src/*genmod*
 src/src_kgen/kgen
@@ -14,7 +16,17 @@ src/src_modules/.para
 src/src_*/*.mod
 src/src_*/*genmod*
 
-# documentation
+# documentation build
 doc/build/
 doc/make.bat
-bin
+
+# test-generated files
+test/*/*.outgw*
+test/*/tmp
+test/*/*.eqpeV_GW*
+test/*/*.eqpH_GW*
+test/*/*.emac
+test/*/*.vxcnn
+test/*/*.sxc_nn
+test/*/gw.log
+

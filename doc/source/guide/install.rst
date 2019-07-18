@@ -44,7 +44,7 @@ To install GAP, the following steps should be followed.
       $ make para
 
    By default, the excutables for the sequential and parallel version are ``gap{ver}.x`` and ``gap{ver}-mpi.x``, respectively.
-   ``ver`` is the version number, e.g. 2c, 3a.
+   ``ver`` is the version number, e.g. ``2c``, ``3a``.
 
 4. Modify the alias ``AWK`` in ``gap<ver>_init`` if necessary (as on SunOS) 
 
