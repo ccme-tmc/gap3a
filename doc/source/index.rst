@@ -8,12 +8,6 @@ GAP - GW with Augmented Planewave
    install
    quickstart
    release_notes
+   mod/modules
    dev/devel
 
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
