@@ -11,7 +11,7 @@ Styles
 ^^^^^^
 
 * Strict ANSI Fortran90 should be used. Features marked as obsolescent in F90/95 should be avoided.
-* Whenever possible, *free-form* source format should be used. In this case, code should start from the first column. 
+* Whenever possible, *free-form* source format should be used. In this case, code should start from the **1st** column. 
 * Any code should be written in **lower-case** form.
 * ``use`` statements should include the ``only`` option and the corresponding list of global variables used by the subroutine, unless all the variables in the module are used.
 * Extra indentation of *2* columns should be added inside each loop level.
@@ -19,22 +19,28 @@ Styles
 * The line truncation should take at logical place, and the line continuing should take place such that 
   
   #. Procedures: parameters are aligned right after the left parenthese.
-  #. Assignments: parameters are aligned along the very first variable after ``=``
+  #. Assignments: right values are aligned along the very first value after ``=``
   #. Strings: characters are aligned right after the left quotation mark.
 
 ^^^^^^^^^
 Variables
 ^^^^^^^^^
 
-* Declaration should be of the form ``datatype(N)``. ``double precision`` or ``double complex`` should be avoided.
+* Declaration of double of complex variable should use the form ``datatype(N)``.
+  ``double precision`` or ``double complex`` should be avoided.
 * Global variables should be declared in modules.
-* Use of ``implicit none`` is mandatory.
-* Each variable should be declared separately
+* Subroutine parameters must be declared with ``intent``.
+* Initialize all variables.
+* Each variable should be declared separately.
+* Fortran keywords should not be used as variable names.
+* Use ``constant`` module to define and extract physical constants.
+  Physical constants should never be hardwired into the executable portion of the code.
 
 ^^^^^^^^^^^^^^^^^^
 Writing procedures
 ^^^^^^^^^^^^^^^^^^
 
+* Use of ``implicit none`` is mandatory.
 * **DRY**: avoid redundant or repeated code: check to see if the routine you need already exists before writing a new one.
 * Every function or subroutine, no matter how small, should be in its own file named ``routine.f90``,
   where ``routine`` is the function or subroutine name.
@@ -61,23 +67,28 @@ Inputs and outputs
   
   #. Debugging information
 
-* Output with negative unit will be suppressed
+* Output with negative unit should be suppressed.
+* All I/O statements should appropriately contain the status specifier, ``err``, ``iostat`` and ``end``.
 * Errors should be reported prior to termination with a short desription using the ``outerr`` subroutine.
 
 ^^^^^^^^^^^^^^^^^^^^^
 Profiling and timings
 ^^^^^^^^^^^^^^^^^^^^^
 
+* Timing of each functionality should utilize a variable of derived type ``timer`` and its methods,
+  implemented in ``profiling`` module .
+
 ^^^^^^^^^^^^^^^^^^^^^^^^
 Comments and documenting
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-* Procedures should be sufficiently documented by using the reStructedText markup language.
-  The function, basic logic and the algorithm used within should be described in the header,
+* API should be sufficiently documented in the source by using the reStructedText markup language,
+  in order to utilize the documentation generator Sphinx and Sphinx-fortran extension.
+* The function, basic logic and the algorithm used within should be described in the header,
   i.e. the lines after the declaration of procedure and before the first line of code.
 * Purpose of each variable and each field of derived type should be described in a short comment on the same line.
 * Subroutines should be "plentifully" commented. If you are not sure whether or not to add comment somewhere, **do it**.
-* A tentative template of documentation is followed as
+* A tentative template of documenting subroutine is followed as below
 
   .. code-block:: fortran
 
@@ -91,6 +102,10 @@ Comments and documenting
      !  .. math::
      !
      !     <latex math>
+     !
+     !  See also
+     !
+     !  <References>
      !
      !  Revision history:
      !  
