@@ -123,7 +123,7 @@
       df3 = d(2,3)
       !write(*, *) dh
       !write(*, *) d
-      write(*, *) v(1:5)
+      !write(*, *) v(1:5)
       do  4  k = 4, jri
         r = rnet(k)
         drdi = dh*r

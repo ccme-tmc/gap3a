@@ -29,7 +29,7 @@
      
 ! !LOCAL VARIABLES:
 
-      logical :: ldbg=.true.
+      logical :: ldbg=.false.
       integer(4) :: np ! Number of points for the real space summation
       integer(4) :: ng ! Number of points for the reciprocal  space summation
       integer(4) :: idf  !!  indexes all atoms

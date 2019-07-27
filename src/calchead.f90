@@ -158,9 +158,8 @@
                   time_aniso = time_aniso + time2 - time1
                   termcv(ie2)=ten_rvctrv(3,p_ani_iom_cv(:,:,ie2),q0_eps)
                 else
-                !! two treatments are equivalent with q0_eps=(1,1,1)/\sqrt{3}
-                !! old treatment concerning q -> 0 : averaging over three directions
-     !            termcv(ie2)=(1.d0/(3.0d0*edsq))* &
+     !           !! old treatment concerning q -> 0 : averaging over three directions
+     !             termcv(ie2)=(1.d0/(3.0d0*edsq))* &
      !&                           sum(abs(mmatcv(:,icg,ie2,irk,isp))**2)
                  !! new treatment : choosing a particular direction 
                   pnmkq=sum(mmatcv(1:3,icg,ie2,irk,isp)*q0_eps(1:3))
@@ -224,10 +223,11 @@
                   time_aniso = time_aniso + time2 - time1
                   termvv(ie12)=ten_rvctrv(3,p_ani_iom_vv(:,:,ie12),q0_eps)
                 else
+                !! new treatment : choosing a particular direction 
                   pnmkq=sum(mmatvv(1:3,ie1,ie2,irk,isp)*q0_eps(1:3)) &
      &                * mask_eps(ie2,ie1+ncg_p)
                   termvv(ie12)=abs(pnmkq)**2/edsq
-                !! old 
+     !           !! old 
      !             termvv(ie12) = mask_eps(ie2,ie1+ncg_p)/(3.0d0*edsq) &
      !&             *sum(abs(mmatvv(:,ie1,ie2,irk,isp))**2)
                 endif
@@ -298,8 +298,8 @@
 
       !TODO anisotropy for plasmon contribution
       !! add the plasmon contributions
-      write(fid_outdbg, *) "metallic : ", metallic
-      write(fid_outdbg, *) "iop_drude : ", iop_drude
+      write(fid_outdbg, *) "#metallic : ", metallic
+      write(fid_outdbg, *) "#iop_drude : ", iop_drude
       if(metallic.and.iop_drude.eq.1) then
         write(fid_outgw,*) " Intraband contribution!"
         write(fid_outgw,'(a,f12.4)')" Calc. plasmon freq. (eV):",sqrt(c0_head)*hev

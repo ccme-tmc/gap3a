@@ -152,7 +152,7 @@
         endif
         call calchead(1,nirkp,iom_f,iom_l)
       endif
-        
+      
       ! set the parallelization over k (within the row)
       call mpi_set_range(nproc_row,myrank_row,nktot,1,ik_f,ik_l)
       write(fid_outgw,*) "calceps: myrank_row,ik_f,ik_l =",myrank_row,ik_f,ik_l

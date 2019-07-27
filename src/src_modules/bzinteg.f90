@@ -253,7 +253,7 @@
         enddo ! i1
 
         vol_gamma = 8.0d0*pi**3*vi / dble(product(nkdivs))
-        write(fid_outdbg,*) "qmax", n_ang_grid
+        write(fid_outdbg,*) "#qmax", n_ang_grid
         !! determine q_max_gamma
         do iang=1,n_ang_grid
           q0(1:3)=grid_vec(iang,:)

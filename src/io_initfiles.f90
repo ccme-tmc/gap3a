@@ -119,7 +119,7 @@
       open(fid_outqp, file=trim(save_prefix)//".outqp", action='write')
       open(fid_aniso, file=trim(save_prefix)//".aniso", action='write')
 
-      write(fid_outdbg,"(A20,I3)") "Debug info on proc ", myrank
+      write(fid_outdbg,"(A20,I3)") "#Debug info on proc ", myrank
 
       return
       end subroutine io_initfiles

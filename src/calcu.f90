@@ -86,15 +86,14 @@
 
 #ifndef MPI
 !     debug use - zmy
-      write(*, "(A6,I3,A6,F6.1,A15,F11.8)") &
-     &    "iat = ", iat, "; l = ", fl, "; el(Ha) = ", el
-      write(*, *) "nodes = ", nodes
-      do irp = 1, npt
-        !write(*, "(2ES19.17)") a(irp), b(irp)
-        write(*, *) rnot*exp(dx*(irp-1)), a(irp), b(irp)
-      enddo
+!      write(*, "(A6,I3,A6,F6.1,A15,F11.8)") &
+!     &    "iat = ", iat, "; l = ", fl, "; el(Ha) = ", el
+!      write(*, *) "nodes = ", nodes
+!      do irp = 1, npt
+!        !write(*, "(2ES19.17)") a(irp), b(irp)
+!        write(*, *) rnot*exp(dx*(irp-1)), a(irp), b(irp)
+!      enddo
 
-      stop
 !     debug use - zmy
 #endif
 

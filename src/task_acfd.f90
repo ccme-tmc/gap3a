@@ -108,7 +108,7 @@
 
       do iq=iqfirst,iqlast   !! Loop over q-points.
       !do iq=iqlast,iqfirst,-1   !! Back loop for debug
-
+      !  write(*,*) "iq=",iq
         call init_mixbasis(iq) 
         call init_barcoul(iq)
         !! Calculate the q-dependent integration weights
