@@ -3,7 +3,7 @@
 ! !ROUTINE: coul_setev
 !
 ! !INTERFACE:
-      subroutine coul_setev(iq,evtol,icoul)
+      subroutine coul_setev(iq,evtol,evtol_s,icoul)
 
 ! !DESCRIPTION:
 !
@@ -21,17 +21,20 @@
 ! !INPUT PARAMETERS: 
 
       implicit none
-      integer, intent(in) :: iq    ! index of the q-point
-      real(8), intent(in) :: evtol ! tollerance to screen eigenvalues
-      integer, intent(in) :: icoul ! option to treat Coulomb interaction
+      integer, intent(in) :: iq         ! index of the q-point
+      real(8), intent(in) :: evtol      ! tollerance to screen eigenvalues
+      real(8), intent(in) :: evtol_s    ! soft truncation of Coulomb interaction
+      integer, intent(in) :: icoul      ! option to treat Coulomb interaction
 !
 ! !LOCAL VARIABLES:
 
       integer :: im,jm,iipw,ipw      ! Indexes the mixed wave function for the columns of barc (barc(im,jm))
       integer :: immax
       real(8) :: test1,test2,qgeff,rc2inv,ev_new
+      real(8) :: ev_kept_min         ! the minimal kept eigenvalue in fact
       integer :: im_kept(mbsiz)      ! indicate which barc eigenvectors are kept as basis functions 
       complex(8) :: wi0new(mbsiz)    ! eigenvalues of sqrt(barc)
+      logical :: levcutsoft
 
 !! debug 
       integer :: ierr
@@ -48,12 +51,11 @@
 
       if(ldbg) call linmsg(6,'-','coul_setev')
 
-!
 !    Reduce the basis size by choosing eigenvectors of barc with eigenvalues larger than 
 !    evtol
 !
       if(ldbg) write(fid_outgw,'(a,e12.4)') " Choose eigenvectors of bare Coulomb matrix &
-    & with eigenvalues larger than evtol=",evtol
+    & with eigenvalues larger than evtol=", evtol
 !
 !     Construct new basis set by removing all eigenvectors 
 !     with eigenvalues smaller than evtol  
@@ -62,13 +64,29 @@
       if(icoul.gt.-1) write(fid_outgw,*) "rc2inv=",rc2inv 
 
       im_kept = 1
+      ev_kept_min = 1.0d10
       matsiz=mbsiz
       do im=1,mbsiz
         if( ev(im).lt.evtol ) then 
           im_kept(im)= 0
           matsiz = matsiz - 1
+        else
+          ev_kept_min = min(ev_kept_min,ev(im))
         endif 
       enddo 
+
+      if (evtol_s.gt.0.0d0 .and. evtol_s.gt.ev_kept_min) then
+        levcutsoft = .true.
+      else
+        levcutsoft = .false.
+      endif
+
+      if (levcutsoft) then
+        write(fid_outgw,'(a,e12.4)') "Soft cut-off of Coulomb eigenvalue enabled,"/ &
+        "  evtol_s = ", evtol_s
+      else
+        write(fid_outgw,'(a,e12.4)') "Soft cut-off of Coulomb eigenvalue disabled."
+      endif
 
       if(iq.eq.1) then
         call coul_wmix0
@@ -148,6 +166,10 @@
             endif 
           else 
             ev_new = ev(jm)
+            ! Soft truncation from evtol_s (unchanged) to minimal kept eigenvalue (0) - zmy
+            if ( levcutsoft .and. ev_new.le.evtol_s ) then
+              ev_new = ev_new / 2.0d0 * (1.0d0 + cos((evtol_s/ev_new-1.0d0)/(evtol_s/ev_kept_min-1.0d0)*pi))
+            endif 
           endif ! icoul.gt.-1
           barcev(im)=ev_new 
           barcevsq(im)=sqrt(barcev(im))

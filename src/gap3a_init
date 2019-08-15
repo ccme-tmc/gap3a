@@ -758,6 +758,8 @@ emaxpol =  1.0E10       # the upper bound for unoccupied states considered in po
 emaxsc  =  1.0E10       # the upper bound for unoccupie states considered in the self-energies
 eminpol = -1.0E10       # the lower bound for deep core states considered in polarization 
 barcevtol = 0.1         # tolerance used to reduce the bare Coulomb matrix eigenvectors as the basis set 
+barcevtol_soft = -0.1   # onset used to softly truncate the Coulomb matrix eigenvalue to barcevtol.
+                        # Set negative or smaller than barcevtol to disable the soft cut-off
 MB_ludot = F            # whether considering the contribution of udot when setting up the mixed basis
 MB_emin = -1.E10        # only core states with energy above MB_emin are considered when setting up MB basis 
 MB_emax = 20.0          # LO orbitals with energy higher MB_emax are excluded when setting up MB basis 

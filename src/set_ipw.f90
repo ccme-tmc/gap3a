@@ -304,7 +304,7 @@
    12 format('kmax = ',f15.10,'kmr = ',f15.10,'pwm = ',f15.10)
    13 format('maxgxc = ',f15.10,'maxgcoul = ',f15.10,'gmax = ',f15.10)
   101 format('|G_max| = ',f15.10,' Nr. of planewaves =',i6)
-  200 format(a50,i5) 
+  200 format(a50,i7) 
 
       contains 
 

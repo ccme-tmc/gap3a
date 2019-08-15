@@ -14,8 +14,8 @@
       use freq,     only: nomeg
       use kpoints,  only: nirkp,idikp,nkp
       use mixbasis, only: init_mixbasis,end_mixbasis
-      use barcoul,  only: init_barcoul,end_barcoul,barcevtol,end_barcev,&
-                          iop_coul_x, iop_coul_c
+      use barcoul,  only: init_barcoul,end_barcoul,barcevtol,barcevtol_soft,&
+                          end_barcev,iop_coul_x, iop_coul_c
       use dielmat,  only: init_dielmat, end_dielmat
       use liboct_parser
       use modmpi
@@ -117,15 +117,17 @@
         call coul_barc(iq)
 
         if(myrank_row.eq.0) then 
-          call coul_setev(iq, 0.d0, iop_coul_x)
+          call coul_setev(iq, 0.d0, 0.d0, iop_coul_x)
           call calcexhf(iq)
           call end_barcev
         endif 
 
         if(iop_acfd.ne.0) then 
           write(fid_outgw,'(a,f8.4)')&
-     &        " - Use reduced basis, barcevtol = ",barcevtol
-          call coul_setev(iq,barcevtol,iop_coul_c)
+     &        " - Use reduced basis, barcevtol = ", barcevtol
+          write(fid_outgw,'(a,f8.4)')&
+     &        "                 barcevtol_soft = ", barcevtol_soft
+          call coul_setev(iq,barcevtol,barcevtol_soft,iop_coul_c)
           call init_dielmat(iq,iom_first,iom_last)
           ! Calculate the dielectric matrix
           call calceps(iq,iom_first,iom_last,0,-1,0,.false.) 

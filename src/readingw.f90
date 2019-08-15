@@ -16,9 +16,9 @@
       use bands,       only: nspin,fspin,emingw,emaxgw,ibgw,nbgw, &
      &                       iop_metallic,spinmom,band_scissor,   &
      &                       emaxpol,eminpol,emaxsc,eminsc,efermi
-      use barcoul,     only: barcevtol,rcut_coul,stctol,iop_coul, &
-     &                       iop_coul_x,iop_coul_c,iop_coulvm, &
-     &                       zcut_coul,acut_coul,bcut_coul
+      use barcoul,     only: barcevtol,barcevtol_soft,&
+     &                       iop_coul, iop_coul_x,iop_coul_c,iop_coulvm, &
+     &                       rcut_coul,stctol,zcut_coul,acut_coul,bcut_coul
 
       use bzint,       only: iop_bzint,iop_bzintq,n_gauq,eta_freq,     &
      &                       ztol_sorteq,tol_taylor,tol_unphys_weight, &
@@ -710,6 +710,8 @@
       endif 
 
       call loct_parse_float("barcevtol" ,-1.0d-10,barcevtol)
+      call loct_parse_float("barcevtol_soft" ,-1.0d-10,barcevtol_soft)
+
 
 ! Read the option 
 

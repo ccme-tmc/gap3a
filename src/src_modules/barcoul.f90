@@ -27,7 +27,8 @@
       ! TODO check the usage of im_g0 with Prof. Jiang
       integer :: im_g0 = 1                ! the index for the basis function corresponding to G=0
 
-      real(8) :: barcevtol=-1.d-10        ! tolenrance to choose basis functions from bare Coulomb matrix eigenvectors 
+      real(8) :: barcevtol=-1.d-10        ! tolenrance to choose basis functions from bare Coulomb matrix eigenvectors
+      real(8) :: barcevtol_soft = -1.d-10 ! the onset of soft cut-off for Coulomb eigenvalues
       real(8) :: barcevtol2=0.001d0       ! barc eigenvectors that whose overlap with the G=0 plane wave   
                                           ! is larger than this value is kept for new basis set (used for iopmbq0 == 2 )
       real(8) :: rcut_coul= -1.0d0        ! truancation radius for the bare Coulomb interaction (for 0D)

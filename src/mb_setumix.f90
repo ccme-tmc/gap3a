@@ -201,7 +201,7 @@
             if(uol(i1).le.wftol) cycle 
             j2=j2+1
             do i2=1,nll
-              umix( :,j2,iat) = umix(:,j2,iat)+uml(i2,i1)*uprod (:,ind(i2))
+              umix( :,j2,iat) = umix(:,j2,iat)+uml(i2,i1)*uprod( :,ind(i2))
               usmix(:,j2,iat) =usmix(:,j2,iat)+uml(i2,i1)*usprod(:,ind(i2))
             enddo 
           enddo

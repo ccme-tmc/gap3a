@@ -308,9 +308,11 @@
         do ie1=nstart,nend 
           do ie2=mstart,mend
             if(ie1.eq.ie2) then 
-              minm(im_g0,ie2,ie1) = sqrt(vi)*barcevsq(im_g0) 
+              !minm(im_g0,ie2,ie1) = sqrt(vi)*barcevsq(im_g0) 
+              minm(im_g0,ie2,ie1) = cmplx(sqrt(vi)*barcevsq(im_g0), 0.d0, 8)
             else
-              minm(im_g0,ie2,ie1) = 0.d0
+              !minm(im_g0,ie2,ie1) = 0.d0
+              minm(im_g0,ie2,ie1) = czero
             endif 
           enddo
         enddo
