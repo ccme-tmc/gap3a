@@ -97,6 +97,8 @@
         call task_coul
       case("acfd") 
         call task_acfd 
+      case("aniso") 
+        call task_aniso
       case ("emac")   !! calc macroscopic dielectric function
         call task_emac
       case("ppgw")    !! post-processing GW 

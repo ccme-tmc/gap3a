@@ -144,3 +144,9 @@
 1. Add profiling switch in make.inc-ifort
 2. Allow switch between original and new workflows related to `coul_barc` by specifying
   `CutoffInCoulBarc` logical in "gw.inp" file.
+
+## 2019-08-22 (zmy)
+
+1. Rewrite anisotropy part. Use derived type `aniso_tensor` to wrap anisotropy related
+  quantities.
+

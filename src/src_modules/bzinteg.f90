@@ -200,6 +200,63 @@
 
         end subroutine set_angular_grid
 
+        subroutine set_qmax_q0(nang, q0, qmax_q0, vol_q0)
+        use kpoints,  only: nkdivs
+        use struk,    only: br2,vi
+        implicit none
+! !Input and output paramters
+        integer,intent(in) :: nang
+        real(8),intent(in) :: q0(nang,3)
+        real(8),intent(inout) :: qmax_q0(nang)
+        real(8),intent(out)   :: vol_q0
+
+! !LOCAL VARIABLES:
+        integer :: i1, i2, i3
+        integer :: j, iang
+        integer :: isq
+        real(8) :: numerator, denominator
+        real(8) :: smallq(3,26)
+        real(8) :: sq0(3)
+        real(8) :: maxq
+!
+! Created Aug. 2019, by MY Zhang
+!
+!EOP
+!BOC
+!
+        ! Determine the k-points closet to gamma
+        isq=0
+        do i1=-1,1
+          do i2=-1,1
+            do i3=-1,1
+              if(.not.((i1 .eq. 0) .and. (i2 .eq. 0) .and. (i3 .eq. 0)))then
+                isq=isq+1
+                do j=1,3
+                  smallq(j,isq)= dble(i1)*br2(j,1)/dble(nkdivs(1))+ &
+                                 dble(i2)*br2(j,2)/dble(nkdivs(2))+ &
+                                 dble(i3)*br2(j,3)/dble(nkdivs(3))
+                enddo ! j
+              endif
+            enddo ! i3
+          enddo ! i2
+        enddo ! i1
+
+        vol_q0 = 8.0d0*pi**3*vi/dble(product(nkdivs))
+        write(fid_outdbg,*) "qmax", nang
+        qmax_q0(:) = 1.0d+3
+        do iang=1,nang
+          sq0(1:3)=q0(iang,:)
+          do isq=1,26
+            denominator = sum(sq0(:)*smallq(:,isq))
+            if(denominator .gt. 1.0d-10)then
+              numerator = 0.5d0 * sum(smallq(1:3,isq)**2)
+              maxq = numerator/denominator
+              if(maxq .lt. qmax_q0(iang)) qmax_q0(iang) = maxq
+            endif
+          enddo ! isq
+          write(fid_outdbg,"(I4,4F12.5)") iang, q0(iang,:),qmax_q0(iang)
+        enddo ! iang
+        end subroutine set_qmax_q0
 
         subroutine set_qmax_gamma
 ! !DESCRIPTION:

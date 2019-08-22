@@ -72,7 +72,8 @@
      &      "unsupported iop_sxc value!! ")
 
 
-      call calcgw0(iop_sxc, 0)
+      !call calcgw0(iop_sxc, 0)
+      call calcgw0_newaniso(iop_sxc, 0)
 
       end subroutine task_gw
 !EOC      

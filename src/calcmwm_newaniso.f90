@@ -1,9 +1,9 @@
 !BOP
 !
-! !ROUTINE: calcmwm
+! !ROUTINE: calcmwm_newaniso
 !
 ! !INTERFACE: 
-      subroutine calcmwm(iminm,isp,iq,irk,ie2_f,ie2_l,iom_f,iom_l,&
+      subroutine calcmwm_newaniso(iminm,isp,iq,irk,ie2_f,ie2_l,iom_f,iom_l,&
      &                   mwm)
       
 ! !DESCRIPTION:
@@ -12,7 +12,6 @@
 !
 
 ! !USES:
-
       use bands,      only: ibgw,nbgw,nbandsgw
       use barcoul,    only: iop_coul
       use bzinteg,    only: singc1co,singc2co
@@ -50,7 +49,7 @@
       logical:: lprt=.false.
       logical:: ltest_disable_sing=.false.
       real(8):: tstart,tend
-      character(len=10)::sname='calcmwm'
+      character(len=10)::sname='calcmwm_newaniso'
       complex(8), allocatable :: minm(:,:,:)
 
       mwm = 0.d0 
@@ -181,5 +180,5 @@
         deallocate(wm) 
         end subroutine 
               
-      end subroutine calcmwm
+      end subroutine calcmwm_newaniso
 !EOC        

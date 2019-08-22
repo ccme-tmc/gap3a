@@ -30,8 +30,8 @@
       use dielmat,     only: q0_eps,wt_excl,noc_excl,nun_excl,ioc_excl,&
      &                       iun_excl,iop_mask_eps,occ_win,unocc_win,  &
      &                       iop_drude,omega_plasma,iop_epsw,eta_head
-      use anisotropy,  only: iop_aniso
-      use bzinteg,     only: n_ang_grid, iop_q0
+      use anisotropy,  only: iop_aniso,n_ang_grid
+      use bzinteg,     only: iop_q0
       use eigenvec,    only: lsymvector,lcmplx
       use fouri,       only: rmax
       use freq,        only: omegmax,nomeg,nomeg_blk,iop_fgrid,omegmin,&
