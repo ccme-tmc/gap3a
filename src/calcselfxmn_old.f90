@@ -14,7 +14,7 @@
 
       use bands,      only: bande,nspin,nomaxs,numins,ibgw,nbgw,nbandsgw
       use barcoul,    only: barcev,barcevsq
-      use bzinteg,    only: singc2co,kiw
+      use bzinteg,    only: singc2,kiw
       use constants,  only: cone,czero,pi,fourpi,sqrt4pi
       use core,       only: corind, eigcore,ncg,iop_core 
       use kpoints,    only: nirkp,nkp,kqid,kpirind,get_kvec
@@ -207,7 +207,7 @@
           deallocate(mmat,cmat)
         endif 
 
-        sxs2= - fourpi*vi*singc2co
+        sxs2= - fourpi*vi*singc2
         do inu=ibgw,nbgw
           do imu=ibgw,nbgw
 

@@ -6,29 +6,15 @@ module anisotropy
 ! with the anisotropy of dielectric matrix for $q\to0$
 !
 ! !Uses:
-  use mixbasis,  only: matsiz
   use constants, only: czero,cone,pi,ctwopi,cpi,sqrt4pi
   use task,      only: fid_outgw, fid_outdbg, fid_aniso
-  use bzinteg,   only: grid_vec,vol_gamma,qmax_gamma,ang_weight, set_qmax_q0
-!
-! Public variables
+  use bzinteg,   only: set_qmax_gamma,n_ang_grid
   implicit none
-  integer :: iop_aniso = -1  ! control whether to consider the anisotropy of dielectric function around Gamma
-                             ! -1 -- use q0_eps, no anisotropy
-                             !  0 -- 3D anisotropy
-                             !  1 -- 2D anisotropy
-  integer(4) :: n_ang_grid
-  integer :: lmax_gamma = 6                   ! maximum angular momentum to expand eps on q0
-
-  ! smallq define the proximity around Gamma point
-  !real(8) :: smallq(26,3)
-  !integer :: smallq_div = 1
-  !character(len=3) :: smallq_type = "bzl"  ! BZ like ('bzl')or spherical ('sph')
-  !real(8) :: vol_q0                         ! volume of the defined proximity near Gamma
 !
-! derived type for collectively storing data to calculate dielectric anisotropy
+! !Derived type
 !
   type aniso_tensor
+    ! handler for data to calculate dielectric anisotropy related properties
     integer(4) :: sys_dim                    ! dimension of the system, 0D, 1D, 2D, 3D
     integer(4) :: lmax                       ! maximum angular momentum to expand eps on q0
     integer(4) :: lmgsq                      ! (lmax+1)^2
@@ -53,11 +39,18 @@ module anisotropy
     complex(8),allocatable :: qmax_ylm_q0(:) ! projection of qmax_q0 on Y_lm
     real(8)                :: norm           ! normalization factor to vol_q0
   end type aniso_tensor
+!
+! !Public variables
+!
+  integer :: iop_aniso = -1  ! control whether to consider the anisotropy of dielectric function around Gamma
+  integer :: lmax_q0 = 6     ! maximum angular momentum to expand eps on q0
 
   type(aniso_tensor), pointer, save :: aniten
-
-  private :: cdot_over_ang
-  private :: cdot_over_lm
+  ! smallq define the proximity around Gamma point
+  !real(8) :: smallq(26,3)
+  !integer :: smallq_div = 1
+  !character(len=3) :: smallq_type = "bzl"  ! BZ like ('bzl')or spherical ('sph')
+  !real(8) :: vol_q0                         ! volume of the defined proximity near Gamma
 
 contains
 
@@ -65,7 +58,7 @@ subroutine init_aniso(at, iq, msiz, iomfirst, iomlast, lmaxq0, nang)
   use lebedev_laikov
   use modmpi,    only: myrank_ra3
   implicit none
-  
+! !Input paramters
   type(aniso_tensor),pointer :: at
   integer(4),intent(in) :: iq 
   integer(4),intent(in) :: msiz
@@ -78,10 +71,17 @@ subroutine init_aniso(at, iq, msiz, iomfirst, iomlast, lmaxq0, nang)
   integer(4) :: iang ! counter over nang
   integer(4) :: ilm  ! counter over (lmaxq0+1)^2
 !
-! !external routines
+! !External routines
+!
   external linmsg, ylm
   complex(8), external :: zdotu, zdotc
-
+!
+! !Revision history
+! 
+!  - Modified Aug 23, 2019 MYZ
+!
+! !EOP
+! !BOC
   call linmsg(fid_outgw,'-', "init_aniso")
   allocate(at)
   at%sys_dim = 3 - iop_aniso
@@ -123,7 +123,7 @@ subroutine init_aniso(at, iq, msiz, iomfirst, iomlast, lmaxq0, nang)
     at%w_q0(:) = wleb(:)*4.0d0*pi
     call unset_lebedev_laikov_grid
     write(fid_outgw,*) " - computing qmax"
-    call set_qmax_q0(at%nang, at%q0, at%qmax_q0, at%vol_q0)
+    call set_qmax_gamma(at%nang, at%q0, at%qmax_q0, at%vol_q0)
     at%ten_p = czero
     at%ten_a = czero
     at%vec_u = czero
@@ -182,41 +182,6 @@ subroutine end_aniso(iq, at)
 end subroutine end_aniso
 
 
-!subroutine calc_h_w_inv_ang_grid(iom)
-!! calculate the head and wings of the inverse of dielectric matrix
-!
-!  implicit none
-!  integer,intent(in) :: iom
-!  integer :: iang    ! Counter: runs over n_ang_grid
-!  integer :: im      ! Counter: runs over matsiz
-!  complex(8) :: ccoefcoul_g
-!
-!  complex(8),external :: ten_rvctrv
-!  external :: zgemm
-!
-!  ccoefcoul_g=cmplx(4.0D0*pi,0.0D0,8)
-!
-!  ! vertical wing
-!  call zgemm('n','n',n_ang_grid,matsiz,3,-sqrt(ccoefcoul_g), &
-!             cmplx(grid_vec,0.0D0,8),n_ang_grid, vec_a_ani(:,:,iom),3, &
-!             czero,wv_g(:,:,iom),n_ang_grid)
-!  ! horizontal wing
-!  call zgemm('n','n',n_ang_grid,matsiz,3,-sqrt(ccoefcoul_g), &
-!             cmplx(grid_vec,0.0D0,8),n_ang_grid, vec_b_ani(:,:,iom),3, &
-!             czero,wh_g(:,:,iom),n_ang_grid)   
-!
-!  do iang=1, n_ang_grid
-!  ! head
-!    head_g(iang,iom) = cone / &
-!     (cone+ccoefcoul_g*ten_rvctrv(3,ten_a_ani(:,:,iom),grid_vec(iang,:)))
-!  ! wings
-!    wv_g(iang,:,iom) = wv_g(iang,:,iom) * head_g(iang,iom)
-!    wh_g(iang,:,iom) = wh_g(iang,:,iom) * head_g(iang,iom)
-!  enddo
-!
-!end subroutine calc_h_w_inv_ang_grid
-
-
 subroutine calc_h_w_inv_ang_grid(at, iom)
 ! calculate the head and wings of the inverse of dielectric matrix
 
@@ -238,12 +203,12 @@ subroutine calc_h_w_inv_ang_grid(at, iom)
   nang = at%nang
 
   ! vertical wing
-  call zgemm('n','n',nang,msiz,3,-sqrt(ccoefcoul_g), &
-             cmplx(at%q0,0.0D0,8),nang, at%vec_a(:,:,iom),3, &
+  call zgemm('n','n',nang,msiz,3,-sqrt(ccoefcoul_g),&
+             cmplx(at%q0,0.0D0,8),nang,at%vec_a(:,:,iom),3, &
              czero,at%wv_q0(:,:,iom),nang)
   ! horizontal wing
-  call zgemm('n','n',nang,msiz,3,-sqrt(ccoefcoul_g), &
-             cmplx(at%q0,0.0D0,8),nang, at%vec_b(:,:,iom),3, &
+  call zgemm('n','n',nang,msiz,3,-sqrt(ccoefcoul_g),&
+             cmplx(at%q0,0.0D0,8),nang,at%vec_b(:,:,iom),3, &
              czero,at%wh_q0(:,:,iom),nang)
 
   do iang=1, nang
@@ -251,36 +216,11 @@ subroutine calc_h_w_inv_ang_grid(at, iom)
     at%head_q0(iang,iom) = cone / &
      (cone+ccoefcoul_g*ten_rvctrv(3,at%ten_a(:,:,iom),at%q0(iang,:)))
   ! wings
-    at%wv_q0(iang,:,iom) = at%wv_q0(iang,:,iom) * at%head_q0(iang,iom)
-    at%wh_q0(iang,:,iom) = at%wh_q0(iang,:,iom) * at%head_q0(iang,iom)
+    at%wv_q0(iang,:,iom) = at%wv_q0(iang,:,iom)*at%head_q0(iang,iom)
+    at%wh_q0(iang,:,iom) = at%wh_q0(iang,:,iom)*at%head_q0(iang,iom)
   enddo
 
 end subroutine calc_h_w_inv_ang_grid
-
-
-!subroutine proj_head_on_ylm(iom)
-!
-!  implicit none
-!  integer,intent(in) :: iom
-!  integer :: ilm     ! Counter: runs over lmgsq
-!  integer :: iang    ! Counter: runs over n_ang_grid
-!  complex(8) :: head_g_tmp
-!
-!  do ilm=1,lmgsq
-!    h_g_lm(ilm,iom)=cdot_over_ang('C',n_ang_grid,sph_harms_g(ilm,:),head_g(:,iom))
-!  enddo
-!
-!  ! check completeness of expansion
-!  write(fid_outdbg,"(A40,I3)") "Completeness of Ylm expansion of head_g, iom ", iom
-!  do iang=1,n_ang_grid
-!    write(fid_outdbg,"(I5,4F14.6)") iang, head_g(iang,iom), &
-!          cdot_over_lm('N',lmgsq,sph_harms_g(:,iang),h_g_lm(:,iom))/cmplx(ang_weight(iang),0.0D0,8)
-!  enddo
-!
-!  ! substract \sqrt{4\pi} for l=0,m=0 term to exclude bare Coulomb part
-!  h_g_lm(1,iom) = h_g_lm(1,iom) - cmplx(sqrt4pi,0.0D0,8)
-!
-!end subroutine proj_head_on_ylm
 
 
 subroutine proj_head_on_ylm(at, iom)
@@ -293,26 +233,26 @@ subroutine proj_head_on_ylm(at, iom)
   integer :: iang    ! Counter: runs over n_ang_grid
   complex(8) :: head_g_tmp
 
+  complex(8),external :: zdotc, zdotu
+
   nang = at%nang
   nlm = at%lmgsq
 
   do ilm=1,nlm
-    at%h_ylm_q0(ilm,iom)=cdot_over_ang('C',nang,at%ylm_q0(ilm,:),at%head_q0(:,iom))
+    at%h_ylm_q0(ilm,iom)=zdotc(nang,at%ylm_q0(ilm,:),1,at%head_q0(:,iom),1)
   enddo
 
   ! check completeness of expansion
   write(fid_outdbg,"(A40,I3)") "Completeness of Ylm expansion of head_g, iom ", iom
   do iang=1,nang
     write(fid_outdbg,"(I5,4F14.6)") iang, at%head_q0(iang,iom), &
-          cdot_over_lm('N',nlm,at%ylm_q0(:,iang),at%h_ylm_q0(:,iom))/cmplx(at%w_q0(iang),0.0D0,8)
+          zdotu(nlm,at%ylm_q0(:,iang),1,at%h_ylm_q0(:,iom),1)/cmplx(at%w_q0(iang),0.0D0,8)
   enddo
 
   ! substract \sqrt{4\pi} for l=0,m=0 term to exclude bare Coulomb part
   at%h_ylm_q0(1,iom) = at%h_ylm_q0(1,iom) - cmplx(sqrt4pi,0.0D0,8)
 
 end subroutine proj_head_on_ylm
-      
-
 
 !
 
@@ -328,7 +268,9 @@ subroutine angint_eps_sph(at, iom, bodyinv, use_harm)
   ! the direct inverse of the body of the dielectric matrix
 !
 !  ! local variables
-  integer :: iang
+  integer(4) :: iang
+  integer(4) :: nang
+  integer(4) :: msiz
   complex(8) :: cw
   integer :: im,jm             ! Counter: runs over matsiz
 !  complex :: head_tmp, bodyinv_tmp
@@ -346,13 +288,15 @@ subroutine angint_eps_sph(at, iom, bodyinv, use_harm)
   external ylm
   complex(8),external :: zdotu,zdotc
 
-  if(use_harm)then
-  else
+  nang = at%nang
+  msiz = at%msiz
+
+  if(.not.use_harm)then
     ! TODO maybe need optimize
-    do iang=1,n_ang_grid
+    do iang=1,nang
       cw = cmplx(at%qmax3d3v(iang)*at%w_q0(iang),0.0D0,8)
-      do im=1,at%msiz
-        do jm=1,at%msiz
+      do im=1,msiz
+        do jm=1,msiz
 !          bodyinv(im,jm) = bodyinv(im,jm) + &
 !              cw*wv_g(iang,im,iom)*wh_g(iang,jm,iom)/head_g(iang,iom)
         enddo
@@ -460,34 +404,17 @@ subroutine aniso_calc_sing_q0_1(at, iom, minm, singh, singw)
   integer,intent(in) :: iom
   complex(8),intent(in) :: minm(at%msiz)
   complex(8),intent(out) :: singh, singw
+  complex(8),external :: zdotu
 !
   ! Contribution from head
   ! Two equations below are equivalent, if the expansion of Ylm is complete
   !singh=cdot_over_lm(lmgsq,'C',qmax_g_lm,h_g_lm(:,iom))/ctwopi
-  singh=cdot_over_ang('N',at%nang,cmplx(at%qmax_q0*at%w_q0,0.0D0,8),at%head_q0(:,iom)-cone)/ctwopi/cpi
+  singh=zdotu(at%nang,cmplx(at%qmax_q0*at%w_q0,0.0D0,8),1,at%head_q0(:,iom)-cone,1)/ctwopi/cpi
 
   ! Contribution from wings
   singw=czero
 !
 end subroutine aniso_calc_sing_q0_1
-
-!subroutine aniso_calc_sing_q0_1(iom, minm, singh, singw)
-!!
-!  implicit none
-!  integer,intent(in) :: iom
-!  complex(8),intent(in) :: minm(matsiz)
-!  complex(8),intent(out) :: singh, singw
-!!
-!  ! Contribution from head
-!  ! Two equations below are equivalent, if the expansion of Ylm is complete
-!  !singh=cdot_over_lm(lmgsq,'C',qmax_g_lm,h_g_lm(:,iom))/ctwopi
-!  singh=cdot_over_ang('N',n_ang_grid,cmplx(qmax_gamma*ang_weight,0.0D0,8),head_g(:,iom)-cone)/ctwopi/cpi
-!
-!  ! Contribution from wings
-!  singw=czero
-!!
-!end subroutine aniso_calc_sing_q0_1
-
 !
 !  SUBROUTINE angint_invq2_dhead(iom, angint)
 !  ! calcualte 
@@ -502,47 +429,6 @@ end subroutine aniso_calc_sing_q0_1
 !                / cmplx(norm_w_q0 * vol_q0, 0.0D0, 8)
 !  
 !  END SUBROUTINE angint_invq2_dhead
-
-
-! Private functions and subroutines
-function cdot_over_lm(op,nlm,funca,funcb)
-  ! Calculate \sum_{lm}{op(funca_{lm}) * funcb_{lm}}
-
-  implicit none
-  character,intent(in) :: op
-  integer(4),intent(in) :: nlm
-  complex(8),intent(in) :: funca(nlm)
-  complex(8),intent(in) :: funcb(nlm)
-  complex(8) :: cdot_over_lm
-
-  complex(8),external :: zdotc,zdotu
-
-  if(op.eq.'C'.or.op.eq.'c')then
-    cdot_over_lm = zdotc(nlm,funca,1,funcb,1)
-  else
-    cdot_over_lm = zdotu(nlm,funca,1,funcb,1)
-  endif
-
-end function cdot_over_lm
-
-function cdot_over_ang(op,nang,funca,funcb)
-  ! Calculate \sum_{iang}{op(funca_{iang}) * funcb_{iang}}
-  
-  character,intent(in) :: op
-  integer(4),intent(in) :: nang
-  complex(8),intent(in) :: funca(nang)
-  complex(8),intent(in) :: funcb(nang)
-  complex(8) :: cdot_over_ang
-
-  complex(8),external :: zdotc,zdotu
-
-  if(op.eq.'C'.or.op.eq.'c')then
-    cdot_over_ang = zdotc(nang,funca,1,funcb,1)
-  else
-    cdot_over_ang = zdotu(nang,funca,1,funcb,1)
-  endif
-
-end function cdot_over_ang
 
 end module anisotropy
 

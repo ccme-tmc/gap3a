@@ -13,7 +13,7 @@
 
       use hfexch
       use kpoints,     only: nirkp,idikp,wkir
-      use bzinteg,     only: kiw,singc2ex
+      use bzinteg,     only: kiw,singc2 
       use mixbasis,    only: init_mixbasis,end_mixbasis
       use barcoul,     only: init_barcoul, end_barcoul
       use minmmat,     only: init_minmmat,end_minmmat
@@ -101,7 +101,7 @@
       call linmsg(6,'-',"Summary of EXHF ")
 
       write(6,*) "Contribution from singular integral:",                &
-     &           singc2ex*real(exq0s)
+     &           singc2*real(exq0s)
 
       write(6,'(2A6,2A12)') 'iqir',"wkir",'kiw','exq'
       do iqir=1,nirkp 

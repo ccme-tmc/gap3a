@@ -30,8 +30,8 @@
       use dielmat,     only: q0_eps,wt_excl,noc_excl,nun_excl,ioc_excl,&
      &                       iun_excl,iop_mask_eps,occ_win,unocc_win,  &
      &                       iop_drude,omega_plasma,iop_epsw,eta_head
-      use anisotropy,  only: iop_aniso,n_ang_grid
-      use bzinteg,     only: iop_q0
+      use anisotropy,  only: iop_aniso,lmax_q0
+      use bzinteg,     only: iop_q0,n_ang_grid
       use eigenvec,    only: lsymvector,lcmplx
       use fouri,       only: rmax
       use freq,        only: omegmax,nomeg,nomeg_blk,iop_fgrid,omegmin,&
@@ -804,6 +804,7 @@
       !! Set parameters for BZ integral 
       call loct_parse_int("iop_q0", 0, iop_q0)
       call loct_parse_int("n_ang_grid", -1, n_ang_grid)
+      call loct_parse_int("lmax_q0", 6, lmax_q0)
 
 
 

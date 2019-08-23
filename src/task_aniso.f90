@@ -21,7 +21,7 @@
       use mixbasis,    only: init_mixbasis,end_mixbasis,matsiz
       use mommat,      only: init_mommat,end_mommat
       use task,        only: lrestart,casename,nmax_sc
-      use anisotropy
+      !use anisotropy
       use modmpi 
       use liboct_parser
       

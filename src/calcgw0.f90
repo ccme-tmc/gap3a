@@ -31,7 +31,8 @@
       use xcpot,       only: init_xcpot,end_xcpot
       use task,        only: lrestart,casename,nmax_sc,time_aniso
       use anisotropy,  only: init_aniso,end_aniso,iop_aniso,aniten,&
-                             lmax_gamma,n_ang_grid
+                             lmax_q0
+      use bzinteg,     only: n_ang_grid
       use modmpi      
       use liboct_parser
       
@@ -212,7 +213,7 @@
             time_aniso = 0.0
             call cpu_time(time1)
             write(*,*) associated(aniten)
-            call init_aniso(aniten,iq,matsiz,1,nomeg,lmax_gamma,n_ang_grid)
+            call init_aniso(aniten,iq,matsiz,1,nomeg,lmax_q0,n_ang_grid)
             write(*,*) associated(aniten)
             call cpu_time(time2)
             time_aniso = time_aniso + time2 - time1
