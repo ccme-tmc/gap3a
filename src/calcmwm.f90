@@ -101,7 +101,7 @@
 !     This subroutine is used as a generic interface to calculate M*W*M
 ! 
         subroutine sub_setmwm(mst,mend)
-        use anisotropy, only: iop_aniso, aniso_calc_sing_q0_1_oo, aniten
+        use anisotropy, only: iop_aniso, aniso_calc_sing_q0_1
         use bzinteg,    only: iop_q0
         implicit none 
         integer,intent(in):: mst, mend
@@ -143,7 +143,7 @@
      &          wm(:,ie2,ie1),1)
               if(iq.eq.1.and.iop_coul.eq.-1.and.ie1.eq.ie2-ncg_c) then
                 if(iop_aniso.ne.-1.and.iop_q0.eq.1)then
-                  call aniso_calc_sing_q0_1_oo(aniten,iom,minm(:,ie2,ie1), &
+                  call aniso_calc_sing_q0_1(iom,minm(:,ie2,ie1), &
      &              term_singular_h, term_singular_w)
                 else
                   term_singular_h = coefs2*head(iom)

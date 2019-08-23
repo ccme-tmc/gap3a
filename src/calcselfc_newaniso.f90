@@ -1,9 +1,9 @@
 !BOP
 !
-! !ROUTINE: calcselfc
+! !ROUTINE: calcselfc_newaniso
 !
 ! !INTERFACE: 
-      subroutine calcselfc(iq,iminm)
+      subroutine calcselfc_newaniso(iq,iminm)
       
 ! !DESCRIPTION:
 !
@@ -64,7 +64,7 @@
 
       logical:: ldbg=.false.
       real(8):: tstart,tend
-      character(len=20)::sname='calcselfc'
+      character(len=20)::sname='calcselfc_newaniso'
       complex(8), allocatable:: sc_p(:,:,:), sc_a(:,:,:) !! local arrays needed for parallelized calculation of sigc
       complex(8), allocatable :: mwm(:,:,:) 
        
@@ -113,8 +113,8 @@
           ik=idikp(irk)
           jk=kqid(ik,iq)
           jrk=kpirind(jk)
-          call calcmwm(iminm,isp,iq,irk,ie2_f,ie2_l,1,nomeg,mwm) 
-          !call calcmwm_newaniso(iminm,isp,iq,irk,ie2_f,ie2_l,1,nomeg,mwm) 
+          !call calcmwm(iminm,isp,iq,irk,ie2_f,ie2_l,1,nomeg,mwm) 
+          call calcmwm_newaniso(iminm,isp,iq,irk,ie2_f,ie2_l,1,nomeg,mwm) 
           if(iop_sxc.eq.0) then 
             call sub_sigc_gw 
           elseif(iop_sxc.eq.2) then
@@ -231,5 +231,5 @@
       end subroutine
 
               
-      end subroutine calcselfc
+      end subroutine calcselfc_newaniso
 !EOC        

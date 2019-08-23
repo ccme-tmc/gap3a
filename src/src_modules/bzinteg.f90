@@ -78,7 +78,7 @@
         ! Always generate the grid_vec for the current stage
         ! as the time cost is very small for small n_ang_grid
         ! TODO check memory issue for large n_ang_grid
-        if(n_ang_grid.le.0) n_ang_grid = 26
+        if(n_ang_grid.le.0) n_ang_grid = 6
         call set_angular_grid(n_ang_grid)
         write(fid_outgw, "(A20,I5)") "Used n_ang_grid: ", n_ang_grid
         !! Set q_max for each vector of the grid

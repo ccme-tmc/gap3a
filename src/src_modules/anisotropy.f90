@@ -72,32 +72,10 @@ module anisotropy
 
   type(aniso_tensor), pointer, save :: aniten
 
-  type test_at
-    integer(4) :: i
-    complex(8),allocatable :: c(:,:,:)
-  end type test_at
-  type(test_at), pointer :: ta
-
   private :: cdot_over_ang
   private :: cdot_over_lm
 
 contains
-
-subroutine init_test_at(at, i)
-  type(test_at), pointer :: at
-  integer(4),intent(in)  :: i
-  allocate(at)
-  at%i = i
-  allocate(at%c(i,i,i))
-  at%c = czero
-end subroutine init_test_at
-
-subroutine end_test_at(at)
-  type(test_at), pointer :: at
-  deallocate(at%c)
-  deallocate(at)
-  nullify(at)
-end subroutine end_test_at
 
 subroutine init_aniso_oo(at, iq, msiz, iomfirst, iomlast, lmaxq0, nang)
   use lebedev_laikov

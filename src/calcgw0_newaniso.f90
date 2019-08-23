@@ -227,9 +227,9 @@
 
           if (iop_coul_c.eq.2)then
             !call calcselfc_2d(iq,iop_minm)
-            call calcselfc(iq,iop_minm)
+            call calcselfc_newaniso(iq,iop_minm)
           else
-            call calcselfc(iq,iop_minm)
+            call calcselfc_newaniso(iq,iop_minm)
           endif
 
           if(myrank_ra3.eq.0) then
@@ -266,9 +266,9 @@
           do iq=iq_f,iq_l
             if (iop_coul_c.eq.2)then
               !call calcselfc_2d(iq,iop_minm)
-              call calcselfc(iq,0)
+              call calcselfc_newaniso(iq,0)
             else
-              call calcselfc(iq,0)
+              call calcselfc_newaniso(iq,0)
             endif
           enddo
 

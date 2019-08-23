@@ -82,7 +82,7 @@ MPIOBJS =
 # files used by both sequential and parallel code 
 SP_OBJS = calcemac_nlf.o calceps.o calceps_2d.o calchead_newaniso.o calceps_newaniso.o \
 		  calcgw0.o calcgw0_newaniso.o calcscgw0.o calcescgw.o \
-          calcselfx.o calcselfc.o  calc_mwm3.o calcselfcmn.o calcselfxmn.o \
+          calcselfx.o calcselfc.o calcselfc_newaniso.o calc_mwm3.o calcselfcmn.o calcselfxmn.o \
 		  coul_coef.o \
           io_cleanup.o io_initfiles.o io_sxcmn.o io_utils.o main.o \
           readingw.o calc_sxcmn.o calcselfcmn_mwm.o \
