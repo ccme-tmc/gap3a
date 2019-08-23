@@ -114,7 +114,6 @@
           jk=kqid(ik,iq)
           jrk=kpirind(jk)
           call calcmwm(iminm,isp,iq,irk,ie2_f,ie2_l,1,nomeg,mwm) 
-          !call calcmwm_newaniso(iminm,isp,iq,irk,ie2_f,ie2_l,1,nomeg,mwm) 
           if(iop_sxc.eq.0) then 
             call sub_sigc_gw 
           elseif(iop_sxc.eq.2) then

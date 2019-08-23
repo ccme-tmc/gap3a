@@ -30,7 +30,8 @@
      &                       flag_sxc,fn_selfe,isxc 
       use xcpot,       only: init_xcpot,end_xcpot
       use task,        only: lrestart,casename,nmax_sc,time_aniso
-      use anisotropy,  only: init_aniso,end_aniso,iop_aniso
+      use anisotropy,  only: init_aniso,end_aniso,iop_aniso,aniten,&
+                             lmax_gamma,n_ang_grid
       use modmpi      
       use liboct_parser
       
@@ -42,7 +43,7 @@
       integer :: iq        ! index for q-points
       integer :: iq0       ! index for starting k-points, needed for the restart mode 
       integer :: iop_minm  ! control the treatment of mwm  
-      integer :: ierr      ! error code 
+      integer :: ierr      ! error code
 
 !     variables used for parallelization
       integer :: iq_f,iq_l     !! lower and upper bound for iq
@@ -210,13 +211,16 @@
           if(iop_aniso.ne.-1)then
             time_aniso = 0.0
             call cpu_time(time1)
-            call init_aniso(iq,1,nomeg)
+            write(*,*) associated(aniten)
+            call init_aniso(aniten,iq,matsiz,1,nomeg,lmax_gamma,n_ang_grid)
+            write(*,*) associated(aniten)
             call cpu_time(time2)
             time_aniso = time_aniso + time2 - time1
           endif
 
           if (iop_coul_c.eq.2)then
-            call calceps_2d(iq,1,nomeg,0,-1,2,lread_eps)
+            !call calceps_2d(iq,1,nomeg,0,-1,2,lread_eps)
+            call calceps(iq,1,nomeg,0,-1,2,lread_eps)
           else
             call calceps(iq,1,nomeg,0,-1,2,lread_eps)
           endif
@@ -227,14 +231,15 @@
           else
             call calcselfc(iq,iop_minm)
           endif
-            
+
           if(myrank_ra3.eq.0) then
             call io_sxcmn('w','d',iq,isxc,1,ierr)
           endif
 
           if(iop_aniso.ne.-1)then
-            call end_aniso(iq)
+            call end_aniso(iq,aniten)
           endif
+
           call end_dielmat(iq)
           call end_barcev
         endif

@@ -19,28 +19,12 @@ module anisotropy
                              !  1 -- 2D anisotropy
   integer(4) :: n_ang_grid
   integer :: lmax_gamma = 6                   ! maximum angular momentum to expand eps on q0
-  integer :: lmgsq                            ! (lmax_gamma+1)^2
-
-  complex(8), allocatable :: vec_u_ani(:,:,:)   ! vector u
-  complex(8), allocatable :: vec_t_ani(:,:,:)   ! vector t
-  complex(8), allocatable :: vec_a_ani(:,:,:)   ! vector a
-  complex(8), allocatable :: vec_b_ani(:,:,:)   ! vector b
-  complex(8), allocatable :: ten_p_ani(:,:,:)   ! tensor P
-  complex(8), allocatable :: ten_a_ani(:,:,:)   ! tensor A
-  complex(8), allocatable :: head_g(:,:)      ! the head (n_ang_grid,nomega) of eps^-1 at q0
-  complex(8), allocatable :: wv_g(:,:,:)      ! vertical wing of eps^-1 at q0
-  complex(8), allocatable :: wh_g(:,:,:)      ! horizontal wing of eps^-1 at q0
-  complex(8), allocatable :: sph_harms_g(:,:) ! Y_lm at q0
-  complex(8), allocatable :: h_g_lm(:,:)      ! projection of head_g on Y_lm
-  complex(8), allocatable :: qmax_g_lm(:)     ! projection of qmax_gamma on Y_lm
 
   ! smallq define the proximity around Gamma point
   !real(8) :: smallq(26,3)
   !integer :: smallq_div = 1
   !character(len=3) :: smallq_type = "bzl"  ! BZ like ('bzl')or spherical ('sph')
   !real(8) :: vol_q0                         ! volume of the defined proximity near Gamma
-  real(8),allocatable :: w_gamma(:)  ! previous w_q0
-  real(8) :: norm_w_gamma ! previous norm_w_q0
 !
 ! derived type for collectively storing data to calculate dielectric anisotropy
 !
@@ -77,7 +61,7 @@ module anisotropy
 
 contains
 
-subroutine init_aniso_oo(at, iq, msiz, iomfirst, iomlast, lmaxq0, nang)
+subroutine init_aniso(at, iq, msiz, iomfirst, iomlast, lmaxq0, nang)
   use lebedev_laikov
   use modmpi,    only: myrank_ra3
   implicit none
@@ -98,7 +82,7 @@ subroutine init_aniso_oo(at, iq, msiz, iomfirst, iomlast, lmaxq0, nang)
   external linmsg, ylm
   complex(8), external :: zdotu, zdotc
 
-  call linmsg(fid_outgw,'-', "init_aniso_oo")
+  call linmsg(fid_outgw,'-', "init_aniso")
   allocate(at)
   at%sys_dim = 3 - iop_aniso
   at%lmax = lmaxq0
@@ -182,10 +166,10 @@ subroutine init_aniso_oo(at, iq, msiz, iomfirst, iomlast, lmaxq0, nang)
       enddo
     endif
   endif ! iq.eq.1
-  call linmsg(fid_outgw,'-', "end init_aniso_oo")
-end subroutine init_aniso_oo
+  call linmsg(fid_outgw,'-', "end init_aniso")
+end subroutine init_aniso
 
-subroutine end_aniso_oo(iq, at)
+subroutine end_aniso(iq, at)
   integer(4) :: iq
   type(aniso_tensor), pointer :: at
   if(iq.eq.1) then
@@ -195,146 +179,45 @@ subroutine end_aniso_oo(iq, at)
   endif
   deallocate(at)
   nullify(at)
-end subroutine end_aniso_oo
-
-subroutine init_aniso(iq, iomfirst, iomlast)
-
-  use modmpi,    only: myrank_ra3
-  implicit none
-  
-  integer,intent(in) :: iq 
-  integer,intent(in) :: iomfirst, iomlast
-  integer :: iang  ! Counter over n_ang_grid
-  integer :: ilm   ! Counter over lmgsq
-  integer :: ierr
-
-  external :: ylm
-  complex(8),external :: zdotc,zdotu,ddot
-
-
-  lmgsq = (lmax_gamma+1)**2
-  if(iq.eq.1)then
-    if(iop_aniso.ne.-1)then
-      write(fid_outgw,*) "Anisotropy switched on"
-      ! TODO avoid body_q0 in future for integration 
-      allocate(vec_u_ani(3,matsiz,iomfirst:iomlast),      &
-      &        vec_t_ani(3,matsiz,iomfirst:iomlast),      &
-      &        vec_a_ani(3,matsiz,iomfirst:iomlast),      &
-      &        vec_b_ani(3,matsiz,iomfirst:iomlast),      &
-      &        ten_p_ani(3,3,iomfirst:iomlast),           &
-      &        ten_a_ani(3,3,iomfirst:iomlast),           &
-    !  &        q0_sph(1:nq0,3),                          &
-    !  &        wt_q0_sph(1:nq0),                         &
-      &        head_g(1:n_ang_grid,iomfirst:iomlast),     &
-      &        wv_g(1:n_ang_grid,matsiz,iomfirst:iomlast),&
-      &        wh_g(1:n_ang_grid,matsiz,iomfirst:iomlast),&
-    !  &        qmax_q0(1:nq0),                           &
-      &        w_gamma(1:n_ang_grid),                     &
-      &        sph_harms_g(lmgsq,n_ang_grid),             &
-      &        h_g_lm(lmgsq,iomfirst:iomlast),            &
-      &        qmax_g_lm(lmgsq),                          &
-      &        stat=ierr)
-      if(ierr.ne.0) then
-        write(fid_outgw,*) " - init_aniso: Fail to allocate aniso"
-        stop
-      else
-        write(fid_outgw,*) " - init_aniso: success"
-      endif
-    endif
-
-    ten_p_ani = czero
-    ten_a_ani = czero
-    vec_u_ani = czero
-    vec_t_ani = czero
-    vec_a_ani = czero
-    vec_b_ani = czero
-    head_g = czero
-    wv_g = czero
-    wh_g = czero
-    w_gamma = qmax_gamma**3/vol_gamma/3.0
-    norm_w_gamma = sum(w_gamma*ang_weight)
-
-    ! initialize spherical harmonics and projection of qmax_gamma
-    do iang=1,n_ang_grid
-      call ylm(grid_vec(iang,:),lmax_gamma,sph_harms_g(:,iang))
-      ! include the weight of angular grid in sph_harms
-      do ilm=1,lmgsq
-        sph_harms_g(ilm,iang)=sph_harms_g(ilm,iang)*cmplx(ang_weight(iang),0.0D0,8)
-      enddo
-    enddo
-
-    !write(*,"(A25,F12.5)") "Summation of weight/4pi",sum(ang_weight)/4.0D0/pi
-    do ilm=1,lmgsq
-      qmax_g_lm(ilm)=cdot_over_ang('C',n_ang_grid,sph_harms_g(ilm,:),cmplx(qmax_gamma(:),0.0D0,8))
-      if(myrank_ra3.eq.0) write(fid_outdbg,"(I4,3F13.5)") ilm, qmax_g_lm(ilm)
-    enddo
-
-    ! check completeness of expansion of qmax
-    ! TODO fail to output to fid_outdbg for gap3a-mpi
-    ! expansion of qmax is not as accurate as eps
-    if(myrank_ra3.eq.0)then
-      do iang=1,n_ang_grid
-        write(fid_outdbg,"(A4,I6,3F13.6)") "Ang ", iang, qmax_gamma(iang),&
-   &          cdot_over_lm('N',lmgsq,sph_harms_g(:,iang),qmax_g_lm)/cmplx(ang_weight(iang),0.0D0,8)
-      enddo
-    endif
-
-  endif ! iq.eq.1
-
-end subroutine init_aniso
-
-
-subroutine end_aniso(iq)
-
-  integer,intent(in) :: iq
-  if(iq.eq.1)then
-    deallocate(vec_u_ani, vec_a_ani, vec_b_ani, vec_t_ani, &
-               ten_p_ani, ten_a_ani, &
-               head_g, wh_g, wv_g, w_gamma, h_g_lm, sph_harms_g )
-!                   q0_sph, wt_q0_sph, &
-!                   qmax_q0)
-    write(fid_outgw,*) " - end_aniso: success"
-  endif
-
 end subroutine end_aniso
 
 
-subroutine calc_h_w_inv_ang_grid(iom)
-! calculate the head and wings of the inverse of dielectric matrix
+!subroutine calc_h_w_inv_ang_grid(iom)
+!! calculate the head and wings of the inverse of dielectric matrix
+!
+!  implicit none
+!  integer,intent(in) :: iom
+!  integer :: iang    ! Counter: runs over n_ang_grid
+!  integer :: im      ! Counter: runs over matsiz
+!  complex(8) :: ccoefcoul_g
+!
+!  complex(8),external :: ten_rvctrv
+!  external :: zgemm
+!
+!  ccoefcoul_g=cmplx(4.0D0*pi,0.0D0,8)
+!
+!  ! vertical wing
+!  call zgemm('n','n',n_ang_grid,matsiz,3,-sqrt(ccoefcoul_g), &
+!             cmplx(grid_vec,0.0D0,8),n_ang_grid, vec_a_ani(:,:,iom),3, &
+!             czero,wv_g(:,:,iom),n_ang_grid)
+!  ! horizontal wing
+!  call zgemm('n','n',n_ang_grid,matsiz,3,-sqrt(ccoefcoul_g), &
+!             cmplx(grid_vec,0.0D0,8),n_ang_grid, vec_b_ani(:,:,iom),3, &
+!             czero,wh_g(:,:,iom),n_ang_grid)   
+!
+!  do iang=1, n_ang_grid
+!  ! head
+!    head_g(iang,iom) = cone / &
+!     (cone+ccoefcoul_g*ten_rvctrv(3,ten_a_ani(:,:,iom),grid_vec(iang,:)))
+!  ! wings
+!    wv_g(iang,:,iom) = wv_g(iang,:,iom) * head_g(iang,iom)
+!    wh_g(iang,:,iom) = wh_g(iang,:,iom) * head_g(iang,iom)
+!  enddo
+!
+!end subroutine calc_h_w_inv_ang_grid
 
-  implicit none
-  integer,intent(in) :: iom
-  integer :: iang    ! Counter: runs over n_ang_grid
-  integer :: im      ! Counter: runs over matsiz
-  complex(8) :: ccoefcoul_g
 
-  complex(8),external :: ten_rvctrv
-  external :: zgemm
-
-  ccoefcoul_g=cmplx(4.0D0*pi,0.0D0,8)
-
-  ! vertical wing
-  call zgemm('n','n',n_ang_grid,matsiz,3,-sqrt(ccoefcoul_g), &
-             cmplx(grid_vec,0.0D0,8),n_ang_grid, vec_a_ani(:,:,iom),3, &
-             czero,wv_g(:,:,iom),n_ang_grid)
-  ! horizontal wing
-  call zgemm('n','n',n_ang_grid,matsiz,3,-sqrt(ccoefcoul_g), &
-             cmplx(grid_vec,0.0D0,8),n_ang_grid, vec_b_ani(:,:,iom),3, &
-             czero,wh_g(:,:,iom),n_ang_grid)   
-
-  do iang=1, n_ang_grid
-  ! head
-    head_g(iang,iom) = cone / &
-     (cone+ccoefcoul_g*ten_rvctrv(3,ten_a_ani(:,:,iom),grid_vec(iang,:)))
-  ! wings
-    wv_g(iang,:,iom) = wv_g(iang,:,iom) * head_g(iang,iom)
-    wh_g(iang,:,iom) = wh_g(iang,:,iom) * head_g(iang,iom)
-  enddo
-
-end subroutine calc_h_w_inv_ang_grid
-
-
-subroutine calc_h_w_inv_ang_grid_oo(at, iom)
+subroutine calc_h_w_inv_ang_grid(at, iom)
 ! calculate the head and wings of the inverse of dielectric matrix
 
   implicit none
@@ -372,35 +255,35 @@ subroutine calc_h_w_inv_ang_grid_oo(at, iom)
     at%wh_q0(iang,:,iom) = at%wh_q0(iang,:,iom) * at%head_q0(iang,iom)
   enddo
 
-end subroutine calc_h_w_inv_ang_grid_oo
+end subroutine calc_h_w_inv_ang_grid
 
 
-subroutine proj_head_on_ylm(iom)
+!subroutine proj_head_on_ylm(iom)
+!
+!  implicit none
+!  integer,intent(in) :: iom
+!  integer :: ilm     ! Counter: runs over lmgsq
+!  integer :: iang    ! Counter: runs over n_ang_grid
+!  complex(8) :: head_g_tmp
+!
+!  do ilm=1,lmgsq
+!    h_g_lm(ilm,iom)=cdot_over_ang('C',n_ang_grid,sph_harms_g(ilm,:),head_g(:,iom))
+!  enddo
+!
+!  ! check completeness of expansion
+!  write(fid_outdbg,"(A40,I3)") "Completeness of Ylm expansion of head_g, iom ", iom
+!  do iang=1,n_ang_grid
+!    write(fid_outdbg,"(I5,4F14.6)") iang, head_g(iang,iom), &
+!          cdot_over_lm('N',lmgsq,sph_harms_g(:,iang),h_g_lm(:,iom))/cmplx(ang_weight(iang),0.0D0,8)
+!  enddo
+!
+!  ! substract \sqrt{4\pi} for l=0,m=0 term to exclude bare Coulomb part
+!  h_g_lm(1,iom) = h_g_lm(1,iom) - cmplx(sqrt4pi,0.0D0,8)
+!
+!end subroutine proj_head_on_ylm
 
-  implicit none
-  integer,intent(in) :: iom
-  integer :: ilm     ! Counter: runs over lmgsq
-  integer :: iang    ! Counter: runs over n_ang_grid
-  complex(8) :: head_g_tmp
 
-  do ilm=1,lmgsq
-    h_g_lm(ilm,iom)=cdot_over_ang('C',n_ang_grid,sph_harms_g(ilm,:),head_g(:,iom))
-  enddo
-
-  ! check completeness of expansion
-  write(fid_outdbg,"(A40,I3)") "Completeness of Ylm expansion of head_g, iom ", iom
-  do iang=1,n_ang_grid
-    write(fid_outdbg,"(I5,4F14.6)") iang, head_g(iang,iom), &
-          cdot_over_lm('N',lmgsq,sph_harms_g(:,iang),h_g_lm(:,iom))/cmplx(ang_weight(iang),0.0D0,8)
-  enddo
-
-  ! substract \sqrt{4\pi} for l=0,m=0 term to exclude bare Coulomb part
-  h_g_lm(1,iom) = h_g_lm(1,iom) - cmplx(sqrt4pi,0.0D0,8)
-
-end subroutine proj_head_on_ylm
-
-
-subroutine proj_head_on_ylm_oo(at, iom)
+subroutine proj_head_on_ylm(at, iom)
 
   implicit none
   type(aniso_tensor), pointer :: at
@@ -413,7 +296,7 @@ subroutine proj_head_on_ylm_oo(at, iom)
   nang = at%nang
   nlm = at%lmgsq
 
-  do ilm=1,lmgsq
+  do ilm=1,nlm
     at%h_ylm_q0(ilm,iom)=cdot_over_ang('C',nang,at%ylm_q0(ilm,:),at%head_q0(:,iom))
   enddo
 
@@ -427,17 +310,20 @@ subroutine proj_head_on_ylm_oo(at, iom)
   ! substract \sqrt{4\pi} for l=0,m=0 term to exclude bare Coulomb part
   at%h_ylm_q0(1,iom) = at%h_ylm_q0(1,iom) - cmplx(sqrt4pi,0.0D0,8)
 
-end subroutine proj_head_on_ylm_oo
+end subroutine proj_head_on_ylm
       
 
 
-SUBROUTINE angint_eps_sph(iom, bodyinv, use_harm)
+!
+
+subroutine angint_eps_sph(at, iom, bodyinv, use_harm)
 ! calculate the anisotropic term in the body of the inverse of dielectric matrix
 ! by direct calculation, or by the use of spherical harmonics
 
   implicit none
+  type(aniso_tensor),pointer :: at
   integer,intent(in) :: iom  ! index of frequency
-  complex(8),intent(inout) :: bodyinv(matsiz,matsiz)
+  complex(8),intent(inout) :: bodyinv(at%msiz,at%msiz)
   logical :: use_harm        ! flag to use expansion on spherical harmonics
   ! the direct inverse of the body of the dielectric matrix
 !
@@ -464,9 +350,9 @@ SUBROUTINE angint_eps_sph(iom, bodyinv, use_harm)
   else
     ! TODO maybe need optimize
     do iang=1,n_ang_grid
-      cw = cmplx(w_gamma(iang)*ang_weight(iang),0.0D0,8)
-      do im=1,matsiz
-        do jm=1,matsiz
+      cw = cmplx(at%qmax3d3v(iang)*at%w_q0(iang),0.0D0,8)
+      do im=1,at%msiz
+        do jm=1,at%msiz
 !          bodyinv(im,jm) = bodyinv(im,jm) + &
 !              cw*wv_g(iang,im,iom)*wh_g(iang,jm,iom)/head_g(iang,iom)
         enddo
@@ -564,56 +450,10 @@ SUBROUTINE angint_eps_sph(iom, bodyinv, use_harm)
 !  wh = - wh *sqrt(4.0D0*pi)
 !
 !  deallocate(sph_harms, h_w, a_lm, b_lm, qmax_g_lm)
-!
 end subroutine angint_eps_sph
 
-
-subroutine angint_eps_sph_oo(at, iom, bodyinv, use_harm)
-! calculate the anisotropic term in the body of the inverse of dielectric matrix
-! by direct calculation, or by the use of spherical harmonics
-
-  implicit none
-  type(aniso_tensor),pointer :: at
-  integer,intent(in) :: iom  ! index of frequency
-  complex(8),intent(inout) :: bodyinv(at%msiz,at%msiz)
-  logical :: use_harm        ! flag to use expansion on spherical harmonics
-  ! the direct inverse of the body of the dielectric matrix
 !
-!  ! local variables
-  integer :: iang
-  complex(8) :: cw
-  integer :: im,jm             ! Counter: runs over matsiz
-!  complex :: head_tmp, bodyinv_tmp
-!  complex(8),allocatable :: a_lm(:,:),b_lm(:,:)
-!  complex(8),allocatable :: h_w(:)  ! head of invers, times w_gamma
-!  !complex(8),allocatable :: q_aob_q(:) 
-!  integer :: iq0               ! Counter: runs over nq0
-!  integer :: ilm,lm1,lm2,lm3   ! Counter: runs over lmgsq
-!  integer :: l1,l2,l3,m1,m2,m3 ! Counters: runs over angular moment
-!  integer :: i,j               ! Counters: Cartesian axis
-!  integer :: scheme_head = 2
-!  logical :: ldbg=.true.
-!  complex(8) :: ccoefcoul_q0, ten_aob_tmp(3,3)
-!
-  external ylm
-  complex(8),external :: zdotu,zdotc
-
-  if(use_harm)then
-  else
-    ! TODO maybe need optimize
-    do iang=1,n_ang_grid
-      cw = cmplx(at%qmax3d3v(iang)*at%w_q0(iang),0.0D0,8)
-      do im=1,at%msiz
-        do jm=1,at%msiz
-!          bodyinv(im,jm) = bodyinv(im,jm) + &
-!              cw*wv_g(iang,im,iom)*wh_g(iang,jm,iom)/head_g(iang,iom)
-        enddo
-      enddo
-    enddo
-  endif
-end subroutine angint_eps_sph_oo
-!
-subroutine aniso_calc_sing_q0_1_oo(at, iom, minm, singh, singw)
+subroutine aniso_calc_sing_q0_1(at, iom, minm, singh, singw)
 !
   implicit none
   type(aniso_tensor),pointer :: at
@@ -629,24 +469,24 @@ subroutine aniso_calc_sing_q0_1_oo(at, iom, minm, singh, singw)
   ! Contribution from wings
   singw=czero
 !
-end subroutine aniso_calc_sing_q0_1_oo
-
-subroutine aniso_calc_sing_q0_1(iom, minm, singh, singw)
-!
-  implicit none
-  integer,intent(in) :: iom
-  complex(8),intent(in) :: minm(matsiz)
-  complex(8),intent(out) :: singh, singw
-!
-  ! Contribution from head
-  ! Two equations below are equivalent, if the expansion of Ylm is complete
-  !singh=cdot_over_lm(lmgsq,'C',qmax_g_lm,h_g_lm(:,iom))/ctwopi
-  singh=cdot_over_ang('N',n_ang_grid,cmplx(qmax_gamma*ang_weight,0.0D0,8),head_g(:,iom)-cone)/ctwopi/cpi
-
-  ! Contribution from wings
-  singw=czero
-!
 end subroutine aniso_calc_sing_q0_1
+
+!subroutine aniso_calc_sing_q0_1(iom, minm, singh, singw)
+!!
+!  implicit none
+!  integer,intent(in) :: iom
+!  complex(8),intent(in) :: minm(matsiz)
+!  complex(8),intent(out) :: singh, singw
+!!
+!  ! Contribution from head
+!  ! Two equations below are equivalent, if the expansion of Ylm is complete
+!  !singh=cdot_over_lm(lmgsq,'C',qmax_g_lm,h_g_lm(:,iom))/ctwopi
+!  singh=cdot_over_ang('N',n_ang_grid,cmplx(qmax_gamma*ang_weight,0.0D0,8),head_g(:,iom)-cone)/ctwopi/cpi
+!
+!  ! Contribution from wings
+!  singw=czero
+!!
+!end subroutine aniso_calc_sing_q0_1
 
 !
 !  SUBROUTINE angint_invq2_dhead(iom, angint)

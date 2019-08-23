@@ -25,7 +25,7 @@
      &                       omega_plasma,eta_head 
       use struk,       only: vi
       use task,        only: fid_outgw, fid_outdbg, time_aniso
-      use anisotropy,  only: ten_p_ani,ten_a_ani,iop_aniso
+      use anisotropy,  only: iop_aniso, aniten
       use mixbasis,    only: matsiz
 
       implicit none
@@ -92,6 +92,7 @@
       head(iomfirst:iomlast) = cone 
 
       if(ldbg) call linmsg(6,'-',sname)
+      write(*,*) associated(aniten), allocated(aniten%ten_p), size(aniten%ten_p)
       do isp=1,nspin 
         nvbm = nomaxs(isp)
         ncbm = numins(isp) 
@@ -176,7 +177,7 @@
                   call cpu_time(time1)
                   do i=1,3
                     do j=1,3
-                      ten_p_ani(i,j,iom) = ten_p_ani(i,j,iom) + ccoef*&
+                      aniten%ten_p(i,j,iom) = aniten%ten_p(i,j,iom) + ccoef*&
      &                zdotu(nbmaxpol-ncbm+1,p_ani_iom_cv(i,j,:),1,vwc(:),1)
                     enddo
                   enddo
@@ -248,7 +249,7 @@
               call cpu_time(time1)
               do i=1,3
                 do j=1,3
-                  ten_p_ani(i,j,iom) = ten_p_ani(i,j,iom) + ccoef*&
+                  aniten%ten_p(i,j,iom) = aniten%ten_p(i,j,iom) + ccoef*&
      &                 zdotu(ie12max,p_ani_iom_vv(i,j,:),1,vwe(:),1)
 !                  do ie12=1,ie12max
 !                    ten_p_ani(i,j,iom)=ten_p_ani(i,j,iom) + &
@@ -284,7 +285,7 @@
         !  enddo
         !enddo
         ! include tensor P in tensor A, since A = -P + ... (see doc)
-        ten_a_ani = -ten_p_ani
+        aniten%ten_a = -aniten%ten_p
       endif
       
       if(ldbg) then

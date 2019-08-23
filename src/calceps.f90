@@ -32,11 +32,10 @@
       use task,        only: casename,time_lapack,l_save_dielmat, &
      &                       fid_outgw,fid_outdbg,time_aniso,time_eps
       use modmpi
-      use anisotropy,  only: ten_a_ani,ten_p_ani, &
-     &                       vec_a_ani,vec_b_ani,vec_t_ani,vec_u_ani,&
-     &                       iop_aniso,proj_head_on_ylm,head_g,      &
-     &                       calc_h_w_inv_ang_grid,n_ang_grid,       &
-     &                       angint_eps_sph,lmgsq,h_g_lm,wh_g,wv_g
+      use anisotropy,  only: aniten,iop_aniso,&
+     &                       proj_head_on_ylm,&
+     &                       calc_h_w_inv_ang_grid,      &
+     &                       angint_eps_sph
 
 ! !INPUT PARAMETERS:
       
@@ -86,7 +85,7 @@
 
       real(8),   allocatable :: enk(:)        !! local array for eigen-energies 
       complex(8),allocatable :: tmat(:,:),pm(:),wtmp(:),minm(:,:,:) 
-      complex(8), allocatable :: u_ani_iom(:,:),vec_u_tmp(:,:)
+      complex(8),allocatable :: u_ani_iom(:,:),vec_u_tmp(:,:)
 
       character(len=10),external:: int2str 
       real(8),external :: coul_coef
@@ -98,6 +97,7 @@
 !BOC
 
       if(ldbg) call linmsg(6,'-',sname)
+      write(*,*) "break 1"
       call cpu_time(tstart)
 
       if(lread) then 
@@ -132,6 +132,7 @@
       nomg = iom_l - iom_f + 1
      
       ! calculate q-dep. BZint weights
+      write(*,*) "before bz_calcqdepw"
       call bz_calcqdepw(iq)  
 
       time_aniso = 0.0D0
@@ -283,11 +284,12 @@
               if(iq.eq.1.and.iop_coul_c.eq.-1) then 
                 call zgemv('n',matsiz,nmdim,-coefks,tmat,matsiz,pm,1,czero,wtmp,1)
                 !call zgemv('n',matsiz,nmdim,coef,tmat,matsiz,pm,1,cone,epsw1(:,iom),1)
+                !write(*,*) "before first manipulation (L287)"
                 if(iop_aniso.ne.-1)then
                   call cpu_time(time3)
                   call zgemm('n','t',3,matsiz,nmdim,coefks,&
      &                 vec_u_tmp,3,tmat,matsiz,czero,u_ani_iom,3)
-                  vec_u_ani(:,:,iom)=vec_u_ani(:,:,iom)+u_ani_iom(:,:)
+                  aniten%vec_u(:,:,iom)=aniten%vec_u(:,:,iom)+u_ani_iom(:,:)
                   call cpu_time(time4)
                   time_aniso = time_aniso + time4 - time3
                 endif
@@ -306,11 +308,12 @@
                   call zgemv('n',matsiz,nmdim,-coefks,tmat,matsiz,pm,1,czero,wtmp,1)
                   !call zgemv('n',matsiz,nmdim,coefks,tmat,matsiz,pm,1,cone,epsw2(:,iom),1)
                 endif
+                !write(*,*) "before second manipulation (L311)"
                 if(iop_aniso.ne.-1)then
                   call cpu_time(time3)
                   call zgemm('n','t',3,matsiz,nmdim,coefks,&
      &                 vec_u_tmp,3,tmat,matsiz,czero,u_ani_iom,3)
-                  vec_t_ani(:,:,iom)=vec_t_ani(:,:,iom)+conjg(u_ani_iom)
+                  aniten%vec_t(:,:,iom)=aniten%vec_t(:,:,iom)+conjg(u_ani_iom)
                   call cpu_time(time4)
                   time_aniso = time_aniso + time4 - time3
                 endif
@@ -339,8 +342,8 @@
           ! TODO check if the mpi_sum_array works with vec_u_ani etc
           if(iop_aniso.ne.-1)then
             call cpu_time(time1)
-            call mpi_sum_array(0,vec_u_ani,3,matsiz,nomg,mycomm_ra3)
-            call mpi_sum_array(0,vec_t_ani,3,matsiz,nomg,mycomm_ra3)
+            call mpi_sum_array(0,aniten%vec_u,3,matsiz,nomg,mycomm_ra3)
+            call mpi_sum_array(0,aniten%vec_t,3,matsiz,nomg,mycomm_ra3)
             call cpu_time(time2)
             time_aniso = time_aniso + time2 - time1
           endif
@@ -365,9 +368,9 @@
               epsw1_tmp=epsw1(im,iom)
               epsw2_tmp=epsw2(im,iom)
               epsw1(im,iom) = - sqrt(ccoefcoul) * & 
-     &            sum(vec_u_ani(:,im,iom)*cmplx(q0_eps(:),0.0D0,8))
+     &            sum(aniten%vec_u(:,im,iom)*cmplx(q0_eps(:),0.0D0,8))
               epsw2(im,iom) = - sqrt(ccoefcoul) * & 
-     &            sum(vec_t_ani(:,im,iom)*cmplx(q0_eps(:),0.0D0,8))
+     &            sum(aniten%vec_t(:,im,iom)*cmplx(q0_eps(:),0.0D0,8))
               write(fid_outdbg, "(I3,I4,A2,4e13.5)") iom, im,'O',&
      &                            epsw1_tmp,epsw2_tmp
               write(fid_outdbg, "(I3,I4,A2,4e13.5)") iom, im,'N',&
@@ -414,13 +417,13 @@
      &                  mycomm_ra3,ierr)
             ! broadcast anistropy-related quantities among iq=1
             if(iop_aniso.ne.-1)then
-              call mpi_bcast(head_g,n_ang_grid*nomg,mpi_double_complex,0,&
+              call mpi_bcast(head_g,aniten%nang*nomg,mpi_double_complex,0,&
      &                    mycomm_ra3,ierr)
-              call mpi_bcast(h_g_lm,lmgsq*nomg,mpi_double_complex,0,&
+              call mpi_bcast(aniten%h_ylm_q0,aniten%lmgsq*nomg,mpi_double_complex,0,&
      &                    mycomm_ra3,ierr)
-              call mpi_bcast(wv_g,n_ang_grid*matsiz*nomg,mpi_double_complex,0,&
+              call mpi_bcast(aniten%wv_q0,aniten%nang*matsiz*nomg,mpi_double_complex,0,&
      &                    mycomm_ra3,ierr)
-              call mpi_bcast(wh_g,n_ang_grid*matsiz*nomg,mpi_double_complex,0,&
+              call mpi_bcast(aniten%wh_q0,aniten%nang*matsiz*nomg,mpi_double_complex,0,&
      &                    mycomm_ra3,ierr)
             endif
           endif
@@ -531,11 +534,11 @@
             call cpu_time(time3)
             ! calculate vector a and vector b
             call zgemm('n','t',3,matsiz,matsiz,-cone, &
-                       vec_u_ani(:,:,iom),3,eps(:,:,iom),matsiz, &
-                       czero, vec_a_ani(:,:,iom), 3, ierr)
+                       aniten%vec_u(:,:,iom),3,eps(:,:,iom),matsiz, &
+                       czero, aniten%vec_a(:,:,iom), 3, ierr)
             call zgemm('n','n',3,matsiz,matsiz,-cone, &
-                       vec_t_ani(:,:,iom),3,eps(:,:,iom),matsiz, &
-                       czero, vec_b_ani(:,:,iom), 3, ierr)
+                       aniten%vec_t(:,:,iom),3,eps(:,:,iom),matsiz, &
+                       czero, aniten%vec_b(:,:,iom), 3, ierr)
             call cpu_time(time4)
             time_aniso = time_aniso + time4 - time3
             call zgemv('n',matsiz,matsiz,cone,eps(:,:,iom),matsiz, &
@@ -546,8 +549,8 @@
             ! following two zgemm should give identical result
             call cpu_time(time3)
             call zgemm('n','t',3,3,matsiz,cone, &
-                       vec_t_ani(:,:,iom),3,vec_a_ani(:,:,iom),3, &
-                       cone, ten_a_ani(:,:,iom), 3, ierr)
+                       aniten%vec_t(:,:,iom),3,aniten%vec_a(:,:,iom),3, &
+                       cone, aniten%ten_a(:,:,iom), 3, ierr)
             !call zgemm('n','t',3,3,matsiz,cone, &
             !           vec_b_ani(:,:,iom),3,vec_u_ani(:,:,iom),3, &
             !           cone, ten_a_ani(:,:,iom), 3, ierr)
@@ -555,9 +558,9 @@
             !write(*,*) "ten_a_ani ZGEMM ierr = ",ierr
             call cpu_time(time4)
             time_aniso = time_aniso + time4 - time3
-            write(fid_outgw,"(I3,A10,6f12.3)") iom," tensor A ",ten_a_ani(1,:,iom)
-            write(fid_outgw,"(   A13,6f12.3)") " ",ten_a_ani(2,:,iom)
-            write(fid_outgw,"(   A13,6f12.3)") " ",ten_a_ani(3,:,iom)
+            write(fid_outgw,"(I3,A10,6f12.3)") iom," tensor A ",aniten%ten_a(1,:,iom)
+            write(fid_outgw,"(   A13,6f12.3)") " ",aniten%ten_a(2,:,iom)
+            write(fid_outgw,"(   A13,6f12.3)") " ",aniten%ten_a(3,:,iom)
           else
             call zgemv('n',matsiz,matsiz,cone,eps(:,:,iom),matsiz, &
      &               epsw1(:,iom),1,czero,bw1,1,ierr)
@@ -576,14 +579,14 @@
 
           if(iop_aniso.ne.-1)then
             call zgemv('T',3,matsiz,-head(iom)*sqrt(ccoefcoul),&
-     &          vec_a_ani(:,:,iom),3,cmplx(q0_eps,0.0D0,8),1,&
+     &          aniten%vec_a(:,:,iom),3,cmplx(q0_eps,0.0D0,8),1,&
      &          czero,epsw1(:,iom),1,ierr)
             call zgemv('T',3,matsiz,-head(iom)*sqrt(ccoefcoul),&
-     &          vec_b_ani(:,:,iom),3,cmplx(q0_eps,0.0D0,8),1,&
+     &          aniten%vec_b(:,:,iom),3,cmplx(q0_eps,0.0D0,8),1,&
      &          czero,epsw2(:,iom),1,ierr)
             call cpu_time(time3)
-            call calc_h_w_inv_ang_grid(iom)
-            call proj_head_on_ylm(iom)
+            call calc_h_w_inv_ang_grid(aniten, iom)
+            call proj_head_on_ylm(aniten, iom)
             call cpu_time(time4)
             time_aniso = time_aniso + time4 - time3
           else
@@ -600,7 +603,7 @@
 
           ! include anisotropic term in the body part
           if(iop_aniso.ne.-1)then
-            call angint_eps_sph(iom, eps(:,:,iom), .FALSE.)
+            call angint_eps_sph(aniten, iom, eps(:,:,iom), .FALSE.)
           endif
 
           if(ldbg) then
