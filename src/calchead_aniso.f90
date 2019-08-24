@@ -3,7 +3,7 @@
 ! !ROUTINE: calchead
 !
 ! !INTERFACE:
-      subroutine calchead(ikfirst,iklast,iomfirst,iomlast)
+      subroutine calchead_aniso(ikfirst,iklast,iomfirst,iomlast)
 
 !
 ! !DESCRIPTION: 
@@ -335,5 +335,5 @@
         enddo ! iom
       endif ! metallic.and.iop_drude.eq.1
 
-      end subroutine calchead
+      end subroutine calchead_aniso
 !EOC      

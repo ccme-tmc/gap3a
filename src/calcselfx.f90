@@ -108,8 +108,10 @@
      &           sx_a(ibgw:nbgw,nirkp),                 &
      &           sx_p(ibgw:nbgw,irk_f:irk_l),stat=ierr)
         call errmsg(ierr.ne.0,sname,"fail to allocate minm")
+        minm = czero
         sx_a = 0.d0 
-        sx_p = 0.d0 
+        sx_p = 0.d0
+        
 
         do irk=irk_f,irk_l 
           ik=idikp(irk)  

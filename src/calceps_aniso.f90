@@ -3,7 +3,7 @@
 ! !ROUTINE: calceps
 !
 ! !INTERFACE:
-      subroutine calceps(iq,iom_f,iom_l,isym,isc,iop,lread)
+      subroutine calceps_aniso(iq,iom_f,iom_l,isym,isc,iop,lread)
 
 ! !DESCRIPTION:
 !
@@ -131,7 +131,6 @@
       nomg = iom_l - iom_f + 1
      
       ! calculate q-dep. BZint weights
-      !write(*,*) "before bz_calcqdepw"
       call bz_calcqdepw(iq)  
 
       time_aniso = 0.0D0
@@ -147,7 +146,7 @@
         else
           call w2k_readmommat(1,nomax,numin,nbmaxpol)
         endif
-        call calchead(1,nirkp,iom_f,iom_l)
+        call calchead_aniso(1,nirkp,iom_f,iom_l)
       endif
         
       ! set the parallelization over k (within the row)
@@ -416,7 +415,7 @@
      &                  mycomm_ra3,ierr)
             ! broadcast anistropy-related quantities among iq=1
             if(iop_aniso.ne.-1)then
-              call mpi_bcast(aniten%head_q0,aniten%nang*nomg,mpi_double_complex,0,&
+              call mpi_bcast(head_g,aniten%nang*nomg,mpi_double_complex,0,&
      &                    mycomm_ra3,ierr)
               call mpi_bcast(aniten%h_ylm_q0,aniten%lmgsq*nomg,mpi_double_complex,0,&
      &                    mycomm_ra3,ierr)
@@ -557,7 +556,7 @@
             !write(*,*) "ten_a_ani ZGEMM ierr = ",ierr
             call cpu_time(time4)
             time_aniso = time_aniso + time4 - time3
-            write(fid_outgw,"(I3,A10,6f12.3)") iom," tensor A ",aniten%ten_a(1,:,iom) ! eps/=gw
+            write(fid_outgw,"(I3,A10,6f12.3)") iom," tensor A ",aniten%ten_a(1,:,iom)
             write(fid_outgw,"(   A13,6f12.3)") " ",aniten%ten_a(2,:,iom)
             write(fid_outgw,"(   A13,6f12.3)") " ",aniten%ten_a(3,:,iom)
           else
@@ -636,6 +635,6 @@
 
       end subroutine ! sub_calcinveps
 
-      end subroutine calceps
+      end subroutine calceps_aniso
 !EOC
 

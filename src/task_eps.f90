@@ -21,6 +21,8 @@
       use mixbasis,    only: init_mixbasis,end_mixbasis,matsiz
       use mommat,      only: init_mommat,end_mommat
       use task,        only: lrestart,casename,nmax_sc
+      use anisotropy,  only: aniten,init_aniso,end_aniso,iop_aniso,lmax_q0
+      use bzinteg,     only: n_ang_grid
       use modmpi 
       use liboct_parser
       
@@ -47,7 +49,7 @@
       integer :: iom,nom,iom_f,iom_l 
 
 ! !EXTERNAL ROUTINES: 
-      external calceps_new
+      !external calceps_new
       external coul_barc
 
 ! !INTRINSIC ROUTINES: 
@@ -99,10 +101,15 @@
           call coul_setev(iq,barcevtol,iop_coul_c)
 
           call init_dielmat(iq,iom_f,iom_l)  !! initialize
+          if(iop_aniso.ne.-1)then
+            call init_aniso(aniten,iq,matsiz,iom_f,iom_l,lmax_q0,n_ang_grid)
+          endif
+
 
           !Calculate the dielectric matrix
           call calceps(iq,iom_f,iom_l,0,-1,2,.false.)
     
+          if(iop_aniso.ne.-1) call end_aniso(iq,aniten)
           call end_dielmat(iq)
           call end_barcev
           call end_barcoul(iq)

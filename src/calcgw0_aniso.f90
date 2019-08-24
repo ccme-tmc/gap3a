@@ -3,7 +3,7 @@
 ! !ROUTINE: calcgw0
 !
 ! !INTERFACE:
-      subroutine calcgw0(isxc,iref)
+      subroutine calcgw0_aniso(isxc,iref)
       
 ! !DESCRIPTION:
 ! This subroutine performs "standard" G0W0 and GW0 calculatons, it can
@@ -210,35 +210,34 @@
           call coul_setev(iq,barcevtol,iop_coul_c)
           call init_dielmat(iq,1,nomeg)  !! initialize
           if(iop_aniso.ne.-1)then
-            !time_aniso = 0.0
-            !call cpu_time(time1)
-            !write(*,*) associated(aniten)
+            time_aniso = 0.0
+            call cpu_time(time1)
             call init_aniso(aniten,iq,matsiz,1,nomeg,lmax_q0,n_ang_grid)
-            !write(*,*) associated(aniten)
-            !call cpu_time(time2)
-            !time_aniso = time_aniso + time2 - time1
+            call cpu_time(time2)
+            time_aniso = time_aniso + time2 - time1
           endif
 
           if (iop_coul_c.eq.2)then
             !call calceps_2d(iq,1,nomeg,0,-1,2,lread_eps)
-            call calceps(iq,1,nomeg,0,-1,2,lread_eps)
+            call calceps_aniso(iq,1,nomeg,0,-1,2,lread_eps)
           else
-            call calceps(iq,1,nomeg,0,-1,2,lread_eps)
+            call calceps_aniso(iq,1,nomeg,0,-1,2,lread_eps)
           endif
-          stop
 
           if (iop_coul_c.eq.2)then
             !call calcselfc_2d(iq,iop_minm)
-            call calcselfc(iq,iop_minm)
+            call calcselfc_aniso(iq,iop_minm)
           else
-            call calcselfc(iq,iop_minm)
+            call calcselfc_aniso(iq,iop_minm)
           endif
 
           if(myrank_ra3.eq.0) then
             call io_sxcmn('w','d',iq,isxc,1,ierr)
           endif
 
-          if(iop_aniso.ne.-1) call end_aniso(iq,aniten)
+          if(iop_aniso.ne.-1)then
+            call end_aniso(iq,aniten)
+          endif
 
           call end_dielmat(iq)
           call end_barcev
@@ -266,9 +265,9 @@
           do iq=iq_f,iq_l
             if (iop_coul_c.eq.2)then
               !call calcselfc_2d(iq,iop_minm)
-              call calcselfc(iq,0)
+              call calcselfc_aniso(iq,0)
             else
-              call calcselfc(iq,0)
+              call calcselfc_aniso(iq,0)
             endif
           enddo
 
@@ -291,5 +290,5 @@
         return
         end subroutine 
       
-      end subroutine calcgw0
+      end subroutine calcgw0_aniso
 !EOC      

@@ -80,23 +80,23 @@ DOCTOT_FILE = ./doc/gwtot.tex
 MPIOBJS =  
 
 # files used by both sequential and parallel code 
-SP_OBJS = calcemac_nlf.o calceps.o \
-		  calcgw0.o calcscgw0.o calcescgw.o \
-          calcselfx.o calcselfc.o calc_mwm3.o calcselfcmn.o calcselfxmn.o \
+SP_OBJS = calcemac_nlf.o calceps.o calceps_aniso.o \
+		  calcgw0.o calcgw0_aniso.o calcscgw0.o calcescgw.o \
+          calcselfx.o calcselfc.o calcselfc_aniso.o calc_mwm3.o calcselfcmn.o calcselfxmn.o \
 		  coul_coef.o \
           io_cleanup.o io_initfiles.o io_sxcmn.o io_utils.o main.o \
           readingw.o calc_sxcmn.o calcselfcmn_mwm.o \
           scgw_check_conv.o scgw_set_restart.o scgw_update_bande.o \
           task_acfd.o task_crpa.o task_emac.o task_eps.o task_gw.o task_gwsc.o task_gw2wann.o task_mwm.o \
-		  task_aniso.o
+		  task_gw_aniso.o
 
 OBJS =  $(SP_OBJS) \
         bandanaly.o \
         bz_calcqdepw.o bz_setiksym.o bz_setkiw.o bz_setkmesh.o \
         calcecrpa.o calceffmass.o calceqp.o   \
-        calcexhf.o calcgcoef.o calchead.o calcjlam.o  calcloabc.o\
+        calcexhf.o calcgcoef.o calchead.o calchead_aniso.o calcjlam.o  calcloabc.o\
         calcmmatvv.o calcmmatcc.o calcmmatcv.o \
-        calcminm.o calcminc.o calcmicm.o calcmicc.o calcmommat.o  calcmwm.o \
+        calcminm.o calcminc.o calcmicm.o calcmicc.o calcmommat.o  calcmwm.o calcmwm_aniso.o\
         calcplasmon.o calcqpwf_dmat.o calcrwf.o  coul_calcsing.o      \
         calcvhmn.o  calcvorbnn.o calcudot.o calcu.o    \
         calc_spectfun_nk.o calc_spectfun.o \
