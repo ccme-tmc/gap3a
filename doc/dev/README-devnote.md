@@ -150,3 +150,9 @@
 1. Rewrite anisotropy part. Use derived type `aniso_tensor` to wrap anisotropy related
   quantities.
 
+## 2019-08-25 (zmy)
+1. Rewrite body correction of dielectric matrix inverse for anisotropy.
+  This correction is rather small. It seems that the long-range and short-range treatment
+  in Freysoldt2007, i.e. eq 20-25, is responsible for the fast convergence with respect to
+  Nkz, Fig. 1 and 2.
+

@@ -125,12 +125,12 @@
         allocate(wm(matsiz,mst:mend,ibgw:nbgw),stat=ierr)
         call errmsg(ierr.ne.0,sname,"fail to allocate wm")
 
-        write(fid_outdbg, *) "iop_coul = ", iop_coul
+        !write(fid_outdbg, *) "iop_coul = ", iop_coul
         call cpu_time(t1)
         do iom=iom_f,iom_l
-          write(fid_outdbg,"(A27)")"MWM Singu. Contrib. "
-          write(fid_outdbg,"(A6,I5,A6,I5)")"Freq=", iom, " irk=",irk
-          write(fid_outdbg,"(A6,I5,A6,I5)")"mst= ",mst," mend=",mend
+          !write(fid_outdbg,"(A27)")"MWM Singu. Contrib. "
+          !write(fid_outdbg,"(A6,I5,A6,I5)")"Freq=", iom, " irk=",irk
+          !write(fid_outdbg,"(A6,I5,A6,I5)")"mst= ",mst," mend=",mend
           call zhemm('l','u',matsiz,nmdim,cone,eps(:,:,iom),matsiz,  &
      &           minm,matsiz,czero,wm,matsiz)
           ! Note that ie1 are index of valence bands
@@ -142,8 +142,11 @@
      &          wm(:,ie2,ie1),1)
               if(iq.eq.1.and.iop_coul.eq.-1.and.ie1.eq.ie2-ncg_c) then
                 if(iop_aniso.ne.-1.and.iop_q0.eq.1)then
+                  term_singular_h = coefs2*head(iom)
+                !write(fid_outdbg,"(A15,4I4,2E15.6)")"Sing.(H)(iso):",iq,irk,iom,ie1,term_singular_h
                   call aniso_calc_sing_q0_1(aniten,iom,minm(:,ie2,ie1), &
-     &              term_singular_h, term_singular_w)
+                                            term_singular_h, term_singular_w)
+                !write(fid_outdbg,"(A15,4I4,2E15.6)")"Sing.(H)(ani):",iq,irk,iom,ie1,term_singular_h
                 else
                   term_singular_h = coefs2*head(iom)
                   term_singular_w = &
@@ -156,6 +159,7 @@
                   term_singular_w = czero
                 endif
 
+                !write(fid_outdbg,"(A10,4I4,2E15.6)") "Sing.(H):",iq,irk,iom,ie1,term_singular_h
                 accum_term_singular_h=accum_term_singular_h + &
                     term_singular_h
                 accum_term_singular_w=accum_term_singular_w + &
@@ -166,13 +170,13 @@
 !              write(*,"(A20,5I5,2E18.10)") "mwm iqirkome2e1 ", &
 !     &              iq,irk,iom,ie2,ie1,mwm(ie2,ie1,iom)
             enddo ! ie2
-            if(abs(accum_term_singular_h).ge.thres)then
-              write(fid_outdbg,"(A6,I5,A3,2E15.6)") " Band ",ie1," H ",&
-     &          accum_term_singular_h
-            endif
-            if(abs(accum_term_singular_w).ge.thres)then
-              write(fid_outdbg,"(A14,2E15.6)")" W ",accum_term_singular_w
-            endif
+            !if(abs(term_singular_h).ge.thres)then
+            !  write(fid_outdbg,"(A6,I5,A3,2E15.6)") " Band ",ie1," H ",&
+            !    term_singular_h
+            !endif
+            !if(abs(term_singular_w).ge.thres)then
+            !  write(fid_outdbg,"(A14,2E15.6)")" W ",term_singular_w
+            !endif
           enddo ! ie1
         enddo ! iom 
         call cpu_time(t2)

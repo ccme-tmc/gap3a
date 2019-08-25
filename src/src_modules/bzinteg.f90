@@ -88,6 +88,9 @@ subroutine init_bzinteg
     call set_singc_0
   elseif(iop_q0.eq.1)then
     call set_singc_1
+  else
+    write(fid_outgw,*) "Unknown iop_q0 option"
+    stop
   endif
 
   singc1ex = 0.0

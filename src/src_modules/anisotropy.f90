@@ -15,29 +15,30 @@ module anisotropy
 !
   type aniso_tensor
     ! handler for data to calculate dielectric anisotropy related properties
-    integer(4) :: sys_dim                    ! dimension of the system, 0D, 1D, 2D, 3D
-    integer(4) :: lmax                       ! maximum angular momentum to expand eps on q0
-    integer(4) :: lmgsq                      ! (lmax+1)^2
-    integer(4) :: nang                       ! number of angular grid points on unit sphere
-    integer(4) :: msiz                       ! size of dielectric matrix
-    real(8) :: vol_q0                        ! volume of the q0 region
-    complex(8),allocatable :: vec_u(:,:,:)   ! vector u
-    complex(8),allocatable :: vec_t(:,:,:)   ! vector t
-    complex(8),allocatable :: vec_a(:,:,:)   ! vector a
-    complex(8),allocatable :: vec_b(:,:,:)   ! vector b
-    complex(8),allocatable :: ten_p(:,:,:)   ! tensor P
-    complex(8),allocatable :: ten_a(:,:,:)   ! tensor A
-    real(8),allocatable    :: q0(:,:)        ! Y_lm at q0
-    real(8),allocatable    :: w_q0(:)        ! weight
-    real(8),allocatable    :: qmax_q0(:)     ! qmax along angle q0
-    real(8),allocatable    :: qmax3d3v(:)    ! qmax^3/3vol_q0
-    complex(8),allocatable :: head_q0(:,:)   ! the head (n_ang_grid,nomega) of eps^-1 at q0
-    complex(8),allocatable :: wv_q0(:,:,:)   ! vertical wing of eps^-1 at q0
-    complex(8),allocatable :: wh_q0(:,:,:)   ! horizontal wing of eps^-1 at q0
-    complex(8),allocatable :: ylm_q0(:,:)    ! Y_lm at q0
-    complex(8),allocatable :: h_ylm_q0(:,:)  ! projection of head_q0 on Y_lm
-    complex(8),allocatable :: qmax_ylm_q0(:) ! projection of qmax_q0 on Y_lm
-    real(8)                :: norm           ! normalization factor to vol_q0
+    integer(4) :: sys_dim                     ! dimension of the system, 0D, 1D, 2D, 3D
+    integer(4) :: lmax                        ! maximum angular momentum to expand eps on q0
+    integer(4) :: lmgsq                       ! (lmax+1)^2
+    integer(4) :: nang                        ! number of angular grid points on unit sphere
+    integer(4) :: msiz                        ! size of dielectric matrix
+    real(8) :: vol_q0                         ! volume of the q0 region
+    complex(8),allocatable :: vec_u(:,:,:)    ! vector u
+    complex(8),allocatable :: vec_t(:,:,:)    ! vector t
+    complex(8),allocatable :: vec_a(:,:,:)    ! vector a
+    complex(8),allocatable :: vec_b(:,:,:)    ! vector b
+    complex(8),allocatable :: ten_p(:,:,:)    ! tensor P
+    complex(8),allocatable :: ten_a(:,:,:)    ! tensor A
+    real(8),allocatable    :: q0(:,:)         ! Y_lm at q0
+    real(8),allocatable    :: w_q0(:)         ! weight
+    real(8),allocatable    :: qmax_q0(:)      ! qmax along angle q0
+    real(8),allocatable    :: qmax3d3v(:)     ! qmax^3/3vol_q0
+    complex(8),allocatable :: head_q0(:,:)    ! the head (n_ang_grid,nomega) of eps^-1 at q0
+    complex(8),allocatable :: wv_q0(:,:,:)    ! vertical wing of eps^-1 at q0
+    complex(8),allocatable :: wh_q0(:,:,:)    ! horizontal wing of eps^-1 at q0
+    complex(8),allocatable :: ylm_q0(:,:)     ! Y_lm at q0
+    complex(8),allocatable :: h_ylm(:,:)      ! projection of head_q0 on Y_lm
+    complex(8),allocatable :: qmax_ylm(:)     ! projection of qmax_q0 on Y_lm
+    complex(8),allocatable :: hq3d3v_ylm(:,:) ! projection of head_q0*qmax3d3v on Y_lm
+    real(8)                :: norm            ! normalization factor to vol_q0
   end type aniso_tensor
 !
 ! !Public variables
@@ -70,11 +71,13 @@ subroutine init_aniso(at, iq, msiz, iomfirst, iomlast, lmaxq0, nang)
   integer(4) :: ierr
   integer(4) :: iang ! counter over nang
   integer(4) :: ilm  ! counter over (lmaxq0+1)^2
+  real(8)    :: qmax_int
 !
 ! !External routines
 !
   external linmsg, ylm
-  complex(8), external :: zdotu, zdotc
+  complex(8),external :: zdotu, zdotc
+  real(8),external :: ddot
 !
 ! !Revision history
 ! 
@@ -105,9 +108,10 @@ subroutine init_aniso(at, iq, msiz, iomfirst, iomlast, lmaxq0, nang)
              at%head_q0(at%nang,iomfirst:iomlast),    &
              at%wv_q0(at%nang,msiz,iomfirst:iomlast), &
              at%wh_q0(at%nang,msiz,iomfirst:iomlast), &
-             at%ylm_q0(at%lmgsq,at%nang),                &
-             at%h_ylm_q0(at%lmgsq,iomfirst:iomlast),     &
-             at%qmax_ylm_q0(at%lmgsq),                   &
+             at%ylm_q0(at%lmgsq,at%nang),             &
+             at%h_ylm(at%lmgsq,iomfirst:iomlast),     &
+             at%hq3d3v_ylm(at%lmgsq,iomfirst:iomlast),&
+             at%qmax_ylm(at%lmgsq),                   &
              stat=ierr)
     if(ierr.ne.0) then
       write(fid_outgw,*) " - fail to allocate aniso_tensor object"
@@ -117,6 +121,7 @@ subroutine init_aniso(at, iq, msiz, iomfirst, iomlast, lmaxq0, nang)
     endif
     write(fid_outgw,*) " - initializing angular grid"
     write(fid_outgw,*) " - frequency range: ", iomfirst, iomlast
+    write(fid_outgw,*) " - # of grid points: ", at%nang
     at%q0(:,1) = xleb(:)
     at%q0(:,2) = yleb(:)
     at%q0(:,3) = zleb(:)
@@ -124,6 +129,10 @@ subroutine init_aniso(at, iq, msiz, iomfirst, iomlast, lmaxq0, nang)
     call unset_lebedev_laikov_grid
     write(fid_outgw,*) " - computing qmax"
     call set_qmax_gamma(at%nang, at%q0, at%qmax_q0, at%vol_q0)
+    write(fid_outgw,*) " - volume of q0: ", at%vol_q0
+    qmax_int = ddot(at%nang,at%w_q0,1,at%qmax_q0,1)
+    write(fid_outgw,*) " - qmax integration / q0_vol: ", qmax_int/at%vol_q0
+    write(fid_outgw,*) "   (note: should equal to sing2ex*nkpt with iop_q0=1)"
     at%ten_p = czero
     at%ten_a = czero
     at%vec_u = czero
@@ -139,32 +148,31 @@ subroutine init_aniso(at, iq, msiz, iomfirst, iomlast, lmaxq0, nang)
     ! initialize spherical harmonics and projection of qmax_gamma
     write(fid_outgw,*) " - computing Y_lm"
     do iang=1,at%nang
-      write(fid_aniso,"(A4,I5,A2,4f10.6)") "Ang ",iang,": ", at%q0(iang,:), at%w_q0(iang)
+      write(fid_aniso,"(A4,I5,A2,5f10.6)") "Ang ",iang,": ",at%q0(iang,:),at%w_q0(iang),at%qmax_q0(iang)
       call ylm(at%q0(iang,:),at%lmax,at%ylm_q0(:,iang))
-      ! include the weight of angular grid in sph_harms
-      do ilm=1,at%lmgsq
-        write(fid_aniso, "(2I6,2f10.6)") iang, ilm, at%ylm_q0(ilm,iang)
-        at%ylm_q0(ilm,iang)=at%ylm_q0(ilm,iang)*cmplx(at%w_q0(iang),0.0D0,8)
-        enddo
+      !do ilm=1,at%lmgsq
+      !  write(fid_aniso, "(2I6,2f10.6)") iang, ilm, at%ylm_q0(ilm,iang)
+      !  !include the weight of angular grid in sph_harms
+      !  !at%ylm_q0(ilm,iang)=at%ylm_q0(ilm,iang)*cmplx(at%w_q0(iang),0.0D0,8)
+      !enddo
     enddo
 
-    !write(*,"(A25,F12.5)") "Summation of weight/4pi",sum(ang_weight)/4.0D0/pi
+    write(fid_outgw,*) " - Summation of q0 weights/4pi = ",sum(at%w_q0)/4.0d0/pi
     write(fid_outgw,*) " - computing qmax projection on Y_lm"
     do ilm=1,at%lmgsq
-      at%qmax_ylm_q0(ilm)=zdotc(at%nang, at%ylm_q0(ilm,:),1,cmplx(at%qmax_q0(:),0.0D0,8),1)
-      if(myrank_ra3.eq.0) write(fid_aniso,"(I4,3F13.5)") ilm, at%qmax_ylm_q0(ilm)
+      at%qmax_ylm(ilm)=zdotc(at%nang, at%ylm_q0(ilm,:)*cmplx(at%w_q0(:),0.0D0,8),1,&
+                                cmplx(at%qmax_q0(:),0.0D0,8),1)
+      !if(myrank_ra3.eq.0) write(fid_aniso,"(I4,2F13.5)") ilm,at%qmax_ylm(ilm)
     enddo
-
     ! check completeness of expansion of qmax
-    ! TODO fail to output to fid_outdbg for gap3a-mpi
-    ! expansion of qmax is not as accurate as eps
-    write(fid_outgw,*) " - check completeness of qmax projection on Y_lm (see aniso debug)"
-    if(myrank_ra3.eq.0)then
-      do iang=1,n_ang_grid
-        write(fid_aniso,"(A4,I6,3F13.6)") "Ang ", iang, at%qmax_q0(iang),&
-              zdotu(at%lmgsq,at%ylm_q0(:,iang),1,at%qmax_ylm_q0,1)/cmplx(at%w_q0(iang),0.0D0,8)
-      enddo
-    endif
+    !! expansion of qmax is not as accurate as eps
+    !write(fid_outgw,*) " - check completeness of qmax projection on Y_lm (see aniso debug)"
+    !if(myrank_ra3.eq.0)then
+    !  do iang=1,n_ang_grid
+    !    write(fid_aniso,"(A4,I6,3F13.6)") "Ang ", iang, at%qmax_q0(iang),&
+    !          zdotu(at%lmgsq,at%ylm_q0(:,iang),1,at%qmax_ylm,1)
+    !  enddo
+    !endif
   endif ! iq.eq.1
   call linmsg(fid_outgw,'-', "end init_aniso")
 end subroutine init_aniso
@@ -175,7 +183,7 @@ subroutine end_aniso(iq, at)
   if(iq.eq.1) then
     deallocate(at%vec_u,at%vec_t,at%vec_a,at%vec_b,at%ten_p,at%ten_a,&
                at%q0,at%w_q0,at%qmax_q0,at%qmax3d3v,at%head_q0,at%wv_q0,&
-               at%wh_q0,at%ylm_q0,at%h_ylm_q0,at%qmax_ylm_q0)
+               at%wh_q0,at%ylm_q0,at%h_ylm,at%qmax_ylm,at%hq3d3v_ylm)
   endif
   deallocate(at)
   nullify(at)
@@ -239,18 +247,22 @@ subroutine proj_head_on_ylm(at, iom)
   nlm = at%lmgsq
 
   do ilm=1,nlm
-    at%h_ylm_q0(ilm,iom)=zdotc(nang,at%ylm_q0(ilm,:),1,at%head_q0(:,iom),1)
+    at%h_ylm(ilm,iom)=zdotc(nang,at%ylm_q0(ilm,:)*cmplx(at%w_q0(:),0.0D0,8),1,&
+                               at%head_q0(:,iom),1)
+    at%hq3d3v_ylm(ilm,iom)=zdotc(nang,at%ylm_q0(ilm,:)*cmplx(at%w_q0(:),0.0D0,8),1,&
+                               at%head_q0(:,iom)*cmplx(at%qmax3d3v(:),0.0D0,8),1)
   enddo
 
   ! check completeness of expansion
-  write(fid_outdbg,"(A40,I3)") "Completeness of Ylm expansion of head_g, iom ", iom
+  write(fid_aniso,"(A45,I3)") "#completeness of Ylm expa. of head_q0, iom=", iom
+  write(fid_aniso,"(A5,4A14)") "#iang","Re","Im","Re(ylm)","Im(ylm)"
   do iang=1,nang
-    write(fid_outdbg,"(I5,4F14.6)") iang, at%head_q0(iang,iom), &
-          zdotu(nlm,at%ylm_q0(:,iang),1,at%h_ylm_q0(:,iom),1)/cmplx(at%w_q0(iang),0.0D0,8)
+    write(fid_aniso,"(I5,4F14.6)") iang, at%head_q0(iang,iom), &
+          zdotu(nlm,at%ylm_q0(:,iang),1,at%h_ylm(:,iom),1)
   enddo
 
   ! substract \sqrt{4\pi} for l=0,m=0 term to exclude bare Coulomb part
-  at%h_ylm_q0(1,iom) = at%h_ylm_q0(1,iom) - cmplx(sqrt4pi,0.0D0,8)
+  !at%h_ylm(1,iom) = at%h_ylm(1,iom) - cmplx(sqrt4pi,0.0D0,8)
 
 end subroutine proj_head_on_ylm
 
@@ -262,18 +274,19 @@ subroutine angint_eps_sph(at, iom, bodyinv, use_harm)
 
   implicit none
   type(aniso_tensor),pointer :: at
-  integer,intent(in) :: iom  ! index of frequency
-  complex(8),intent(inout) :: bodyinv(at%msiz,at%msiz)
-  logical :: use_harm        ! flag to use expansion on spherical harmonics
+  integer,intent(in)         :: iom  ! index of frequency
+  complex(8),intent(inout)   :: bodyinv(at%msiz,at%msiz)
+  logical,intent(in)         :: use_harm        ! flag to use expansion on spherical harmonics
   ! the direct inverse of the body of the dielectric matrix
 !
-!  ! local variables
+! !Local variables
   integer(4) :: iang
   integer(4) :: nang
   integer(4) :: msiz
   complex(8) :: cw
   integer :: im,jm             ! Counter: runs over matsiz
 !  complex :: head_tmp, bodyinv_tmp
+  complex(8),allocatable :: bodyinv_tmp(:,:), wq3w1(:,:),w2dh(:,:)
 !  complex(8),allocatable :: a_lm(:,:),b_lm(:,:)
 !  complex(8),allocatable :: h_w(:)  ! head of invers, times w_gamma
 !  !complex(8),allocatable :: q_aob_q(:) 
@@ -287,21 +300,24 @@ subroutine angint_eps_sph(at, iom, bodyinv, use_harm)
 !
   external ylm
   complex(8),external :: zdotu,zdotc
+  external :: zgemm
 
   nang = at%nang
   msiz = at%msiz
 
   if(.not.use_harm)then
-    ! TODO maybe need optimize
-    do iang=1,nang
-      cw = cmplx(at%qmax3d3v(iang)*at%w_q0(iang),0.0D0,8)
-      do im=1,msiz
-        do jm=1,msiz
-!          bodyinv(im,jm) = bodyinv(im,jm) + &
-!              cw*wv_g(iang,im,iom)*wh_g(iang,jm,iom)/head_g(iang,iom)
-        enddo
+    allocate(bodyinv_tmp(msiz,msiz), wq3w1(msiz,nang), w2dh(nang,msiz))
+    do im=1, msiz
+      wq3w1(im,:) = cmplx(at%w_q0*at%qmax3d3v,0.0d0,8) * at%wv_q0(:,im,iom)
+      w2dh(:,im) = at%wh_q0(:,im,iom)/at%head_q0(:,iom)
+    enddo
+    call zgemm('n','n',msiz,msiz,nang,cone,wq3w1,msiz,w2dh,nang,czero,bodyinv_tmp,msiz)
+    do im=1,msiz
+      do jm=1,msiz
+        bodyinv(im,jm) = bodyinv(im,jm) + bodyinv_tmp(im,jm)
       enddo
     enddo
+    deallocate(bodyinv_tmp,wq3w1,w2dh)
   endif
 !
 !  h_w(:) = head_g(:,iomega)*w_q0(:)
