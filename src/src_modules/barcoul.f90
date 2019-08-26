@@ -355,6 +355,33 @@
       neta=dsqrt(2.0d0*mlr/mlg)
       end function calceta
 
+      function calceta_2d() result(neta)
+! This function calculates the optimal value of $\eta $ for the lattice
+! summations needed to obtain the structure constants.
+      implicit none
+
+      integer(4) :: i
+      real(8) :: mlg
+      real(8) :: mlr
+      real(8) :: neta
+      real(8), dimension (3)   :: lgbs
+      real(8), dimension (3)   :: lrbs
+      intrinsic dsqrt
+      intrinsic minval
+      intrinsic isign
+      do i=1,3
+        lrbs(i)=dsqrt(rbas(i,1)*rbas(i,1)+rbas(i,2)*rbas(i,2)+&
+     &          rbas(i,3)*rbas(i,3))
+        lgbs(i)=dsqrt(br2(1,i)*br2(1,i)+br2(2,i)*br2(2,i)+&
+     &         br2(3,i)*br2(3,i))
+      enddo
+      lrbs(axis_cut_coul) = 1.0d10
+      lgbs(axis_cut_coul) = 1.0d10
+      mlr=minval(lrbs)
+      mlg=minval(lgbs)
+      neta=dsqrt(2.0d0*mlr/mlg)
+      end function calceta_2d
+
       function rcutoff(tol,eta,lambdamax) result(rcf)
 !  Estimates the cutoff radius of the sums in real space for the
 ! calculation of the structure constants by the solving the equation:
@@ -446,20 +473,26 @@
       real(8) :: rcf ! The maximum cutoff radius
 
       integer(4) :: l1
-      integer(4) :: i
+      integer(4) :: i, iz, ia, ib
       real(8) :: rl
+      real(8) :: a1a2            ! dot product of two periodic basis vector
       real(8) :: x               ! Rc/eta
       real(8) :: gmm
       real(8), allocatable :: eps(:)
       real(8) :: rnot
-      real(8) :: gaml12
-      real(8) :: gaml32
+      real(8) :: gaml1
+      real(8) :: gaml2
       real(8) :: prefac
       real(8), allocatable :: rct(:)
       real(8), external :: higam
 
       allocate(rct(lambdamax+1))
       allocate(eps(lambdamax+1))
+      iz = mod(axis_cut_coul+2,3)
+      ia = mod(iz+1,3)+1
+      ib = mod(iz+2,3)+1
+      a1a2=rbas(ia,1)*rbas(ib,1)+rbas(ia,2)*rbas(ib,2)+rbas(ia,3)*rbas(ib,3)
+
       rnot=maxval(alat)
       rct = 5.0d+1
       do i=1,100
@@ -467,20 +500,20 @@
         do l1=0,lambdamax
           if(l1.ne.1)then
             rl =5.0d-1*dble(l1+2)
-            gaml32=incgam(rl,x*x)
+            gaml1=incgam(rl,x*x)
             rl = dble(l1)+5.0d-1
-            gaml12=incgam(rl,x*x)
+            gaml2=incgam(rl,x*x)
             gmm = higam(l1)
-            prefac = 2.0d0*pi*vi/gmm/dble(1-l1)
-            eps(l1+1)=dabs(prefac*(gaml32-gaml12/(x**(l1-1)))/        &
+            prefac = 2.0d0*pi/a1a2/gmm/dble(1-l1)
+            eps(l1+1)=dabs(prefac*(gaml1-gaml2/(x**(l1-1)))/        &
      &              (eta**(l1-1)))
             if((eps(l1+1).lt.tol).and.(x.lt.rct(l1+1)))rct(l1+1)=x
           else
-            gaml32=incgam(2.0d0,x*x)
-            gaml12=incgam(1.5d0,x*x)
+            gaml1=incgam(2.0d0,x*x)
+            gaml2=incgam(1.5d0,x*x)
             gmm = higam(1)
-            prefac = 2.0d0*pi*vi/gmm
-            eps(l1+1)= dabs(prefac*(gaml32/x-gaml12))
+            prefac = 2.0d0*pi/a1a2/gmm
+            eps(l1+1)= dabs(prefac*(gaml1/x-gaml2))
             if((eps(l1+1).lt.tol).and.(x.lt.rct(l1+1)))rct(l1+1)=x
           endif
         enddo ! l1
@@ -563,6 +596,8 @@
 
       integer(4) :: l1
       integer(4) :: i
+      integer(4) :: iz,ia,ib
+
 
       real(8) :: gaml32
       real(8) :: gmm
@@ -570,9 +605,15 @@
       real(8) :: rl
       real(8) :: rnot
       real(8) :: x
+      real(8) :: b1b2    ! dot product of two periodic reciprocal basis
       real(8), allocatable :: eps(:)
       real(8), allocatable :: rct(:)
       real(8), external :: higam
+
+      iz=mod(axis_cut_coul+2,3)
+      ia=mod(iz+1,3)+1
+      ib=mod(iz+2,3)+1
+      b1b2=br2(1,ia)*br2(1,ib)+br2(2,ia)*br2(2,ib)+br2(3,ia)*br2(3,ib)
 
       allocate(rct(lambdamax+1))
       allocate(eps(lambdamax+1))
@@ -584,7 +625,7 @@
           rl =5.0d-1*dble(l1)
           gaml32=incgam(rl,x*x)
           gmm = higam(l1)
-          prefac = dsqrt(pi)/(gmm*eta**l1)
+          prefac = 4.0d0*pi*pi*dsqrt(pi)*vi/b1b2/(gmm*eta**l1)
           eps(l1+1)=dabs(prefac*gaml32)
           if((eps(l1+1).lt.tol).and.(x.lt.rct(l1+1)))rct(l1+1)=x
         enddo ! l1
