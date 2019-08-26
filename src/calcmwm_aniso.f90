@@ -120,6 +120,7 @@
         coefs1=singc1co*sqrt(fourpi*vi)
         ! N_c = nqp
         wkq = dble(weightq(iq))/dble(nqp)
+        if(lprt) write(*,*) irk, iq, dble(weightq(iq)), wkq
   
         nmdim = nbandsgw*(mend-mst+1) 
         allocate(wm(matsiz,mst:mend,ibgw:nbgw),stat=ierr)

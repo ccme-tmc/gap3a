@@ -432,6 +432,65 @@
       deallocate(eps)
       end function rcutoff
 
+      function rcutoff_2d(tol,eta,lambdamax) result(rcf)
+! similar to rcutoff, but for 2D system
+! 
+! !USES:
+      
+      
+      implicit none
+      real(8),    intent(in) :: tol ! The tolerance for the convergence of the lattice sum
+      real(8),    intent(in) :: eta 
+      integer(4), intent(in) :: lambdamax
+
+      real(8) :: rcf ! The maximum cutoff radius
+
+      integer(4) :: l1
+      integer(4) :: i
+      real(8) :: rl
+      real(8) :: x               ! Rc/eta
+      real(8) :: gmm
+      real(8), allocatable :: eps(:)
+      real(8) :: rnot
+      real(8) :: gaml12
+      real(8) :: gaml32
+      real(8) :: prefac
+      real(8), allocatable :: rct(:)
+      real(8), external :: higam
+
+      allocate(rct(lambdamax+1))
+      allocate(eps(lambdamax+1))
+      rnot=maxval(alat)
+      rct = 5.0d+1
+      do i=1,100
+        x = 5.0d-1*dble(i)
+        do l1=0,lambdamax
+          if(l1.ne.1)then
+            rl =5.0d-1*dble(l1+2)
+            gaml32=incgam(rl,x*x)
+            rl = dble(l1)+5.0d-1
+            gaml12=incgam(rl,x*x)
+            gmm = higam(l1)
+            prefac = 2.0d0*pi*vi/gmm/dble(1-l1)
+            eps(l1+1)=dabs(prefac*(gaml32-gaml12/(x**(l1-1)))/        &
+     &              (eta**(l1-1)))
+            if((eps(l1+1).lt.tol).and.(x.lt.rct(l1+1)))rct(l1+1)=x
+          else
+            gaml32=incgam(2.0d0,x*x)
+            gaml12=incgam(1.5d0,x*x)
+            gmm = higam(1)
+            prefac = 2.0d0*pi*vi/gmm
+            eps(l1+1)= dabs(prefac*(gaml32/x-gaml12))
+            if((eps(l1+1).lt.tol).and.(x.lt.rct(l1+1)))rct(l1+1)=x
+          endif
+        enddo ! l1
+      enddo ! i
+      rcf=maxval(rct)*eta
+      
+      deallocate(rct)
+      deallocate(eps)
+      end function rcutoff_2d
+
       function gcutoff(tol,eta,lambdamax) result(rcf)
 !  Estimates the cutoff radius of the sums in reciprocal space for the
 !  calculation of the structure constants by the solving the equation:
@@ -488,6 +547,52 @@
       deallocate(rct)
       deallocate(eps)
       end function gcutoff
+
+      function gcutoff_2d(tol,eta,lambdamax) result(rcf)
+!  similar to gcutoff, but for 2d system
+
+! !INPUT PARAMETERS:
+
+      implicit none
+
+      real(8),    intent(in) :: tol ! The tolerance for the convergence of the lattice sum
+      real(8),    intent(in) :: eta 
+      integer(4), intent(in) :: lambdamax
+
+      real(8) :: rcf ! The maximum cutoff radius
+
+      integer(4) :: l1
+      integer(4) :: i
+
+      real(8) :: gaml32
+      real(8) :: gmm
+      real(8) :: prefac
+      real(8) :: rl
+      real(8) :: rnot
+      real(8) :: x
+      real(8), allocatable :: eps(:)
+      real(8), allocatable :: rct(:)
+      real(8), external :: higam
+
+      allocate(rct(lambdamax+1))
+      allocate(eps(lambdamax+1))
+      rnot=maxval(pia)
+      rct(:) = 5.0d+1
+      do i=1,100
+        x = 5.0d-1*dble(i)
+        do l1=0,lambdamax
+          rl =5.0d-1*dble(l1)
+          gaml32=incgam(rl,x*x)
+          gmm = higam(l1)
+          prefac = dsqrt(pi)/(gmm*eta**l1)
+          eps(l1+1)=dabs(prefac*gaml32)
+          if((eps(l1+1).lt.tol).and.(x.lt.rct(l1+1)))rct(l1+1)=x
+        enddo ! l1
+      enddo ! i
+      rcf=maxval(rct)*2.0d0/eta
+      deallocate(rct)
+      deallocate(eps)
+      end function gcutoff_2d
 
       recursive function gammaincc_int(n,x) result(gmi)
       implicit none
