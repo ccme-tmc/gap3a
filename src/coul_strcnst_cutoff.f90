@@ -117,6 +117,9 @@
           stmp2=czero
 
           !! Calculate the sum over the real space lattice
+          !! gammaor = Gamma(l+0.5,(rleng/eta)**2)/rleng**(l+1)
+          !! the incomplete Gamma function for l is calculated
+          !! by reusing gammaor for l-1
           do i1=1,np
             rpaa(1:3)=rstr(1:3,i1)
             rleng=rstr(4,i1)
@@ -186,6 +189,7 @@
             enddo
           enddo
 
+          !! TODO why only the L=M=L'=M'=0 term?
           if(idf.eq.jdf) sgm(1,ijdf)=sgm(1,ijdf)-1.0d0/(eta*pi)
 
         enddo ! jdf
