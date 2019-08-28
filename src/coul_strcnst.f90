@@ -91,6 +91,7 @@
 
       call k2cart(qlist(1:3,iq),idvq,qtemp)
       qvec(1:3)=-1.0d0*qtemp(1:3)
+      write(fid_outdbg,*) qtemp(1:3)
 
       do idf=1,ndf
         do jdf=idf,ndf
@@ -142,6 +143,11 @@
           !! calculate the vectors for the sum in reciprocal space
           qtemp(1:3)=-1.0d0*qvec(1:3)
           call genrstr(gcf,qtemp,br2,ng)
+          if(ldbg) then
+            do i1=1,ng
+              write(fid_outdbg,"(2I5,4E16.8)") idf, jdf, rstr(1:4,i1)
+            end do
+          endif
 
           !! Calculate the reciprocal lattice sum
           pref=4.0d0*pi*dsqrt(pi)*vi

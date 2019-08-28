@@ -276,7 +276,7 @@
       deallocate(mat2,jlam,rtlij,sph,vtemp)
 
 !
-!     Calculation of the matrix elements between two IPW's}
+!     Calculation of the matrix elements between two IPW's
 !
       allocate(mat1(1:ngq(iq),1:ngqbarc(iq)), &
      &         mat2(1:ngq(iq),1:ngq(iq)), &

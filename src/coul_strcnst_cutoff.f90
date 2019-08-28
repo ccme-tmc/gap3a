@@ -151,6 +151,7 @@
           pref=4.0d0*pi*dsqrt(pi)*vi
           do i1=1,ng
             gqv(1:3)=rstr(1:3,i1)
+            !! ? is G=0 always included
             g(1:3)=gqv(1:3)-qtemp(1:3)
             gleng=rstr(4,i1)
 
@@ -189,7 +190,6 @@
             enddo
           enddo
 
-          !! TODO why only the L=M=L'=M'=0 term?
           if(idf.eq.jdf) sgm(1,ijdf)=sgm(1,ijdf)-1.0d0/(eta*pi)
 
         enddo ! jdf
