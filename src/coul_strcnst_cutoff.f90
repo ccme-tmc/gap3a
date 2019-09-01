@@ -146,6 +146,7 @@
           !! calculate the vectors for the sum in reciprocal space
           qtemp(1:3)=-1.0d0*qvec(1:3)
           call genrstr(icutoff,gcf,qtemp,br2,ng)
+          write(fid_outdbg,*) "#iq=", iq, " ng=",ng
 
           !! Calculate the reciprocal lattice sum
           pref=4.0d0*pi*dsqrt(pi)*vi

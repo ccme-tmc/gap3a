@@ -151,6 +151,7 @@
 
           !! Calculate the reciprocal lattice sum
           pref=4.0d0*pi*dsqrt(pi)*vi
+          if(ldbg) write(fid_outdbg,*) "#iq=", iq, " ng=",ng
           do i1=1,ng
             gqv(1:3)=rstr(1:3,i1)
             g(1:3)=gqv(1:3)-qtemp(1:3)

@@ -150,11 +150,11 @@ subroutine init_aniso(at, iq, msiz, iomfirst, iomlast, lmaxq0, nang)
     do iang=1,at%nang
       write(fid_aniso,"(A4,I5,A2,5f10.6)") "Ang ",iang,": ",at%q0(iang,:),at%w_q0(iang),at%qmax_q0(iang)
       call ylm(at%q0(iang,:),at%lmax,at%ylm_q0(:,iang))
-      !do ilm=1,at%lmgsq
-      !  write(fid_aniso, "(2I6,2f10.6)") iang, ilm, at%ylm_q0(ilm,iang)
+      do ilm=1,at%lmgsq
+        write(fid_aniso, "(2I6,2f10.6)") iang, ilm, at%ylm_q0(ilm,iang)
       !  !include the weight of angular grid in sph_harms
       !  !at%ylm_q0(ilm,iang)=at%ylm_q0(ilm,iang)*cmplx(at%w_q0(iang),0.0D0,8)
-      !enddo
+      enddo
     enddo
 
     write(fid_outgw,*) " - Summation of q0 weights/4pi = ",sum(at%w_q0)/4.0d0/pi

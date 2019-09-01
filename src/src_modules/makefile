@@ -1,7 +1,7 @@
 include ../make.inc 
 .SUFFIXES:      .f90
 
-OBJS= acfd.o lapwlo.o modules.o angintegrals.o lapack.o fouri.o \
+OBJS= acfd.o lapwlo.o modules.o angintegrals.o lapack.o fouri.o special_functions.o \
 	  freq.o task.o constants.o kpoints.o lebedev_laikov.o \
 	  reallocate.o hfexch.o kmeshintp.o \
 	  modmpi.o  recipvec.o bands.o \
