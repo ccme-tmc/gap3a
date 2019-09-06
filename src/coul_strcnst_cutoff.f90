@@ -14,11 +14,12 @@
 ! !USES:
 
       use barcoul,   only: eta, gcf,rcf, rstr, sgm, &
-     &                     rbas, genrstr
+     &                     rbas, genrstr, axis_cut_coul
       use constants, only: czero, imag, pi
       use kpoints,   only: idvq, qlist
       use struk,     only: alat, ndf, pos, vi, br2, ortho 
       use task,      only: fid_outdbg
+      use special_functions, only: chgm_mod
 
 ! !INPUT PARAMETERS:
 
@@ -43,6 +44,8 @@
       integer(4) :: iqvec(3)
       integer(4) :: lam
       integer(4) :: mu
+      integer(4) :: lmmd2   ! (lam-mu)/2, for even lam+mu only
+      integer(4) :: ilmmd2  ! counter run over 0 to lmmd2
       integer(4) :: ilmu
       integer(4) :: fid
 
@@ -51,6 +54,10 @@
       real(8) :: gausr               ! value of the gaussian function e^(-(rleng/eta)^2)
       real(8) :: pref                ! prefactor for the reciprocal lattice sum = 4 pi^(3/2)/v
       real(8) :: gleng               ! the length of gqv
+      real(8) :: x                   ! gleng*eta/2
+      real(8) :: x2                  ! x^2
+      real(8) :: x2cut               ! cutoff for x2
+      real(8) :: v_chgm              ! confluent hypergeometric function
       real(8) :: gqtra               ! the scalar product gqv.raa
       real(8) :: gausg               ! value of the gaussian function e^(-(gleng*eta/2)^2)
       real(8) :: gtolam              ! value of gleng^(lambda-2)/2^(lambda-0.5)
@@ -60,6 +67,7 @@
 
       real(8), dimension(3) :: qvec  ! cartesian coords. of the q point
       real(8), dimension(3) :: raa   ! Vector going from atom 1 to atom 2.
+      real(8), dimension(3) :: dir_y ! vector (0,1,0)
       real(8), dimension(3) :: rdif
       real(8), dimension(3,3) :: rbs
       real(8), dimension(3) :: rpaa  ! the corresponding sum R+raa
@@ -67,9 +75,10 @@
       real(8), dimension(3) :: g     ! vector belonging to the reciprocal space lattice
       real(8), dimension(3) :: gqv   ! the corresponding sum G+qvec
 
-      complex(8) :: ylam((lammax+1)*(lammax+1)) ! the values of the spherical harmonics
+      complex(8) :: ylam((lammax+1)*(lammax+1))  ! the values of the spherical harmonics
+      complex(8) :: ylamy((lammax+1)*(lammax+1)) ! the values of the spherical harmonics of (pi/2,0)
       complex(8) :: stmp1((lammax+1)*(lammax+1)) ! temporary allocation of the values of sigma
-      complex(8) :: stmp2((lammax+1)*(lammax+1)) ! temporary allocation of  the values of sigma
+      complex(8) :: stmp2((lammax+1)*(lammax+1)) ! temporary allocation of the values of sigma
 
       complex(8) :: expqdr                            ! e^(qvec.rpaa)
       complex(8) :: itolam               !i^lambda
@@ -77,7 +86,7 @@
             
 
 ! !EXTERNAL ROUTINES: 
-      real(8), external :: derfc
+      real(8), external :: derfc, dfactr, factr, igam
       external k2cart
 
 ! !REVISION HISTORY:
@@ -90,7 +99,10 @@
     
       if(ldbg)  call boxmsg(fid_outdbg,'+',"structure constant (Sigma), cutoff version")
 
+      dir_y(:) = 0.0d0
+      dir_y(2) = 1.0d0
       call k2cart(qlist(1:3,iq),idvq,qtemp)
+      call ylm(dir_y,lammax,ylamy)
       qvec(1:3)=-1.0d0*qtemp(1:3)
 
       do idf=1,ndf
@@ -146,37 +158,71 @@
           !! calculate the vectors for the sum in reciprocal space
           qtemp(1:3)=-1.0d0*qvec(1:3)
           call genrstr(icutoff,gcf,qtemp,br2,ng)
-          write(fid_outdbg,*) "#iq=", iq, " ng=",ng
+          !write(fid_outdbg,*) "#iq=", iq, " ng=",ng
 
           !! Calculate the reciprocal lattice sum
-          pref=4.0d0*pi*dsqrt(pi)*vi
           do i1=1,ng
             gqv(1:3)=rstr(1:3,i1)
-            !! ? is G=0 always included
             g(1:3)=gqv(1:3)-qtemp(1:3)
             gleng=rstr(4,i1)
-
+            x=gleng*eta/2.0d0
+            x2=x**2
             !!calculate the values of the spherical harmonics at rpaa
-            call ylm(gqv,lammax,ylam)
             gqtra=g(1)*raa(1)+g(2)*raa(2)+g(3)*raa(3)
             expqdr=cmplx(dcos(gqtra),dsin(gqtra),8)
-            gausg = dexp(-2.5d-1*eta*gleng*eta*gleng)
-            gtolam = 1.0d0/(gleng*gleng)
-            stmp2(1)=stmp2(1)+cmplx(pref*gtolam*gausg,0.0d0,8)*expqdr*ylam(1)
-            itolam=cmplx(1.0d0,0.0d0,8)
+            ! gausg is used as the whole brace part in eq:lattice-sum-2d-rewrite
+            gausg = erfc(x)
+            gtolam = 1.0d0/gleng
+            stmp2(1)=stmp2(1)+cmplx(gtolam*gausg,0.0d0,8)*expqdr
             do lam=1,lammax
-              gtolam=-1.0d0*gleng*gtolam/2.0d0
+              gtolam=gtolam*gleng/2.0d0
               itolam=itolam*imag
-              do mu=-lam,lam
+              do mu=lam,0,-2
+                x2cut = 1200.0d0*real(lam,8)/real(2*lam-mu+8,8)**2
                 ilmu=lam*lam+lam+mu+1
-                stmp2(ilmu)=stmp2(ilmu)+cmplx(pref*gtolam*gausg,    &
-     &                       0.0d0,8)*expqdr*ylam(ilmu)*itolam
+                lmmd2=(lam-mu)/2
+                gausg = 0.0d0
+                do ilmmd2=0,lmmd2
+                  call chgm_mod(real(ilmmd2-lmmd2,8)+0.5d0,real(ilmmd2-lmmd2,8)+1.5d0, &
+                                -x2,-lmmd2,v_chgm, x2cut, .true.)
+                  gausg = gausg + real(1-lam+mu,8) / real(1-lam+mu+2*ilmmd2,8) &
+                                * factr(lmmd2) / factr(lmmd2-ilmmd2) / factr(mu+ilmmd2) * factr(mu) &
+                                * v_chgm * (-1.0D0)**ilmmd2 * x2**ilmmd2 / factr(ilmmd2)
+                enddo
+                gausg = gausg * 2.0d0 * x * (-1.0D0)**lmmd2 * igam(lam-lmmd2+1) / sqrt(pi) / igam(mu+1) &
+                        * dfactr(lam-mu-3) * dfactr(lam+mu-1) / dfactr(2*lam-1)
+                if(x2<=x2cut) then
+                  gausg = 1.0d0 + gausg
+                endif
+                stmp2(ilmu)=stmp2(ilmu)+cmplx(gtolam*gausg,    &
+     &                       0.0d0,8)*expqdr
               enddo ! mu
             enddo ! lam
           enddo !i1
 
-          gamlam=dsqrt(pi)
+          pref=2.0d0*pi*vi*alat(1+mod(axis_cut_coul+2,3))
+          itolam=cmplx(1.0d0,0.0d0,8)
+          ! gausg is used here as a prefactor
+          do lam=0,lammax
+            do mu=0,lam
+              ilmu=lam*lam+lam+mu+1
+              lmmd2=(lam-mu)/2
+              gausg=pref*sqrt(pi)*(-1.0d0)**lmmd2
+              if (mu.ne.lam) then
+                gausg=gausg*dfactr(2*lam-1)/dfactr(lam+mu-1)/dfactr(lam-mu-1)
+              endif
+              stmp2(ilmu)=stmp2(ilmu)*cmplx(gausg,0.0d0,8)*ylamy(ilmu)*itolam
+              if(mu>0)then
+                ilmu=lam*lam+lam-mu+1
+                stmp2(ilmu)=stmp2(ilmu)*cmplx(gausg,0.0d0,8)*ylamy(ilmu)*itolam
+              endif
+            enddo ! mu
+            itolam=itolam*imag
+          enddo ! lam
+          
 
+          ! sum up the real and reciprocal part and divid it by Gamma(lam+0.5)
+          gamlam=dsqrt(pi)
           stmp1(1)=stmp1(1)*cmplx(1.0d0/gamlam,0.0d0,8)
           stmp2(1)=stmp2(1)*cmplx(1.0d0/gamlam,0.0d0,8)
           sgm(1,ijdf)=stmp1(1)+stmp2(1)
