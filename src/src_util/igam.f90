@@ -19,13 +19,13 @@
 !
 !EOP
 !BOC
-        if(n.lt.0)then
-          write(*,*)"error: igam: n must not be negative"
+        if(n.le.0)then
+          write(*,*)"error: igam: n must be positive"
           stop
         elseif(n.le.2)then
-          tgam = real(n,8)
+          tgam = 1.0d0
         else
-          tgam= real(n,8)*igam(n-1)
+          tgam= real(n-1,8)*igam(n-1)
         endif
         end function igam
 !EOC

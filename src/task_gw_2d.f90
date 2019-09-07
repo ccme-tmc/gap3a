@@ -51,7 +51,7 @@
 !EOP
 !BOCa
 
-      call boxmsg(6,'*',"Task:GW") 
+      call boxmsg(6,'*',"Task:GW 2D") 
 !
 !     iop_sxc -- determine which approximation to self-energy
 !                0 --- GW

@@ -31,8 +31,8 @@ real(8) function dfactr(n)
       i = i + 2
       dfactr = dfactr * real(i,8)
     enddo
-  elseif (n.le.2) then
-    dfactr = real(n,8)
+  elseif (n.le.1) then
+    dfactr = 1.0d0
   else
     do while(i.ge.1)
       dfactr = dfactr * real(i,8)
