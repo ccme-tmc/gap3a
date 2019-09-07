@@ -14,7 +14,7 @@
 
       use bzinteg,     only: init_bzinteg
       use bands,       only: nspin
-      use barcoul,     only: init_barcoul
+      use barcoul,     only: init_barcoul, init_barcoul_2d, lcutoff_in_coul_barc
       use kpoints,     only: nqp,nirkp
       use task,        only: progname,taskname,time_minm,time_lapack,&
      &                       time_evec,time_eps,time_selfx,time_selfc,&
@@ -76,7 +76,11 @@
         stop
       endif 
 
-      call init_barcoul(0)    !* Initialize bare Coulomb matrix calculations 
+      if(lcutoff_in_coul_barc)then
+        call init_barcoul_2d(0)    !* Initialize bare Coulomb matrix calculations 
+      else
+        call init_barcoul(0)       !* Initialize bare Coulomb matrix calculations 
+      endif
 
       if(taskname.eq.'chkinit') stop 
 

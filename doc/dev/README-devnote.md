@@ -156,3 +156,8 @@
   in Freysoldt2007, i.e. eq 20-25, is responsible for the fast convergence with respect to
   Nkz, Fig. 1 and 2.
 
+## 2019-09-07 (zmy)
+1. Lattice sum in two dimenstion. Fix the workflow of 2D cutoff.
+2. The next thing to do is to remove the q=0 contribution in matrix element between MPBs.
+  They should be more related to the plane-wave representation of the 2D Coulomb interaction.
+

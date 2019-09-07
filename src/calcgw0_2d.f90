@@ -19,7 +19,7 @@
 
       use bands,       only: nbandsgw,nspin,bande,ibgw,nbgw,eqp,bande0, &
      &                       numin,nomax,nbmax,nbmaxpol,eferqp,efermi
-      use barcoul,     only: init_barcoul,end_barcoul,barcevtol,        &
+      use barcoul,     only: init_barcoul_2d,end_barcoul,barcevtol,        &
      &                       end_barcev,iop_coul_x,iop_coul_c, lcutoff_in_coul_barc
       use dielmat,     only: init_dielmat,end_dielmat
       use freq,        only: nomeg,omega
@@ -99,23 +99,17 @@
 
       do iq=iq_f,iq_l
         call init_mixbasis(iq)
-        call init_barcoul(iq)
+        call init_barcoul_2d(iq)
 
         !! bare Coulomb matrix 
-        if (lcutoff_in_coul_barc) then
-          call coul_barc_cutoff(iq, iop_coul_x)
-        else
-          call coul_barc(iq)
-        endif
+        call coul_barc_cutoff(iq,iop_coul_x)
 
         !! exchange self-energies 
         call sub_calc_sigx 
 
         !! Calculate GW or COHSEX correlation self-energy 
         if(isxc.eq.0.or.isxc.eq.2.or.isxc.eq.3) then
-          if (lcutoff_in_coul_barc) then
-            call coul_barc_cutoff(iq,iop_coul_c)
-          endif
+          call coul_barc_cutoff(iq,iop_coul_c)
           call sub_calc_sigc
         endif
 

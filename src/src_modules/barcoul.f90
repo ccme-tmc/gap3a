@@ -124,6 +124,51 @@
       endif
       end subroutine 
 
+      subroutine init_barcoul_2d(iq)
+!
+!     Initialize for bare Coulomb interaction 
+!     iq=0: some q-independent initialization 
+!     iq>0 -- q-depencent initialization 
+      implicit none 
+      integer,intent(in):: iq
+
+      integer:: ierr
+      integer:: ntm
+      integer:: n,m
+      real(8):: vtot
+      character(20):: sname="init_barcoul_2d"
+
+      if(iq.eq.0) then !! q-independent initialization
+        call linmsg(6,'-',"Initialize Coulomb matrix (2D)")
+        ntm=lmbmax+1
+        call calctildeg(2*ntm)
+        n=ndf*(ndf+1)/2
+        m=(4*ntm+1)*(4*ntm+1)
+        allocate(sgm(m,n))
+
+        eta=calceta_2d()
+        rcf=2.0d+0*rcutoff_2d(stctol,eta,10)
+        gcf=2.0d+0*gcutoff_2d(stctol,eta,10)
+        write(6,'(4x,a,3f12.6)') 'Parameters for structure constants:&
+     &eta,rcf,gcf=',eta,rcf,gcf
+        !! automatic set truncated/screened Coulomb interaction
+        if(rcut_coul.lt.0.0) then 
+          if(nint(rcut_coul).eq.-2) then
+            rcut_coul=maxval(alat(1:3)*nkdivs(1:3))/2
+          else
+            vtot=(1.d0/vi)*nkp
+            rcut_coul=(vtot/(pi*4.d0/3.d0))**(1.d0/3)
+          endif
+          write(6,'(4x,a,f12.4)') "set default rcut_coul=",rcut_coul
+        endif 
+      else  !! q-dependent initialization 
+        allocate(vmat(mbsiz,mbsiz),ev(mbsiz),stat=ierr )
+        call errmsg(ierr.ne.0,sname,"Fail to allocate vmat")
+        vmat=0.d0
+        ev = 0.d0 
+      endif
+      end subroutine
+
       subroutine end_barcoul(iq)
         integer,intent(in):: iq
         if(iq.eq.0) then 
