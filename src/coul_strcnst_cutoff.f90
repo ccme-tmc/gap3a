@@ -170,14 +170,16 @@
             !!calculate the values of the spherical harmonics at rpaa
             gqtra=g(1)*raa(1)+g(2)*raa(2)+g(3)*raa(3)
             expqdr=cmplx(dcos(gqtra),dsin(gqtra),8)
-            ! gausg is used as the whole brace part in eq:lattice-sum-2d-rewrite
+            ! gausg is used as the whole brace part 
+            ! in eq:lattice-sum-2d-reciprocal-final
             gausg = erfc(x)
             gtolam = 1.0d0/gleng
             stmp2(1)=stmp2(1)+cmplx(gtolam*gausg,0.0d0,8)*expqdr
+            itolam=cmplx(1.0d0,0.0d0,8)
             do lam=1,lammax
               gtolam=gtolam*gleng/2.0d0
               itolam=itolam*imag
-              do mu=lam,0,-2
+              do mu=lam,0,-2 ! loop over non-negative mu
                 x2cut = 1200.0d0*real(lam,8)/real(2*lam-mu+8,8)**2
                 ilmu=lam*lam+lam+mu+1
                 lmmd2=(lam-mu)/2
@@ -186,42 +188,83 @@
                   call chgm_mod(real(ilmmd2-lmmd2,8)+0.5d0,real(ilmmd2-lmmd2,8)+1.5d0, &
                                 -x2,-lmmd2,v_chgm, x2cut, .true.)
                   gausg = gausg + real(1-lam+mu,8) / real(1-lam+mu+2*ilmmd2,8) &
-                                * factr(lmmd2) / factr(lmmd2-ilmmd2) / factr(mu+ilmmd2) * factr(mu) &
-                                * v_chgm * (-1.0D0)**ilmmd2 * x2**ilmmd2 / factr(ilmmd2)
+                          * factr(lmmd2) / factr(lmmd2-ilmmd2) / factr(mu+ilmmd2) * factr(mu) &
+                          * v_chgm * (-1.0D0)**ilmmd2 * x2**ilmmd2 / factr(ilmmd2)
                 enddo
-                gausg = gausg * 2.0d0 * x * (-1.0D0)**lmmd2 * igam(lam-lmmd2+1) / sqrt(pi) / igam(mu+1) &
-                        * dfactr(lam-mu-3) * dfactr(lam+mu-1) / dfactr(2*lam-1)
+                gausg = gausg*2.0d0*x*(-1.0D0)**lmmd2*igam(lam-lmmd2+1)/sqrt(pi)/igam(mu+1) &
+                        *dfactr(lam-mu-3)*dfactr(lam+mu-1)/dfactr(2*lam-1)
                 if(x2<=x2cut) then
                   gausg = 1.0d0 + gausg
+                  !write(*,"(3I3,3es22.12)") lam, mu, lmmd2, gleng, eta, &
+                  !gausg*gtolam*sqrt(pi)*dfactr(2*lam-1)/dfactr(lam+mu-1)/dfactr(lam-mu-1)
                 endif
-                stmp2(ilmu)=stmp2(ilmu)+cmplx(gtolam*gausg,    &
-     &                       0.0d0,8)*expqdr
+                stmp2(ilmu)=stmp2(ilmu)+cmplx(gtolam*gausg,0.0d0,8)*expqdr*itolam
               enddo ! mu
             enddo ! lam
           enddo !i1
 
-          pref=2.0d0*pi*vi*alat(1+mod(axis_cut_coul+2,3))
-          itolam=cmplx(1.0d0,0.0d0,8)
+          ! set reciprocal part with negative mu
+          do lam=1,lammax
+            do mu=lam,0,-2
+              ilmu=lam*lam+lam-mu+1
+              stmp2(ilmu)=stmp2(ilmu+2*mu)
+            enddo ! mu
+          enddo ! lam
+
+          pref=2.0d0*sqrt(pi)*pi*vi*alat(axis_cut_coul)
           ! gausg is used here as a prefactor
           do lam=0,lammax
-            do mu=0,lam
+            do mu=lam,0,-2
               ilmu=lam*lam+lam+mu+1
               lmmd2=(lam-mu)/2
-              gausg=pref*sqrt(pi)*(-1.0d0)**lmmd2
+              gausg=pref
               if (mu.ne.lam) then
                 gausg=gausg*dfactr(2*lam-1)/dfactr(lam+mu-1)/dfactr(lam-mu-1)
               endif
-              stmp2(ilmu)=stmp2(ilmu)*cmplx(gausg,0.0d0,8)*ylamy(ilmu)*itolam
+              stmp2(ilmu)=stmp2(ilmu)*cmplx(gausg,0.0d0,8)*ylamy(ilmu)
               if(mu>0)then
                 ilmu=lam*lam+lam-mu+1
-                stmp2(ilmu)=stmp2(ilmu)*cmplx(gausg,0.0d0,8)*ylamy(ilmu)*itolam
+                stmp2(ilmu)=stmp2(ilmu)*cmplx(gausg,0.0d0,8)*ylamy(ilmu)
               endif
             enddo ! mu
-            itolam=itolam*imag
           enddo ! lam
           
+          ! remove part of reciprocal contribution for a=a'
+          if(idf.eq.jdf) then
+            ! lam=mu=0
+            stmp2(1)=stmp2(1) - cmplx(1.0d0/eta/sqrt(pi),0.0d0,8)
+            ! gausg now equals to Gamma(lam/2)/eta^(lam-1)
+            ! odd lam
+            gausg = sqrt(pi)/eta**2
+            do lam=1,lammax,2
+              do mu=lam,0,-2
+                if(mu.eq.0) continue
+                ilmu=lam*lam+lam+mu+1
+                stmp2(ilmu)=stmp2(ilmu)-ylamy(ilmu)* imag**mu *real(mu,8)&
+                            *cmplx(gausg/real(lam+1),0.0d0,8)
+                ilmu=lam*lam+lam-mu-1
+                stmp2(ilmu)=stmp2(ilmu)-ylamy(ilmu)* imag**mu *real(mu,8)&
+                            *cmplx(gausg/real(lam+1),0.0d0,8)
+              enddo ! mu
+              gausg = gausg / eta**2 * real(lam,8) / 2.0d0
+            enddo ! lam
+            ! even lam
+            gausg = 1.0d0/eta**3
+            do lam=2,lammax,2
+              do mu=lam,0,-2
+                if(mu.eq.0) continue
+                ilmu=lam*lam+lam+mu+1
+                stmp2(ilmu)=stmp2(ilmu)-ylamy(ilmu)* imag**mu *real(mu,8)&
+                            *cmplx(gausg/real(lam+1),0.0d0,8)
+                ilmu=lam*lam+lam-mu-1
+                stmp2(ilmu)=stmp2(ilmu)-ylamy(ilmu)* imag**mu *real(mu,8)&
+                            *cmplx(gausg/real(lam+1),0.0d0,8)
+              enddo ! mu
+              gausg = gausg / eta**2 * real(lam,8) / 2.0d0
+            enddo ! lam
+          endif
 
-          ! sum up the real and reciprocal part and divid it by Gamma(lam+0.5)
+          ! sum up the real and reciprocal part and divide by Gamma(lam+0.5)
           gamlam=dsqrt(pi)
           stmp1(1)=stmp1(1)*cmplx(1.0d0/gamlam,0.0d0,8)
           stmp2(1)=stmp2(1)*cmplx(1.0d0/gamlam,0.0d0,8)
@@ -237,7 +280,6 @@
             enddo
           enddo
 
-          if(idf.eq.jdf) sgm(1,ijdf)=sgm(1,ijdf)-1.0d0/(eta*pi)
 
         enddo ! jdf
       enddo ! idf
