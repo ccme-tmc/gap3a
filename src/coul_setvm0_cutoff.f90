@@ -21,7 +21,7 @@
      &                      mbsiz
       use recipvec,   only: gindex, gqleng, indgq, indgqlen, ngqbarc,   &
      &                      ngq, ngqlen,maxngqlen
-      use struk,      only: mult, ndf,nrpt,vi, pos,nat,rotij,rotloc
+      use struk,      only: mult,ndf,nrpt,vi,pos,nat,rotij,rotloc,alat,rbas
       use task,       only: fid_outdbg
 !
 ! !INPUT PARAMETERS: 
@@ -66,6 +66,8 @@
       real(8) :: gpr          ! Scalar product G.r
       real(8) :: prefac       ! multipicative prefactor
       real(8) :: qglen,qg1len ! |qg1|
+      real(8) :: qgxy        ! (G+q)_xy
+      real(8) :: qgz         ! (G+q)_z
       real(8) :: tg           ! value of \tilde{g}
       real(8) :: minu
       real(8) :: vqg
@@ -95,6 +97,7 @@
 
       
       real(8), external :: getcgcoef
+      real(8), external :: vecprojlen
       complex(8), external :: getdjmm
       
       external calcjlam
@@ -106,14 +109,15 @@
 ! !REVISION HISTORY:
 ! 
 ! Created 16th. March 2004 by RGA
-! Last modified 31. March 2005 by RGA
+! modified 31. March 2005 by RGA
+! modified 08. Sept  2019 by MYZ
 !
 !EOP
 !BOC
      
-      if(lprt) call linmsg(6,'-','coul_setvm0')
+      if(lprt) call linmsg(6,'-','coul_setvm0_cutoff (2D)')
       
-      if(lprt) write(6,*) "coul_setvm0: allocate space"     
+      if(lprt) write(6,*) "coul_setvm0_cutoff: allocate space"     
       ylsize=(maxbigl+1)*(maxbigl+1)
       allocate(vtemp(1:ngqbarc(iq),1:locmatsiz),   &
      &         rtlij(nmixmax,nat,nmixmax,nat),     &
@@ -142,6 +146,7 @@
 
       !! For q=0 calculate the corrections of the structure constants
       if(lprt) write(6,*)" For q=0 calc the corr. of struc. const"
+      ! TODO modify coul_barcq0_cutoff
       if(iq.eq.1) call coul_barcq0_cutoff(icutoff)
 
       !! Calculate all the products rtl*rtl
@@ -252,9 +257,13 @@
                 expg=cmplx(cos(2.0d0*pi*gpr),-sin(2.0d0*pi*gpr),8)
                 igl=indgqlen(ipw,iq)
                 qglen=gqleng(igl,iq)
-
-                !! introduce the factor related to the truncation needed for finite systems
-                vqg=fourpi/(qglen*qglen)
+                !! introduce the factor for the truncation for finite systems
+                qg1(1:3) = qvec(1:3) + gvec(1:3)
+                qgxy=vecprojlen(qg1,rbas(axis_cut_coul,:),'perp')
+                qgz=vecprojlen(qg1,rbas(axis_cut_coul,:),'para')
+                vqg=fourpi/(qglen*qglen) * &
+                    (1.0d0-exp(-qgxy*zcut_coul)*cos(qgz*zcut_coul))
+                write(*,"(7F15.6)") qg1(1:3), qgxy, qgz, fourpi/(qglen*qglen), vqg
 
                 vtemp(ipw,im)=prefac*jlam(irm,igl)*vqg                  &
      &                *sph(l1*(l1+1)+m1+1,ipw)*((-imag)**l1)*expg
@@ -287,9 +296,15 @@
 
       mat1(:,1)=czero 
       do ipw = ipw0, ngqbarc(iq)     
+        iqvec(1:3)=gindex(:,indgq(ipw,iq))
+        call k2cart(iqvec,1,gvec)
+        qg1(1:3) = qvec(1:3) + gvec(1:3)
+        qgxy=vecprojlen(qg1,rbas(axis_cut_coul,:),'perp')
+        qgz=vecprojlen(qg1,rbas(axis_cut_coul,:),'para')
         igl=indgqlen(ipw,iq)
         qglen=gqleng(igl,iq)
-        vqg=fourpi/(qglen*qglen)
+        vqg=fourpi/(qglen*qglen) * &
+            (1.0d0-exp(-qgxy*zcut_coul)*cos(qgz*zcut_coul))
 
         do iipw=1,ngq(iq)
           mat1(iipw,ipw)=mpwipw(iipw,ipw)*vqg

@@ -161,6 +161,7 @@
           endif
           write(6,'(4x,a,f12.4)') "set default rcut_coul=",rcut_coul
         endif 
+        call set_coul_cutoff(2)
       else  !! q-dependent initialization 
         allocate(vmat(mbsiz,mbsiz),ev(mbsiz),stat=ierr )
         call errmsg(ierr.ne.0,sname,"Fail to allocate vmat")
@@ -209,7 +210,12 @@
           zcut_coul = alat(iz+1)/2.0D0
           acut_coul = alat(ia+1)/2.0D0
           bcut_coul = alat(ib+1)/2.0D0
+          write(6,"(A25)") "Coulomb cutoff parameter:"
+          write(6,12) "zcut", zcut_coul
+          write(6,12) "acut", acut_coul
+          write(6,12) "bcut", bcut_coul
         end if
+12 format(10X, A8, F12.8)
       end subroutine set_coul_cutoff
 
       subroutine genrstr_cutoff(iop,rmax,rshift,rbs,nr)
