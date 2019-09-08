@@ -520,13 +520,12 @@
       integer(4) :: l1
       integer(4) :: i, iz, ia, ib
       real(8) :: rl
-      real(8) :: a1a2            ! dot product of two periodic basis vector
       real(8) :: x               ! Rc/eta
       real(8) :: gmm
       real(8), allocatable :: eps(:)
-      real(8) :: rnot
       real(8) :: gaml1
       real(8) :: gaml2
+      real(8) :: gaml3
       real(8) :: prefac
       real(8), allocatable :: rct(:)
       real(8), external :: higam
@@ -536,28 +535,25 @@
       iz = mod(axis_cut_coul+2,3)
       ia = mod(iz+1,3)+1
       ib = mod(iz+2,3)+1
-      a1a2=rbas(ia,1)*rbas(ib,1)+rbas(ia,2)*rbas(ib,2)+rbas(ia,3)*rbas(ib,3)
 
-      rnot=maxval(alat)
       rct = 5.0d+1
       do i=1,100
         x = 5.0d-1*dble(i)
         do l1=0,lambdamax
           if(l1.ne.1)then
-            rl =5.0d-1*dble(l1+2)
+            rl = real(l1,8)*0.5d0+1.0d0
             gaml1=incgam(rl,x*x)
-            rl = dble(l1)+5.0d-1
+            rl = real(l1,8)+0.5d0
             gaml2=incgam(rl,x*x)
             gmm = higam(l1)
-            prefac = 2.0d0*pi/a1a2/gmm/dble(1-l1)
-            eps(l1+1)=dabs(prefac*(gaml1-gaml2/(x**(l1-1)))/        &
-     &              (eta**(l1-1)))
+            prefac = 2.0d0*pi*vi*alat(axis_cut_coul)/gmm/real(1-l1,8)
+            eps(l1+1)=abs(prefac/(eta**(l1-1))*(gaml1-gaml2/(x**(l1-1))))
             if((eps(l1+1).lt.tol).and.(x.lt.rct(l1+1)))rct(l1+1)=x
           else
             gaml1=incgam(2.0d0,x*x)
             gaml2=incgam(1.5d0,x*x)
             gmm = higam(1)
-            prefac = 2.0d0*pi/a1a2/gmm
+            prefac = 2.0d0*pi*vi*alat(axis_cut_coul)/gmm
             eps(l1+1)= dabs(prefac*(gaml1/x-gaml2))
             if((eps(l1+1).lt.tol).and.(x.lt.rct(l1+1)))rct(l1+1)=x
           endif
@@ -644,7 +640,8 @@
       integer(4) :: iz,ia,ib
 
 
-      real(8) :: gaml32
+      real(8) :: gaml1
+      real(8) :: gamhalf
       real(8) :: gmm
       real(8) :: prefac
       real(8) :: rl
@@ -653,31 +650,40 @@
       real(8) :: b1b2    ! dot product of two periodic reciprocal basis
       real(8), allocatable :: eps(:)
       real(8), allocatable :: rct(:)
+      real(8), allocatable :: yll(:)
       real(8), external :: higam
 
       iz=mod(axis_cut_coul+2,3)
       ia=mod(iz+1,3)+1
       ib=mod(iz+2,3)+1
-      b1b2=br2(1,ia)*br2(1,ib)+br2(2,ia)*br2(2,ib)+br2(3,ia)*br2(3,ib)
 
       allocate(rct(lambdamax+1))
       allocate(eps(lambdamax+1))
-      rnot=maxval(pia)
+      allocate(yll(lambdamax+1))
+      ! set Y_{lam,lam}
+      yll(1) = 1.0d0/sqrt(4.0d0*pi)
+      do l1=1,lambdamax
+        rl = real(l1,8)
+        yll(l1+1) = yll(l1)*sqrt(1.0d0+0.5d0/rl)
+      enddo
+      ! set eps
       rct(:) = 5.0d+1
       do i=1,100
-        x = 5.0d-1*dble(i)
+        x = 5.0d-1*real(i,8)
+        gamhalf=incgam(0.5d0,x*x)
         do l1=0,lambdamax
-          rl =5.0d-1*dble(l1)
-          gaml32=incgam(rl,x*x)
+          rl =5.0d-1*real(l1+2,8)
+          gaml1=incgam(rl,x*x)
           gmm = higam(l1)
-          prefac = 4.0d0*pi*pi*dsqrt(pi)*vi/b1b2/(gmm*eta**l1)
-          eps(l1+1)=dabs(prefac*gaml32)
+          prefac = 2.0d0/(gmm*eta**(l1+1))*yll(l1+1)/real(l1+1,8)
+          eps(l1+1)=abs(prefac*(gaml1-x**(l1+1)*gamhalf))
           if((eps(l1+1).lt.tol).and.(x.lt.rct(l1+1)))rct(l1+1)=x
         enddo ! l1
       enddo ! i
       rcf=maxval(rct)*2.0d0/eta
       deallocate(rct)
       deallocate(eps)
+      deallocate(yll)
       end function gcutoff_2d
 
       recursive function gammaincc_int(n,x) result(gmi)
