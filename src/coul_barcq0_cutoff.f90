@@ -53,14 +53,15 @@
 !
 ! !REVISION HISTORY:
 ! 
-! Created 16th. March 2004 by RGA
-! Last modified 31. March 2005 by RGA
+!  Created 16th. March 2004 by RGA
+! modified 31. March 2005 by RGA
+! modified 08. Sept  2019 by MYZ
 !
 !EOP
 !BOC
       iprt=0
 
-      call coul_calcsing
+      call coul_calcsing_cutoff
       idf=0
       im=0
       do iat = 1, nat
@@ -90,17 +91,19 @@
                       enddo ! igl  
                       vmat(im,jm)=16.0d0*pi*pi*vi*sumipw
                     else  
-                      do m2=-l2,l2
-                        jm=jm+1
-                      enddo ! m2
+                      !do m2=-l2,l2
+                      !  jm=jm+1
+                      !enddo ! m2
+                      jm=jm+2*l2+1
                     endif  
                   enddo ! jrm
                 enddo ! jeq
               enddo ! jat
             else  
-              do m1=-l1,l1
-                im = im + 1
-              enddo ! m1
+              !do m1=-l1,l1
+              !  im = im + 1
+              !enddo ! m1
+              im = im +2*l1+1
             endif    
           enddo ! irm
         enddo ! ieq

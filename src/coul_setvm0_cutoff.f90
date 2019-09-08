@@ -90,6 +90,7 @@
 !! debug 
 
       logical :: lprt =.true.
+      logical :: ldbg =.true.
       character(len=20)::sname='coul_setvm0_cutoff'
   
  
@@ -205,7 +206,6 @@
                     l2=bigl(jrm,jat)
                     do m2=-l2,l2
                       jm=jm+1
-
                       if((iq.ne.1).or.(l1.ne.0).or.(l2.ne.0)) then
                         sum34=czero
                         do m3=-l1,l1
@@ -236,13 +236,12 @@
                           vmat(im,jm)=vmat(im,jm)+cmplx(fourpi &
      &                       *rrint(ijrm,iat)/dble(2*l1+1),0.0d0,8)
                         endif
-
                       endif ! if((iq.ne.1).or.(l1.ne.0).or.(l2.ne.0)) 
+                      ! q=l1=l2=0 already calculated in coul_barcq0
                     enddo ! m2
                   enddo ! jrm
                 enddo ! jeq
               enddo ! jat  
-
 !
 !             Calculation of the matrix element between an atomic 
 !             mixed function and an IPW
@@ -263,8 +262,9 @@
                 qgz=vecprojlen(qg1,rbas(axis_cut_coul,:),'para')
                 vqg=fourpi/(qglen*qglen) * &
                     (1.0d0-exp(-qgxy*zcut_coul)*cos(qgz*zcut_coul))
-                write(*,"(7F15.6)") qg1(1:3), qgxy, qgz, fourpi/(qglen*qglen), vqg
-
+                if(ldbg) then
+                  write(*,"(7F15.6)") qg1(1:3),qgxy,qgz,fourpi/(qglen*qglen),vqg
+                endif
                 vtemp(ipw,im)=prefac*jlam(irm,igl)*vqg                  &
      &                *sph(l1*(l1+1)+m1+1,ipw)*((-imag)**l1)*expg
               enddo ! ipw       

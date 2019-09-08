@@ -1,9 +1,9 @@
 !BOP
 !
-! !ROUTINE: coul_calcsing
+! !ROUTINE: coul_calcsing_cutoff
 !
 ! !INTERFACE:
-      subroutine coul_calcsing
+      subroutine coul_calcsing_cutoff
 !
 ! !DESCRIPTION: 
 !
@@ -227,5 +227,5 @@
         deallocate(sinf)
       enddo !iat  
       
-      end subroutine coul_calcsing
+      end subroutine coul_calcsing_cutoff
 !EOC
