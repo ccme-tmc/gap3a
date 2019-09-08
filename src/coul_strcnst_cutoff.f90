@@ -67,7 +67,7 @@
 
       real(8), dimension(3) :: qvec  ! cartesian coords. of the q point
       real(8), dimension(3) :: raa   ! Vector going from atom 1 to atom 2.
-      real(8), dimension(3) :: dir_y ! vector (0,1,0)
+      real(8), dimension(3) :: dir_x ! vector (1,1,0)
       real(8), dimension(3) :: rdif
       real(8), dimension(3,3) :: rbs
       real(8), dimension(3) :: rpaa  ! the corresponding sum R+raa
@@ -76,7 +76,7 @@
       real(8), dimension(3) :: gqv   ! the corresponding sum G+qvec
 
       complex(8) :: ylam((lammax+1)*(lammax+1))  ! the values of the spherical harmonics
-      complex(8) :: ylamy((lammax+1)*(lammax+1)) ! the values of the spherical harmonics of (pi/2,0)
+      complex(8) :: ylamx((lammax+1)*(lammax+1)) ! the values of the spherical harmonics of (pi/2,0)
       complex(8) :: stmp1((lammax+1)*(lammax+1)) ! temporary allocation of the values of sigma
       complex(8) :: stmp2((lammax+1)*(lammax+1)) ! temporary allocation of the values of sigma
 
@@ -99,11 +99,20 @@
     
       if(ldbg)  call boxmsg(fid_outdbg,'+',"structure constant (Sigma), cutoff version")
 
-      dir_y(:) = 0.0d0
-      dir_y(2) = 1.0d0
+      dir_x(:) = 0.0d0
+      dir_x(1) = 1.0d0
       call k2cart(qlist(1:3,iq),idvq,qtemp)
-      call ylm(dir_y,lammax,ylamy)
+      call ylm(dir_x,lammax,ylamx)
       qvec(1:3)=-1.0d0*qtemp(1:3)
+      if (ldbg) then
+        write(fid_outdbg, "(A40)") "#check spherical harmonics at (pi/2,0)"
+        do lam=0,lammax
+          do mu=-lam,lam
+            ilmu=lam*lam+lam+mu+1
+            write(fid_outdbg,"(2I4, 2f10.6)") lam, mu, ylamx(ilmu)
+          enddo
+        enddo
+      endif
 
       do idf=1,ndf
         do jdf=idf,ndf
@@ -221,10 +230,12 @@
               if (mu.ne.lam) then
                 gausg=gausg*dfactr(2*lam-1)/dfactr(lam+mu-1)/dfactr(lam-mu-1)
               endif
-              stmp2(ilmu)=stmp2(ilmu)*cmplx(gausg,0.0d0,8)*ylamy(ilmu)
+              stmp2(ilmu)=stmp2(ilmu)*cmplx(gausg,0.0d0,8)*ylamx(ilmu)
               if(mu>0)then
+                !write(*,*) ylamx(ilmu)
                 ilmu=lam*lam+lam-mu+1
-                stmp2(ilmu)=stmp2(ilmu)*cmplx(gausg,0.0d0,8)*ylamy(ilmu)
+                stmp2(ilmu)=stmp2(ilmu)*cmplx(gausg,0.0d0,8)*ylamx(ilmu)
+                !write(*,*) ylamx(ilmu)
               endif
             enddo ! mu
           enddo ! lam
@@ -240,10 +251,10 @@
               do mu=lam,0,-2
                 if(mu.eq.0) continue
                 ilmu=lam*lam+lam+mu+1
-                stmp2(ilmu)=stmp2(ilmu)-ylamy(ilmu)* imag**mu *real(mu,8)&
+                stmp2(ilmu)=stmp2(ilmu)-ylamx(ilmu)* imag**mu *real(mu,8)&
                             *cmplx(gausg/real(lam+1),0.0d0,8)
                 ilmu=lam*lam+lam-mu-1
-                stmp2(ilmu)=stmp2(ilmu)-ylamy(ilmu)* imag**mu *real(mu,8)&
+                stmp2(ilmu)=stmp2(ilmu)-ylamx(ilmu)* imag**mu *real(mu,8)&
                             *cmplx(gausg/real(lam+1),0.0d0,8)
               enddo ! mu
               gausg = gausg / eta**2 * real(lam,8) / 2.0d0
@@ -254,10 +265,10 @@
               do mu=lam,0,-2
                 if(mu.eq.0) continue
                 ilmu=lam*lam+lam+mu+1
-                stmp2(ilmu)=stmp2(ilmu)-ylamy(ilmu)* imag**mu *real(mu,8)&
+                stmp2(ilmu)=stmp2(ilmu)-ylamx(ilmu)* imag**mu *real(mu,8)&
                             *cmplx(gausg/real(lam+1),0.0d0,8)
                 ilmu=lam*lam+lam-mu-1
-                stmp2(ilmu)=stmp2(ilmu)-ylamy(ilmu)* imag**mu *real(mu,8)&
+                stmp2(ilmu)=stmp2(ilmu)-ylamx(ilmu)* imag**mu *real(mu,8)&
                             *cmplx(gausg/real(lam+1),0.0d0,8)
               enddo ! mu
               gausg = gausg / eta**2 * real(lam,8) / 2.0d0
@@ -288,7 +299,7 @@
         do idf=1,ndf
           do jdf=idf,ndf
             ijdf=idf+jdf*(jdf-1)/2
-            do lam=1,lammax
+            do lam=0,lammax
               do mu=-lam,lam
                 ilmu=lam*lam+lam+mu+1
                 write(fid_outdbg,'(4i5,2e12.4)') mu,lam,idf,jdf,sgm(ilmu,ijdf)
