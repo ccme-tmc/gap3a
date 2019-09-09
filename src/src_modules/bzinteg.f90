@@ -6,7 +6,7 @@
 module bzinteg
 ! !Uses
   use task,      only: fid_outgw, fid_outdbg
-  use constants, only: pi
+  use constants, only: pi, gamma34
 
 ! !PUBLIC VARIABLES:
   complex(8), allocatable :: kcw(:,:,:,:,:)   ! Weights for convolutions  when k is the integration  variable
@@ -106,6 +106,66 @@ subroutine init_bzinteg
 
 end subroutine init_bzinteg
     
+! !IROUTINE: init_bzinteg
+!
+! !INTERFACE:
+subroutine init_bzinteg_2d(iaxis)
+! !USES:
+  use bands,   only: nomax,numin,nbmax,nbmaxpol,nspin
+  use core,    only: ncg
+  use freq,    only: nomeg
+  use kpoints, only: nkp,nirkp
+  implicit none
+
+! !IO Parameters
+  integer,intent(in) :: iaxis
+! !LOCAL VARIABLES:        
+  integer :: ierr,iq
+
+!EOP
+!BOC
+  call linmsg(fid_outgw,'-',"init_bzinteg")
+  allocate(kcw(ncg+nomax,numin:nbmaxpol,nkp,nomeg,nspin),       &
+     &     stat=ierr) 
+  if(ierr.ne.0) then 
+    write(6,*) "init_bzinteg: Fail to allocate memory"
+    stop
+  endif 
+
+  kcw=0.d0
+  ! set the coefficient for the head and wing integration
+  ! according to iop_q0
+  write(fid_outgw, "(A10,I2)") "iop_q0:", iop_q0
+
+  ! Always generate the grid_vec for the current stage
+  ! as the time cost is very small for small n_ang_grid
+  ! TODO check memory issue for large n_ang_grid
+  if(n_ang_grid.le.0) n_ang_grid = 6
+  call set_angular_grid(n_ang_grid)
+  write(fid_outgw, "(A20,I5)") "Used n_ang_grid: ", n_ang_grid
+  !! Set q_max for each vector of the grid
+  !call set_qmax_gamma_2d(n_ang_grid,grid_vec,qmax_gamma,vol_gamma)
+
+  if(iop_q0.eq.0) then 
+    call set_singc_0_2d(iaxis)
+  elseif(iop_q0.eq.1)then
+    call set_singc_1
+  else
+    write(fid_outgw,*) "Unknown iop_q0 option"
+    stop
+  endif
+
+  singc1ex = 0.0
+  singc2ex = singc2
+  singc1co = singc1
+  singc2co = singc2
+
+  write(fid_outgw,'(a,2f12.6)') "singc1ex, singc2ex =", singc1ex,singc2ex
+  write(fid_outgw,'(a,2f12.6)') "singc1co, singc2co =", singc1co,singc2co
+  call linmsg(fid_outgw,'-',"done init_bzinteg")
+
+end subroutine init_bzinteg_2d
+    
 !
 ! Clean bzinteg 
 !
@@ -147,6 +207,38 @@ subroutine set_singc_0
   400 format(A12,F12.8,A12,F12.8)
 end subroutine set_singc_0
 
+! Calculate coefficient of singular term at q->0 for exchange and
+! correlation self-energy for 2D Coulomb interaction
+subroutine set_singc_0_2d(iaxis)
+  use struk,   only: vi,alat
+  use kpoints, only: nqp
+  integer,intent(in) :: iaxis
+  integer:: iq
+  real(8) :: fourpia1a2,alfa,intf1,intf2,sumf1,sumf2
+  real(8) :: singf1, singf2   !! Auxiliary functions for BZ integrals at singular $\Gamma$ point
+
+  fourpia1a2=4.0d0*pi*vi*alat(iaxis)
+  alfa=sqrt(fourpia1a2)
+  singc1=0.d0
+  singc2=0.d0
+  write(fid_outgw,'(A30,I3)') "Generating F(2D) Coefs from nqp = ",nqp
+  do iq=1,nqp
+    call genauxf_2d(iq,iaxis,alfa,singf1,singf2)
+    write(fid_outgw,'(I4,2F12.8)') iq, singf1, singf2
+    singc1=singc1+singf1  
+    singc2=singc2+singf2  
+  enddo 
+
+  intf1=gamma34/(fourpia1a2*alfa*sqrt(alfa))
+  intf2=sqrt(pi)/(fourpia1a2*alfa)
+  write(fid_outgw,400) " SumTildF1 ",singc1," SumTildF2 ",singc2
+  write(fid_outgw,400) "     SumF1 ",intf1, "     SumF2 ",intf2
+  singc1=intf1-singc1
+  singc2=intf2-singc2
+  singc=singc2
+
+  400 format(A12,F12.8,A12,F12.8)
+end subroutine set_singc_0_2d
 
 subroutine set_singc_1
 
@@ -274,5 +366,23 @@ subroutine set_qmax_gamma(nang, q0, qmax_q0, vol_q0)
     write(fid_outdbg,"(I4,4F12.5)") iang, q0(iang,:),qmax_q0(iang)
   enddo ! iang
 end subroutine set_qmax_gamma
+
+subroutine set_qmax_gamma_2d
+! !Description
+!
+!
+! !Uses
+!
+! !IO paramters
+!
+! !Local variables
+!
+! !Revision history
+!
+! EOP
+! BOC
+!
+! EOC
+end subroutine set_qmax_gamma_2d
 
 end module bzinteg

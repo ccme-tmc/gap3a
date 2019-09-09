@@ -98,6 +98,9 @@
 !BOC      
     
       if(ldbg)  call boxmsg(fid_outdbg,'+',"structure constant (Sigma), cutoff version")
+      if(lammax.gt.32) then
+        write(6,"(A52)") "Warning! lammax>30. Numeric issue may happen in 2F2"
+      endif
 
       dir_x(:) = 0.0d0
       dir_x(1) = 1.0d0

@@ -12,9 +12,9 @@
 ! 
 ! !USES:
 
-      use bzinteg,     only: init_bzinteg
+      use bzinteg,     only: init_bzinteg, init_bzinteg_2d
       use bands,       only: nspin
-      use barcoul,     only: init_barcoul, init_barcoul_2d, lcutoff_in_coul_barc
+      use barcoul,     only: init_barcoul, init_barcoul_2d, lcutoff_in_coul_barc, axis_cut_coul
       use kpoints,     only: nqp,nirkp
       use task,        only: progname,taskname,time_minm,time_lapack,&
      &                       time_evec,time_eps,time_selfx,time_selfc,&
@@ -68,7 +68,11 @@
       call freq_set_fgrid     !* setup the frequency mesh and integration weights
       call set_mixbasis       !* setup mixed basis set 
       call bz_setkiw          !* normal BZ integration weights
-      call init_bzinteg       !* Initialize libbzint
+      if(lcutoff_in_coul_barc)then
+        call init_bzinteg       !* Initialize libbzint
+      else
+        call init_bzinteg_2d(axis_cut_coul)
+      endif
 
       if(taskname.eq.'chkbz') then 
         write(6,*) "check BZ integration"

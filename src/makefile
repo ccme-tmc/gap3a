@@ -107,7 +107,7 @@ OBJS =  $(SP_OBJS) \
         diagipw.o \
         expand_evec.o \
         fourintp.o freq_convl.o freq_intpl_ac.o freq_set_fgrid.o \
-        genauxf.o gendjmm.o getcgcoef.o getdjmm.o get_minm.o      \
+        genauxf.o genauxf_2d.o gendjmm.o getcgcoef.o getdjmm.o get_minm.o      \
         int1ipw.o intipw.o intstipw.o \
         io_eps.o io_eqp.o io_mwm.o io_mwm3.o io_vxcmn.o \
         k2cart.o kfrac2cart.o kp_k0index.o kp_interp.o kip_qpeintp.o kip_readeqp.o kip_readenk.o \

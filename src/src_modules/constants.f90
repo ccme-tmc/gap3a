@@ -18,6 +18,7 @@
         real(8), parameter :: fourpi=pi*4.0D0
         real(8), parameter :: sqrt4pi=3.544907701811032055D0
         real(8), parameter :: sqrt3=1.73205080757d0
+        real(8), parameter :: gamma34=1.225416702465178d0   ! Gamma(0.75)
         real(8), parameter :: sqrt2=1.41421356237d0
         real(8), parameter :: pisq= pi*pi
         real(8), parameter :: pisqrt= 1.772453850905516104D0

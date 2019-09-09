@@ -46,12 +46,15 @@
 
 ! !REVISION HISTORY:
 !
-! Created 19.07.2008 by Hong Jiang
+!  Created 19.07.2008 by Hong Jiang
+! Modifeid 09.09.2019 by Min-Ye Zhang
 !      
 !EOP
 !BOCa
 
-      call boxmsg(6,'*',"Task:GW 2D") 
+      call boxmsg(6,'*',"Task:GW 2D")
+      ! reinit bzinteg for 2D
+  
 !
 !     iop_sxc -- determine which approximation to self-energy
 !                0 --- GW

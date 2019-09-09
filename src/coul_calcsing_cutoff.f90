@@ -77,7 +77,8 @@
       
       complex(8) :: expg
 
-      integer(4):: iprt,ierr 
+      integer(4):: ierr
+      logical :: ldbg=.false.
  
  
 ! !EXTERNAL ROUTINES: 
@@ -97,13 +98,11 @@
 !
 !  Created: 17th. March 2004 by MF
 ! Modified: 30th. March 2004 by RGA
-! Last Modified: 09th. Sept 2019 by MYZ
+! Modified: 09th. Sept  2019 by MYZ
 !
 !EOP
 !BOC
 !      
-      iprt = 0
-
 
       gmax=kmr*kmax*1.0d+1
       ng1=idint(gmax*pia(1))+1
@@ -188,6 +187,9 @@
                 expg=cmplx(cos(2.0d0*pi*gpr),-sin(2.0d0*pi*gpr),8)
                 gxy=vecprojlen(gvec,rbas(axis_cut_coul,:),'perp')
                 gz=vecprojlen(gvec,rbas(axis_cut_coul,:),'para')
+                if(ldbg)then
+                  write(*, "(I4,2F20.8)") ipw, gxy, gz
+                endif
                 phase(idf,jdf,igl)=phase(idf,jdf,igl)+expg * &
                   cmplx(1.0d0-exp(-gxy*zcut_coul)*cos(gz*zcut_coul),0.0d0,8)
               enddo ! ipw

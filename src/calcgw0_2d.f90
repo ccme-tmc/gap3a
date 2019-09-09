@@ -54,7 +54,8 @@
 
 ! !REVISION HISTORY:
 !
-! Created 19.07.2008 by Hong Jiang
+!  Created 19.07.2008 by Hong Jiang
+! Modified 09.09.2019 by Min-Ye Zhang
 !      
 !EOP
 !BOCa
@@ -175,7 +176,7 @@
 
         if(ierr_sx.ne.0) then
           call coul_setev(iq,0.d0,iop_coul_x)
-          call calcselfx(iq,iop_minm)
+          call calcselfx_2d(iq,iop_minm)
 
           if(myrank_ra3.eq.0) then
             call io_sxcmn('w','d',iq,1,1,ierr)
@@ -203,34 +204,11 @@
         else
           call coul_setev(iq,barcevtol,iop_coul_c)
           call init_dielmat(iq,1,nomeg)  !! initialize
-          if(iop_aniso.ne.-1)then
-            time_aniso = 0.0
-            call cpu_time(time1)
-            call init_aniso(aniten,iq,matsiz,1,nomeg,lmax_q0,n_ang_grid)
-            call cpu_time(time2)
-            time_aniso = time_aniso + time2 - time1
-          endif
-
-          if (iop_coul_c.eq.2)then
-            !call calceps_2d(iq,1,nomeg,0,-1,2,lread_eps)
-            call calceps_aniso(iq,1,nomeg,0,-1,2,lread_eps)
-          else
-            call calceps_aniso(iq,1,nomeg,0,-1,2,lread_eps)
-          endif
-
-          if (iop_coul_c.eq.2)then
-            !call calcselfc_2d(iq,iop_minm)
-            call calcselfc_2d(iq,iop_minm)
-          else
-            call calcselfc(iq,iop_minm)
-          endif
+          call calceps_2d(iq,1,nomeg,0,-1,2,lread_eps)
+          call calcselfc_2d(iq,iop_minm)
 
           if(myrank_ra3.eq.0) then
             call io_sxcmn('w','d',iq,isxc,1,ierr)
-          endif
-
-          if(iop_aniso.ne.-1)then
-            call end_aniso(iq,aniten)
           endif
 
           call end_dielmat(iq)
@@ -257,12 +235,8 @@
           sigc=0.d0
           lrestart = .true.
           do iq=iq_f,iq_l
-            if (iop_coul_c.eq.2)then
-              !call calcselfc_2d(iq,iop_minm)
-              call calcselfc_2d(iq,0)
-            else
-              call calcselfc(iq,0)
-            endif
+            !call calcselfc_2d(iq,iop_minm)
+            call calcselfc_2d(iq,0)
           enddo
 
 #ifdef MPI
