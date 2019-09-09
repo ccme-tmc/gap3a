@@ -97,7 +97,7 @@ OBJS =  $(SP_OBJS) \
         calcexhf.o calcgcoef.o calchead.o calchead_aniso.o calchead_2d.o calcjlam.o  calcloabc.o\
         calcmmatvv.o calcmmatcc.o calcmmatcv.o \
         calcminm.o calcminc.o calcmicm.o calcmicc.o calcmommat.o  calcmwm.o calcmwm_aniso.o calcmwm_2d.o \
-        calcplasmon.o calcqpwf_dmat.o calcrwf.o  coul_calcsing.o      \
+        calcplasmon.o calcqpwf_dmat.o calcrwf.o  coul_calcsing.o coul_calcsing_cutoff.o     \
         calcvhmn.o  calcvorbnn.o calcudot.o calcu.o    \
         calc_spectfun_nk.o calc_spectfun.o \
         coul_barcq0.o coul_barc.o coul_setvm0.o coul_setvm1.o coul_mpwmix.o coul_mpwipw.o coul_setev.o coul_strcnst.o coul_wmix0.o  \

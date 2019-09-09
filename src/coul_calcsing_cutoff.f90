@@ -18,7 +18,8 @@
       use lapwlo,     only: kmax
       use mixbasis,   only: kmr,pwm,umix,usmix,nmix,nmixmax,bigl,maxbigl
       use q0barc,     only: nglen, sing, glen0, phase
-      use struk,      only: pia, ndf, mult,nrpt, pos,br2,ortho,nat
+      use struk,      only: pia,ndf,mult,nrpt,pos,br2,ortho,nat,rbas
+      use barcoul,    only: axis_cut_coul,zcut_coul
 !
 !
 ! !INPUT PARAMETERS:
@@ -30,7 +31,7 @@
 
 ! !LOCAL VARIABLES:
 !
-      character*20:: sname="coul_calcsing"
+      character*20:: sname="coul_calcsing_cutoff"
       integer(4) :: i
       integer(4) :: iat
       integer(4) :: idf
@@ -64,6 +65,8 @@
       real(8) :: q
       real(8) :: glprev
       real(8) :: gpr
+      real(8) :: gxy   ! projection of vector G on xOy plane
+      real(8) :: gz    ! projection of vector G on z axis
 
       real(8), dimension(3) :: gvec ! Coordinates of the vector G
       real(8), dimension(3) :: dpos
@@ -83,18 +86,18 @@
       external k2cart
       external radmesh
       external rint13
-
+      real(8),external :: vecprojlen
 
 ! !INTRINSIC ROUTINES: 
-
 
       intrinsic dsqrt
 
 !
 ! !REVISION HISTORY:
 !
-! Created: 17th. March 2004 by MF
-! Last Modified: 30th. March 2004 by RGA
+!  Created: 17th. March 2004 by MF
+! Modified: 30th. March 2004 by RGA
+! Last Modified: 09th. Sept 2019 by MYZ
 !
 !EOP
 !BOC
@@ -181,8 +184,12 @@
                 igvec(1:3)=gind(1:3,ipw)
                 gpr=dble(igvec(1))*dpos(1)+dble(igvec(2))*dpos(2)+ &
      &              dble(igvec(3)*dpos(3))
+                call k2cart(igvec,1,gvec)
                 expg=cmplx(cos(2.0d0*pi*gpr),-sin(2.0d0*pi*gpr),8)
-                phase(idf,jdf,igl)=phase(idf,jdf,igl)+expg
+                gxy=vecprojlen(gvec,rbas(axis_cut_coul,:),'perp')
+                gz=vecprojlen(gvec,rbas(axis_cut_coul,:),'para')
+                phase(idf,jdf,igl)=phase(idf,jdf,igl)+expg * &
+                  cmplx(1.0d0-exp(-gxy*zcut_coul)*cos(gz*zcut_coul),0.0d0,8)
               enddo ! ipw
             enddo ! jeq
           enddo ! jat

@@ -190,7 +190,6 @@
             l1=bigl(irm,iat)
             do m1=-l1,l1
               im = im + 1
-
               jm=0  
               jdf=0    
               do jat=1,nat
@@ -256,17 +255,17 @@
                 expg=cmplx(cos(2.0d0*pi*gpr),-sin(2.0d0*pi*gpr),8)
                 igl=indgqlen(ipw,iq)
                 qglen=gqleng(igl,iq)
-                !! introduce the factor for the truncation for finite systems
                 qg1(1:3) = qvec(1:3) + gvec(1:3)
                 qgxy=vecprojlen(qg1,rbas(axis_cut_coul,:),'perp')
                 qgz=vecprojlen(qg1,rbas(axis_cut_coul,:),'para')
                 vqg=fourpi/(qglen*qglen) * &
                     (1.0d0-exp(-qgxy*zcut_coul)*cos(qgz*zcut_coul))
-                if(ldbg) then
-                  write(*,"(7F15.6)") qg1(1:3),qgxy,qgz,fourpi/(qglen*qglen),vqg
-                endif
-                vtemp(ipw,im)=prefac*jlam(irm,igl)*vqg                  &
+                !if(ldbg) then
+                !  write(*,"(7F15.6)") qg1(1:3),qgxy,qgz,fourpi/(qglen*qglen),vqg
+                !endif
+                vtemp(ipw,im)=cmplx(prefac*jlam(irm,igl)*vqg,0.0d0,8)   &
      &                *sph(l1*(l1+1)+m1+1,ipw)*((-imag)**l1)*expg
+                !TODO why minus imag?
               enddo ! ipw       
             enddo ! m1  
           enddo ! irm
@@ -275,7 +274,6 @@
 
       call zgemm('n','n',ngq(iq),locmatsiz,ngqbarc(iq),cone,mpwipw,     &
      &           ngq(iq),vtemp,ngqbarc(iq),czero,mat2,ngq(iq))
-
       do iipw=1,ngq(iq)
         do im=1,locmatsiz
           vmat(locmatsiz+iipw,im)=mat2(iipw,im)
@@ -283,7 +281,6 @@
         enddo
       enddo    
       deallocate(mat2,jlam,rtlij,sph,vtemp)
-
 !
 !     Calculation of the matrix elements between two IPW's
 !
@@ -305,9 +302,8 @@
         qglen=gqleng(igl,iq)
         vqg=fourpi/(qglen*qglen) * &
             (1.0d0-exp(-qgxy*zcut_coul)*cos(qgz*zcut_coul))
-
         do iipw=1,ngq(iq)
-          mat1(iipw,ipw)=mpwipw(iipw,ipw)*vqg
+          mat1(iipw,ipw)=mpwipw(iipw,ipw)*cmplx(vqg,0.0d0,8)
         enddo  
       enddo
       call zgemm('n','c',ngq(iq),ngq(iq),ngqbarc(iq),cone,mat1,ngq(iq), &
