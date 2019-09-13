@@ -415,9 +415,9 @@
      &                  mycomm_ra3,ierr)
             ! broadcast anistropy-related quantities among iq=1
             if(iop_aniso.ne.-1)then
-              call mpi_bcast(head_g,aniten%nang*nomg,mpi_double_complex,0,&
+              call mpi_bcast(aniten%head_q0,aniten%nang*nomg,mpi_double_complex,0,&
      &                    mycomm_ra3,ierr)
-              call mpi_bcast(aniten%h_ylm_q0,aniten%lmgsq*nomg,mpi_double_complex,0,&
+              call mpi_bcast(aniten%h_ylm,aniten%lmgsq*nomg,mpi_double_complex,0,&
      &                    mycomm_ra3,ierr)
               call mpi_bcast(aniten%wv_q0,aniten%nang*matsiz*nomg,mpi_double_complex,0,&
      &                    mycomm_ra3,ierr)

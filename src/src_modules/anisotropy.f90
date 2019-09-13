@@ -394,9 +394,9 @@ subroutine angint_eps_sph(at, iom, bodyinv, use_harm)
 !  !    do m1=-l1,l1
 !  !        lm1 = 1 + l1*(l1+1) + m1
 !  !        do l2=0,lmax_gamma
-!  !            if(l2.ne.l1) continue
+!  !            if(l2.ne.l1) cycle
 !  !            do m2=-l2,l2
-!  !                if(m2+m1.ne.0) continue
+!  !                if(m2+m1.ne.0) cycle
 !  !                lm2 = 1 + l2*(l2+1) + m2
 !  !                do im=1,matsiz
 !  !                    wv(im) = wv(im) + h_g_lm(lm1) * a_lm(lm2,im) * (-1)**m2

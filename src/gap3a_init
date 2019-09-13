@@ -68,6 +68,7 @@ unset hf
 unset recover
 unset lom10
 unset newin1test  
+unset ldgw
 
 # Get options
 
@@ -98,6 +99,8 @@ while ($#argv)
       shift; set sp = $1; sb
     case -kshift:
       set kshift='-shift'; sb
+    case -ldgw:
+      shift; set ldgw=$1; sb
 
 # some options for newin1 
     case -newin1:
@@ -603,7 +606,15 @@ gwinp:
   echo "#Initialization options: $name $initopts" > $gwinp
   echo "#WIEN2k version used: $w2k_version" >>$gwinp 
   echo '' >> $gwinp
-  echo "Task    = '$task'"  >> $gwinp
+  if (($task == 'gw') && ($?ldgw)) then
+    if ($ldgw == 2) then
+      echo "Task    = 'gw_2d'"  >> $gwinp
+    else
+      echo "Task    = 'gw'"  >> $gwinp
+    endif
+  else
+    echo "Task    = '$task'"  >> $gwinp
+  endif
 
   if( $task == 'crpa' ) then 
 
@@ -743,7 +754,7 @@ EOF
 
   if($?hf) then 
     echo "lhybrid = T        #  starting from hybrid functional calculations">> $gwinp
-  endif 
+  endif
 
 #
 # write k-mesh information to the gw.inp 
@@ -768,6 +779,19 @@ nvel = $nvel                  # the number of valence electrons
 %
 EOF
 
+  if($?ldgw) then
+    if ($ldgw == 2)then
+    cat << EOF >> $gwinp
+# 2D Coulomb cutoff setup
+%q0eps
+0.70710678 | 0.70710678 | 0  # direction of q0 for isotropic treatment
+%
+CutoffInCoulBarc = T         # flag to truncate the bare Coulomb interaction
+axis_cut_coul = 3            # axis in which Coulomb interaction is cut off
+EOF
+    endif
+# currently change job to gw_2d
+  endif
 
 # 
 # In more recent versions of wien2k, core wave functions are not written to files by default, so it is necessary to 

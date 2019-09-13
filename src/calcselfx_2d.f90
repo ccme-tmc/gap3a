@@ -14,7 +14,7 @@
 
       use bands,      only: bande,efermi,nbmax,nspin,        &
      &                      nomaxs,numins,ibgw,nbgw,nbandsgw 
-      use barcoul,    only: iop_coul,zcut_coul
+      use barcoul,    only: zcut_coul
       use bzinteg,    only: singc2ex,kiw
       use constants,  only: cone,czero,pi,fourpi,sqrt4pi
       use core,       only: corind, eigcore,ncg,iop_core,ncg_x 
@@ -65,7 +65,7 @@
       complex(8),allocatable:: sx_a(:,:) !! arrays of the x-selfenergy used in the parallelization 
 
       integer :: ierr
-      character(len=10)::sname='calcselfx'
+      character(len=10)::sname='calcselfx_2d'
       logical :: ldbg = .true.
 
 ! !EXTERNAL ROUTINES: 
@@ -80,7 +80,7 @@
 
 
 
-      if(ldbg) call linmsg(6,'-','calcselfx')
+      if(ldbg) call linmsg(6,'-',sname)
 
       sigx_q = 0.d0 
 
@@ -191,7 +191,7 @@
             mvm = - zdotc(matsiz,minm(:,ie2,ie1),1,minm(:,ie2,ie1),1)
             sx(ie1)=sx(ie1) + mvm*wt
             ! contribution from singular term
-            if(iop_coul.eq.-1.and.iq.eq.1.and.ie1.eq.ie2.and.ie1.le.nomx) then 
+            if(iq.eq.1.and.ie1.eq.ie2.and.ie1.le.nomx) then 
               wts = wt*nqp
               if(ldbg) write(6,*) "ie1=",ie1,"wts=",wts
               sx(ie1) = sx(ie1) - sxs2*singc2ex*wts

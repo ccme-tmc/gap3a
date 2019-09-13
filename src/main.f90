@@ -69,9 +69,9 @@
       call set_mixbasis       !* setup mixed basis set 
       call bz_setkiw          !* normal BZ integration weights
       if(lcutoff_in_coul_barc)then
-        call init_bzinteg       !* Initialize libbzint
-      else
         call init_bzinteg_2d(axis_cut_coul)
+      else
+        call init_bzinteg       !* Initialize libbzint
       endif
 
       if(taskname.eq.'chkbz') then 

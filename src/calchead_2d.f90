@@ -16,6 +16,7 @@
       use bands,       only: bande,nbmaxpol,fspin,    & 
      &                       nomaxs,numins,nspin,metallic
       use bzinteg,     only: kcw,kwfer
+      use barcoul,     only: zcut_coul
       use constants,   only: czero, pi,cone,hev
       use core,        only: corind, eigcore, ncg_p, iop_core 
       use freq,        only: omega,iop_freq
@@ -35,7 +36,7 @@
 ! !LOCAL VARIABLES:
       logical:: ldbg=.true.
       !logical:: ldbg=.false.
-      character(10):: sname="calchead"
+      character(10):: sname="calchead_2d"
 
       integer :: icg  ! index for core states of all atoms 
       integer :: ic   ! index for core states on one atom 
@@ -77,8 +78,9 @@
 !
 ! !REVISION HISTORY:
 !
-! Created 11.02.05 by RGA
-! Last modified Aug. 13, 2010 by JH
+!  Created 11.02.05 by RGA
+! modified Aug. 13, 2010 by JH
+! modified Sept. 10, 2019 by MYZ
 !
 !EOP
 !BOC
@@ -86,12 +88,13 @@
 !TODO: 
 !  -- Add and check the treatment of metallic systems 
 
-      ! TODO make coef_coul |q|-dependent
-      coef_coul = 4.0D0*pi
+      coef_coul = 4.0D0*pi*zcut_coul
       ccoef_coul = cmplx(coef_coul,0.0D0,8)
+      ! In 2D case and anisotropy switched off, head is fixed to 1
       head(iomfirst:iomlast) = cone 
 
       if(ldbg) call linmsg(6,'-',sname)
+      if(.not.iop_aniso) write(6,"(A40)") "Anisotropy off, head set to identity"
       !write(*,*) associated(aniten), allocated(aniten%ten_p), size(aniten%ten_p)
       do isp=1,nspin 
         nvbm = nomaxs(isp)
@@ -159,13 +162,14 @@
                   time_aniso = time_aniso + time2 - time1
                   termcv(ie2)=ten_rvctrv(3,p_ani_iom_cv(:,:,ie2),q0_eps)
                 else
+                !! head is fixed to 1 when anisotropy is switched off
                 !! two treatments are equivalent with q0_eps=(1,1,1)/\sqrt{3}
                 !! old treatment concerning q -> 0 : averaging over three directions
      !            termcv(ie2)=(1.d0/(3.0d0*edsq))* &
      !&                           sum(abs(mmatcv(:,icg,ie2,irk,isp))**2)
                  !! new treatment : choosing a particular direction 
-                  pnmkq=sum(mmatcv(1:3,icg,ie2,irk,isp)*q0_eps(1:3))
-                  termcv(ie2)=abs(pnmkq)**2/edsq/veclen(q0_eps)**2
+                  !pnmkq=sum(mmatcv(1:3,icg,ie2,irk,isp)*q0_eps(1:3))
+                  !termcv(ie2)=abs(pnmkq)**2/edsq/veclen(q0_eps)**2
                 endif ! iop_aniso.ne.-1
               enddo ! ie2
               !write(*,*) "before iom with iomfisrt = ", iomfirst
@@ -184,7 +188,7 @@
                   call cpu_time(time2)
                   time_aniso = time_aniso + time2 - time1
                 endif ! iop_aniso.ne.-1
-                head(iom)=head(iom)-ccoef_coul*ccoef*zdotu(nbmaxpol-ncbm+1,vwc,1,termcv,1)
+                !head(iom)=head(iom)-ccoef_coul*ccoef*zdotu(nbmaxpol-ncbm+1,vwc,1,termcv,1)
               enddo ! iom 
               !write(*,*) "after iom"
             enddo ! icg
@@ -199,7 +203,6 @@
               ie12=ie12+1
               edif=bande(ie2,irk,isp)-bande(ie1,irk,isp)
               edsq=edif*edif
-         
 !              call wrnmsg(edsq.lt.1.e-10,sname,"degenerate CB and VB")
 !              call wrnmsg(edif.lt.0.0,sname,"Wrong ordered VB and CB")
               if(edsq.lt.1.0d-20)then
@@ -261,7 +264,7 @@
               time_aniso = time_aniso + time2 - time1
               head(iom)=head(iom)-ccoef_coul*ccoef*zdotu(ie12max,termvv,1,vwe,1)
             else
-              head(iom)=head(iom)-ccoef_coul*ccoef*zdotu(ie12max,termvv,1,vwe,1)
+              !head(iom)=head(iom)-ccoef_coul*ccoef*zdotu(ie12max,termvv,1,vwe,1)
             endif
           enddo
         enddo ! irk 

@@ -219,7 +219,7 @@ pack:
 	$(MAKE) prepdoc
 	$(MAKE) preptest
 	$(MAKE) prepexamples
-	tar -czvf ../$(PACKNAME).tgz ../$(PACKNAME)
+	tar --exclude="*.o" --exclude="*.mod" -czvf ../$(PACKNAME).tgz ../$(PACKNAME)
 	rm -rf ../$(PACKNAME)
 
 prepsrc:

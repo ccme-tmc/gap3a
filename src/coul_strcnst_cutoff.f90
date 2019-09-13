@@ -107,15 +107,15 @@
       call k2cart(qlist(1:3,iq),idvq,qtemp)
       call ylm(dir_x,lammax,ylamx)
       qvec(1:3)=-1.0d0*qtemp(1:3)
-      if (ldbg) then
-        write(fid_outdbg, "(A40)") "#check spherical harmonics at (pi/2,0)"
-        do lam=0,lammax
-          do mu=-lam,lam
-            ilmu=lam*lam+lam+mu+1
-            write(fid_outdbg,"(2I4, 2f10.6)") lam, mu, ylamx(ilmu)
-          enddo
-        enddo
-      endif
+      !if (ldbg) then
+      !  write(fid_outdbg, "(A40)") "#check spherical harmonics at (pi/2,0)"
+      !  do lam=0,lammax
+      !    do mu=-lam,lam
+      !      ilmu=lam*lam+lam+mu+1
+      !      write(fid_outdbg,"(2I4, 2f10.6)") lam, mu, ylamx(ilmu)
+      !    enddo
+      !  enddo
+      !endif
 
       do idf=1,ndf
         do jdf=idf,ndf
@@ -252,7 +252,7 @@
             gausg = sqrt(pi)/eta**2
             do lam=1,lammax,2
               do mu=lam,0,-2
-                if(mu.eq.0) continue
+                if(mu.eq.0) cycle
                 ilmu=lam*lam+lam+mu+1
                 stmp2(ilmu)=stmp2(ilmu)-ylamx(ilmu)* imag**mu *real(mu,8)&
                             *cmplx(gausg/real(lam+1),0.0d0,8)
@@ -266,7 +266,7 @@
             gausg = 1.0d0/eta**3
             do lam=2,lammax,2
               do mu=lam,0,-2
-                if(mu.eq.0) continue
+                if(mu.eq.0) cycle
                 ilmu=lam*lam+lam+mu+1
                 stmp2(ilmu)=stmp2(ilmu)-ylamx(ilmu)* imag**mu *real(mu,8)&
                             *cmplx(gausg/real(lam+1),0.0d0,8)

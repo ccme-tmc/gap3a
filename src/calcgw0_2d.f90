@@ -50,7 +50,7 @@
       integer :: iq_f,iq_l     !! lower and upper bound for iq
       logical :: lread_eps 
 
-      character(len=20):: sname="calcgw0"
+      character(len=20):: sname="calcgw0_2d"
 
 ! !REVISION HISTORY:
 !

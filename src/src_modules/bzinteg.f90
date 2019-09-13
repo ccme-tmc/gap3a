@@ -6,7 +6,7 @@
 module bzinteg
 ! !Uses
   use task,      only: fid_outgw, fid_outdbg
-  use constants, only: pi, gamma34
+  use constants, only: pi, gamma34, gamma54
 
 ! !PUBLIC VARIABLES:
   complex(8), allocatable :: kcw(:,:,:,:,:)   ! Weights for convolutions  when k is the integration  variable
@@ -124,7 +124,7 @@ subroutine init_bzinteg_2d(iaxis)
 
 !EOP
 !BOC
-  call linmsg(fid_outgw,'-',"init_bzinteg")
+  call linmsg(fid_outgw,'-',"init_bzinteg_2d")
   allocate(kcw(ncg+nomax,numin:nbmaxpol,nkp,nomeg,nspin),       &
      &     stat=ierr) 
   if(ierr.ne.0) then 
@@ -162,7 +162,6 @@ subroutine init_bzinteg_2d(iaxis)
 
   write(fid_outgw,'(a,2f12.6)') "singc1ex, singc2ex =", singc1ex,singc2ex
   write(fid_outgw,'(a,2f12.6)') "singc1co, singc2co =", singc1co,singc2co
-  call linmsg(fid_outgw,'-',"done init_bzinteg")
 
 end subroutine init_bzinteg_2d
     
@@ -198,6 +197,7 @@ subroutine set_singc_0
 
   intf1=1.0d0/(4.0d0*pi2vi*alfa*alfa)
   intf2=1.0d0/(4.0d0*pi2vi*alfa)*sqrt(pi)
+  write(fid_outgw,"(A10,F10.4)") "alpha = ", alfa
   write(fid_outgw,400) " SumTildF1 ",singc1," SumTildF2 ",singc2
   write(fid_outgw,400) "     SumF1 ",intf1, "     SumF2 ",intf2
   singc1=intf1-singc1
@@ -207,9 +207,12 @@ subroutine set_singc_0
   400 format(A12,F12.8,A12,F12.8)
 end subroutine set_singc_0
 
-! Calculate coefficient of singular term at q->0 for exchange and
-! correlation self-energy for 2D Coulomb interaction
 subroutine set_singc_0_2d(iaxis)
+  !
+  ! Calculate coefficient of singular term at q->0 for exchange and
+  ! correlation self-energy for 2D Coulomb interaction
+  ! with auxiliary function defined by a summation in 2D reciprocal vectors
+  !
   use struk,   only: vi,alat
   use kpoints, only: nqp
   integer,intent(in) :: iaxis
@@ -218,7 +221,7 @@ subroutine set_singc_0_2d(iaxis)
   real(8) :: singf1, singf2   !! Auxiliary functions for BZ integrals at singular $\Gamma$ point
 
   fourpia1a2=4.0d0*pi*vi*alat(iaxis)
-  alfa=sqrt(fourpia1a2)
+  alfa=sqrt(1.0d0/fourpia1a2)
   singc1=0.d0
   singc2=0.d0
   write(fid_outgw,'(A30,I3)') "Generating F(2D) Coefs from nqp = ",nqp
@@ -231,6 +234,7 @@ subroutine set_singc_0_2d(iaxis)
 
   intf1=gamma34/(fourpia1a2*alfa*sqrt(alfa))
   intf2=sqrt(pi)/(fourpia1a2*alfa)
+  write(fid_outgw,"(A10,F10.4)") "alpha = ", alfa
   write(fid_outgw,400) " SumTildF1 ",singc1," SumTildF2 ",singc2
   write(fid_outgw,400) "     SumF1 ",intf1, "     SumF2 ",intf2
   singc1=intf1-singc1
@@ -239,6 +243,44 @@ subroutine set_singc_0_2d(iaxis)
 
   400 format(A12,F12.8,A12,F12.8)
 end subroutine set_singc_0_2d
+
+subroutine set_singc_0_2d_3daux(iaxis)
+  !
+  ! Calculate coefficient of singular term at q->0 for exchange and
+  ! correlation self-energy for 2D Coulomb interaction
+  ! with auxiliary function defined by a summation in 3D reciprocal vectors
+  !
+  ! iaxis is a dummy variable to keep consistent with that for 2D reciprocal vectors
+  !
+  use struk,   only: vi,alat
+  use struk,   only: vi,alat
+  use kpoints, only: nqp
+  integer :: iq
+  integer,intent(in) :: iaxis
+  real(8) :: pi2vi,alfa,intf1,intf2,sumf1,sumf2
+  real(8) :: singf1, singf2   !! Auxiliary functions for BZ integrals at singular $\Gamma$ point
+
+  pi2vi=pi*pi*vi
+  alfa=(1.0d0/(6.0d0*pi2vi))**(1.0d0/3.0d0)
+  singc1=0.d0
+  singc2=0.d0
+  write(fid_outgw,'(A30,I3)') "Generating F(2D) Coefs from nqp = ",nqp
+  do iq=1,nqp
+    call genauxf_2d(iq,0,alfa,singf1,singf2)
+    write(fid_outgw,'(I4,2F12.8)') iq, singf1, singf2
+    singc1=singc1+singf1  
+    singc2=singc2+singf2  
+  enddo 
+  intf1=gamma54/(4.0d0*pi2vi*alfa*alfa*sqrt(alfa))
+  intf2=1.0d0/(4.0d0*pi2vi*alfa*alfa)
+  write(fid_outgw,"(A10,F10.4)") "alpha = ", alfa
+  write(fid_outgw,400) " SumTildF1 ",singc1," SumTildF2 ",singc2
+  write(fid_outgw,400) "     SumF1 ",intf1, "     SumF2 ",intf2
+  singc1=intf1-singc1
+  singc2=intf2-singc2
+  singc=singc2
+  400 format(A12,F12.8,A12,F12.8)
+end subroutine set_singc_0_2d_3daux
 
 subroutine set_singc_1
 
@@ -367,7 +409,48 @@ subroutine set_qmax_gamma(nang, q0, qmax_q0, vol_q0)
   enddo ! iang
 end subroutine set_qmax_gamma
 
-subroutine set_qmax_gamma_2d
+subroutine get_qmax(q0, qmax)
+  use kpoints,  only: nkdivs
+  use struk,    only: br2
+
+  real(8),dimension(3),intent(in) :: q0
+  real(8),intent(out) :: qmax
+  
+  integer :: i1, i2, i3, isq
+  real(8) :: smallq(3,26)
+  real(8) :: denominator
+  real(8) :: numerator
+  real(8) :: temp
+
+  isq=0
+  do i1=-1,1
+    do i2=-1,1
+      do i3=-1,1
+        if(.not.((i1 .eq. 0) .and. (i2 .eq. 0) .and. (i3 .eq. 0)))then
+          isq=isq+1
+          do j=1,3
+            smallq(j,isq)= dble(i1)*br2(j,1)/dble(nkdivs(1))+ &
+                           dble(i2)*br2(j,2)/dble(nkdivs(2))+ &
+                           dble(i3)*br2(j,3)/dble(nkdivs(3))
+          enddo ! j
+        endif
+      enddo ! i3
+    enddo ! i2
+  enddo ! i1
+
+  qmax=1.0d10
+  do isq=1,26
+    denominator = sum(q0(:)*smallq(:,isq))
+    if(denominator .gt. 1.0d-10)then
+      numerator = 0.5d0 * sum(smallq(1:3,isq)**2)
+      temp = numerator/denominator
+      if(temp .lt. qmax) qmax = temp
+    endif
+  enddo ! isq
+  
+end subroutine get_qmax
+
+subroutine set_qmax_gamma_2d(nang, iaxis, q0, qmax_q0, area_q0)
 ! !Description
 !
 !
@@ -382,6 +465,66 @@ subroutine set_qmax_gamma_2d
 ! EOP
 ! BOC
 !
+  use kpoints,  only: nkdivs
+  use struk,    only: br2,vi,alat
+  implicit none
+! !Input and output paramters
+  integer,intent(in) :: nang
+  integer,intent(in) :: iaxis
+  real(8),intent(in) :: q0(nang,3)
+  real(8),intent(inout) :: qmax_q0(nang)
+  real(8),intent(out)   :: area_q0
+
+! !LOCAL VARIABLES:
+  integer :: i1, i2, i3
+  integer :: j, iang
+  integer :: isq
+  integer :: rangeaxis(3)
+  real(8) :: numerator, denominator
+  real(8) :: smallq(3,8)
+  real(8) :: sq0(3)
+  real(8) :: maxq
+! !Revision history
+!
+! - Created 10 Sept 2019 by MYZ
+!
+!EOP
+!BOC
+!
+  rangeaxis(:) = 1
+  if((iaxis>0).and.(iaxis<4)) rangeaxis(iaxis) = 0
+  ! Determine the k-points closet to gamma
+  isq=0
+  do i1=-rangeaxis(1),rangeaxis(1)
+    do i2=-rangeaxis(2),rangeaxis(2)
+      do i3=-rangeaxis(3),rangeaxis(3)
+        if(.not.((i1 .eq. 0) .and. (i2 .eq. 0) .and. (i3 .eq. 0)))then
+          isq=isq+1
+          do j=1,3
+            smallq(j,isq)= dble(i1)*br2(j,1)/dble(nkdivs(1))+ &
+                           dble(i2)*br2(j,2)/dble(nkdivs(2))+ &
+                           dble(i3)*br2(j,3)/dble(nkdivs(3))
+          enddo ! j
+        endif
+      enddo ! i3
+    enddo ! i2
+  enddo ! i1
+
+  area_q0 = 4.0d0*pi**2*vi/dble(product(nkdivs)/nkdivs(iaxis))*alat(iaxis)
+  write(fid_outdbg,*) "qmax", nang
+  qmax_q0(:) = 1.0d+3
+  do iang=1,nang
+    sq0(1:3)=q0(iang,:)
+    do isq=1,8
+      denominator = sum(sq0(:)*smallq(:,isq))
+      if(denominator .gt. 1.0d-10)then
+        numerator = 0.5d0 * sum(smallq(1:3,isq)**2)
+        maxq = numerator/denominator
+        if(maxq .lt. qmax_q0(iang)) qmax_q0(iang) = maxq
+      endif
+    enddo ! isq
+    write(fid_outdbg,"(I4,4F12.5)") iang, q0(iang,:),qmax_q0(iang)
+  enddo ! iang
 ! EOC
 end subroutine set_qmax_gamma_2d
 

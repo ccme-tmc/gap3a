@@ -14,11 +14,13 @@
 ! \begin{subequations}\label{genauxf-01}
 ! \begin{align}
 ! F_1(\vec{q})=&\frac{1}{\Omega}\sum\limits_i{\frac{e^{-\alpha^2|\vec{q}+\vec{G}_i|^2}}{\sqrt{|\vec{q}+\vec{G}_i|}}}\\
-! F_2(\vec{q})=&\frac{1}{\Omega}\sum\limits_i{\frac{e^{-\alpha|\vec{q}+\vec{G}_i|^2}}{|\vec{q}+\vec{G}_i|}}
+! F_2(\vec{q})=&\frac{1}{\Omega}\sum\limits_i{\frac{e^{-\alpha^2|\vec{q}+\vec{G}_i|^2}}{|\vec{q}+\vec{G}_i|}}
 ! \end{align}
 ! \end{subequations}
-! 
-! where $\alpha=\left(\frac{\Omega}{6\pi^2}\right)^{\frac{1}{3}}$
+!
+! alfa=\alpha is an input parameter.
+! iaxis can be 0,1,2,3.
+! When iaxis is 1,2 or 3, the G-vectors with non-zero gindex iaxis-component will be omitted.
 !
 ! !USES:
 
@@ -64,16 +66,15 @@
 !
 ! Created 23.06.05 by RGA.
 !         Nov 2006 by RGA
-!      24 Oct 2018 by ZMY:
-!               change alfa as input instead of output
-!      09 Sep 2019 by ZMY:
+!      24 Oct 2018 by ZMY
+!      09 Sep 2019 by ZMY
 !
 !EOP
 !BOC
 !
 !     Initializations
 !
-      if((iaxis>3).or.(iaxis<1)) then
+      if((iaxis>3).or.(iaxis<0)) then
         call errmsg(.true.,"genauxf_2d","invalid cutoff axis number")
       endif
       f1=0.0d0
@@ -85,23 +86,24 @@
 !     Loop over G-vectors
 !
       do ipw = ipwin, ngqbarc(iq)
-!
-!       Calculate the cartessian coordinates of G
-!
         igvec(1:3) = gindex(1:3,indgq(ipw,iq))
+
+        if((iaxis<4).and.(iaxis>0)) then
         ! skip ipw that has finite Gz component
-        if(igvec(iaxis).ne.0) continue
+          if(igvec(iaxis).ne.0) cycle
+        endif
+
         igl=indgqlen(ipw,iq)
 !
 !       Calculate the length of G+q squared 
 !
         modgpq=gqleng(igl,iq)
-        !expagpq=exp(-alfa*modgpq)
         expagpq=exp(-alfa*alfa*modgpq*modgpq)
 !
 !       Accumulate the terms into f1 and f2
         f1=f1+expagpq/sqrt(modgpq)
         f2=f2+expagpq/modgpq
+        !write(*,"(4I6, 2F10.5)") ipw, igvec(1:3), f1, f2
 
       enddo ! ipw
 

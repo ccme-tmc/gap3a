@@ -13,7 +13,7 @@
 
 ! !USES:
       use bands,      only: ibgw,nbgw,nbandsgw
-      use barcoul,    only: iop_coul
+      use barcoul,    only: zcut_coul
       use bzinteg,    only: singc1co,singc2co
       use constants,  only: cone,czero,pi,fourpi,sqrt4pi
       use core,       only: ncg_c
@@ -49,7 +49,7 @@
       logical:: lprt=.false.
       logical:: ltest_disable_sing=.false.
       real(8):: tstart,tend
-      character(len=10)::sname='calcmwm'
+      character(len=10)::sname='calcmwm_2d'
       complex(8), allocatable :: minm(:,:,:)
 
       mwm = 0.d0 
@@ -116,8 +116,8 @@
         complex(8), external :: zdotc,zdotu
         external zhemm
 
-        coefs2=singc2co*fourpi*vi
-        coefs1=singc1co*sqrt(fourpi*vi)
+        coefs2=singc2co*fourpi*vi*zcut_coul
+        coefs1=singc1co*sqrt(fourpi*vi*zcut_coul)
         ! N_c = nqp
         wkq = dble(weightq(iq))/dble(nqp)
         if(lprt) write(*,*) irk, iq, dble(weightq(iq)), wkq
@@ -141,7 +141,7 @@
             do ie2=mst,mend ! ie2=n'
               mwm(ie2,ie1,iom)=wkq*zdotc(matsiz,minm(:,ie2,ie1),1, &
      &          wm(:,ie2,ie1),1)
-              if(iq.eq.1.and.iop_coul.eq.-1.and.ie1.eq.ie2-ncg_c) then
+              if(iq.eq.1.and.ie1.eq.ie2-ncg_c) then
                 if(iop_aniso.ne.-1.and.iop_q0.eq.1)then
                   term_singular_h = coefs2*head(iom)
                 !write(fid_outdbg,"(A15,4I4,2E15.6)")"Sing.(H)(iso):",iq,irk,iom,ie1,term_singular_h
@@ -149,6 +149,10 @@
                                             term_singular_h, term_singular_w)
                 !write(fid_outdbg,"(A15,4I4,2E15.6)")"Sing.(H)(ani):",iq,irk,iom,ie1,term_singular_h
                 else
+                !NOTE:
+                ! when anisotropy is switched off, head of (eps^-1 - 1) and wings are zero,
+                ! hence the contributions should be zero and is equivalent to set
+                ! ltest_disable_sing to .true.
                   term_singular_h = coefs2*head(iom)
                   term_singular_w = &
      &             coefs1*( zdotu(matsiz,minm(:,ie2,ie1),1,epsw2,1)  &

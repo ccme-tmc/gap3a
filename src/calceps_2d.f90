@@ -14,7 +14,6 @@
 
       use bands,       only: bande,nbmaxpol,nspin,fspin,nomaxs,numins,  &
      &                       eminpol,emaxpol,metallic,nomax,numin 
-      use barcoul,     only: iop_coul_c
       use bzinteg,     only: kcw
       use constants,   only: cone, czero,pi,hev
       use core,        only: corind, ncg_p, eigcore 
@@ -81,14 +80,14 @@
       complex(8):: ten_a_ani_tmp(3,3)
 
       real(8) :: time1,time2,time3,time4,tstart,tend
-      character(len=15)::sname='calceps'
+      character(len=15)::sname='calceps_2d'
 
       real(8),   allocatable :: enk(:)        !! local array for eigen-energies 
       complex(8),allocatable :: tmat(:,:),pm(:),wtmp(:),minm(:,:,:) 
       complex(8),allocatable :: u_ani_iom(:,:),vec_u_tmp(:,:)
 
       character(len=10),external:: int2str 
-      real(8),external :: coul_coef
+      !real(8),external :: coul_coef
 
       real(8),parameter :: sqr3=1.732050807568877294d0
 
@@ -136,7 +135,7 @@
 
       time_aniso = 0.0D0
       ! first calculate momentum matrix and the head
-      if(iq.eq.1.and.iop_coul_c.eq.-1) then
+      if(iq.eq.1) then
         call init_mommat(1,nomax,numin,nbmaxpol,nirkp,nspin)
         if(iop_aniso.ne.-1) then
           allocate(u_ani_iom(3,matsiz))
@@ -155,7 +154,8 @@
       write(fid_outgw,*) "calceps: myrank_row,ik_f,ik_l =",myrank_row,ik_f,ik_l
 
       ! TODO choose q0_eps
-      coefcoul = coul_coef(q0_eps,iop_coul_c)
+      !coefcoul = coul_coef(q0_eps,iop_coul_c)
+      coefcoul = 4.0*pi
       ccoefcoul = cmplx(coefcoul,0.0D0,8)
 
       do isp=1,nspin  
@@ -232,7 +232,7 @@
 
             !! Calculate pm(ie12) = pm(ie1,ie2) = p_{ie1,ie2}/(e_2-e_1)
             !! Needed for the wings
-            if(iq.eq.1.and.iop_coul_c.eq.-1) then
+            if(iq.eq.1) then
               ie12=0
               do ie1=ie1_f,ie1_l       ! the index for occ. states
                 do ie2=ie2_f,ie2_l     ! the index for unocc. states. 
@@ -280,7 +280,7 @@
               call zgemm('n','c',matsiz,matsiz,nmdim,-coefks,tmat,matsiz, &
      &            minm,matsiz,cone,eps(:,:,iom),matsiz)   
 
-              if(iq.eq.1.and.iop_coul_c.eq.-1) then 
+              if(iq.eq.1) then 
                 call zgemv('n',matsiz,nmdim,-coefks,tmat,matsiz,pm,1,czero,wtmp,1)
                 !call zgemv('n',matsiz,nmdim,coef,tmat,matsiz,pm,1,cone,epsw1(:,iom),1)
                 !write(*,*) "before first manipulation (L287)"
@@ -292,7 +292,7 @@
                   call cpu_time(time4)
                   time_aniso = time_aniso + time4 - time3
                 endif
-                epsw1(:,iom)=epsw1(:,iom)+wtmp
+                !epsw1(:,iom)=epsw1(:,iom)+wtmp
 
                 if(iop_freq.eq.2) then !! real freq 
                   ie12=0
@@ -316,7 +316,7 @@
                   call cpu_time(time4)
                   time_aniso = time_aniso + time4 - time3
                 endif
-                epsw2(:,iom)=epsw2(:,iom)+conjg(wtmp)
+                !epsw2(:,iom)=epsw2(:,iom)+conjg(wtmp)
               endif
 
               call cpu_time(time2)
@@ -336,8 +336,8 @@
         write(fid_outgw,*) "Collect eps: myrank_ra3=",myrank_ra3,"comm=",mycomm_ra3
         call mpi_sum_array(0,eps,matsiz,matsiz,nomg,mycomm_ra3)
         if(iq.eq.1) then
-          call mpi_sum_array(0,epsw1,matsiz,nomg,mycomm_ra3)
-          call mpi_sum_array(0,epsw2,matsiz,nomg,mycomm_ra3)
+          !call mpi_sum_array(0,epsw1,matsiz,nomg,mycomm_ra3)
+          !call mpi_sum_array(0,epsw2,matsiz,nomg,mycomm_ra3)
           ! TODO check if the mpi_sum_array works with vec_u_ani etc
           if(iop_aniso.ne.-1)then
             call cpu_time(time1)
@@ -358,7 +358,7 @@
       ! for anisotropy, calculate wings here with vec_u and vec_t
       if(myrank_ra3.eq.0)then
         do iom=iom_f, iom_l
-          if(iq.eq.1.and.iop_coul_c.eq.-1.and.iop_aniso.ne.-1) then
+          if(iq.eq.1.and.iop_aniso.ne.-1) then
             write(fid_outdbg, *) "diff epsw from iso and aniso"
             write(fid_outdbg, "(A3,A4,A2,4A13)") "iom","im", "ST",&
      &                        "ReW1","ImW1","ReW2","ImW2"
@@ -388,7 +388,7 @@
          enddo
       endif
 
-      if(iq.eq.1.and.iop_coul_c.eq.-1) then
+      if(iq.eq.1) then
         call end_mommat
       endif 
 
@@ -407,7 +407,7 @@
           call mpi_bcast(eps, matsiz**2*nomg, mpi_double_complex,0, &
      &                  mycomm_ra3,ierr)
 
-          if(iq.eq.1.and.iop_coul_c.eq.-1) then
+          if(iq.eq.1) then
             call mpi_bcast(head, nomg, mpi_double_complex,0, &
      &                   mycomm_ra3,ierr)
             call mpi_bcast(epsw1, matsiz*nomg, mpi_double_complex,0, &
@@ -418,7 +418,7 @@
             if(iop_aniso.ne.-1)then
               call mpi_bcast(aniten%head_q0,aniten%nang*nomg,mpi_double_complex,0,&
      &                    mycomm_ra3,ierr)
-              call mpi_bcast(aniten%h_ylm_q0,aniten%lmgsq*nomg,mpi_double_complex,0,&
+              call mpi_bcast(aniten%h_ylm,aniten%lmgsq*nomg,mpi_double_complex,0,&
      &                    mycomm_ra3,ierr)
               call mpi_bcast(aniten%wv_q0,aniten%nang*matsiz*nomg,mpi_double_complex,0,&
      &                    mycomm_ra3,ierr)
@@ -430,7 +430,7 @@
 #endif
       endif 
 
-      if(iq.eq.1.and.iop_aniso.ne.-1.and.iop_coul_c.eq.-1) then
+      if(iq.eq.1.and.iop_aniso.ne.-1) then
 !        call end_aniso
         deallocate(u_ani_iom)
       endif 
@@ -527,7 +527,7 @@
       call errmsg(ierr.ne.0,sname,"fail to allocate bw1,w2b")
 
       do iom=iom_f,iom_l
-        if(iq.eq.1.and.iop_coul_c.eq.-1) then  !!  Gamma point 
+        if(iq.eq.1) then  !!  Gamma point 
           call cpu_time(time1)
           if(iop_aniso.ne.-1) then
             call cpu_time(time3)
@@ -612,11 +612,11 @@
               write(fid_outdbg,"(I3,I4,A1,2e13.4)") iom,im,"H",epsw2(im,iom)
             enddo
           endif
-        endif ! iq.eq.1.and.iop_coul_c.eq.-1
+        endif ! iq.eq.1
 
        ! iop == 2, inveps - 1 is calculated  
         if(iop.eq.2) then
-          if(iq.eq.1.and.iop_coul_c.eq.-1) head(iom)=head(iom)-cone
+          if(iq.eq.1) head(iom)=head(iom)-cone
           do im=1,matsiz
             eps(im,im,iom)=eps(im,im,iom)-cone
           enddo
