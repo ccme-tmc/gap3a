@@ -103,14 +103,14 @@
         call init_barcoul_2d(iq)
 
         !! bare Coulomb matrix 
-        call coul_barc_cutoff(iq,iop_coul_x)
+        call coul_barc_cutoff(iq,2)
 
         !! exchange self-energies 
         call sub_calc_sigx 
 
         !! Calculate GW or COHSEX correlation self-energy 
         if(isxc.eq.0.or.isxc.eq.2.or.isxc.eq.3) then
-          call coul_barc_cutoff(iq,iop_coul_c)
+          call coul_barc_cutoff(iq,2)
           call sub_calc_sigc
         endif
 

@@ -111,6 +111,12 @@
           !! Calculate all the R's such that R+r_aa < rcf
           rbs=transpose(rbas)
           call genrstr(rcf,raa,rbs,np)
+          if(ldbg) then
+            write(fid_outdbg, "(I5,A35,2I5)") np," Latt vecs (real) between atoms ", idf, jdf
+            do i1=1,np
+              write(fid_outdbg,"(I5,4E16.8)") i1, rstr(1:4,i1)
+            end do
+          endif
 
           !! Initialize the temporal storage of the lattice sums
           stmp1=czero
@@ -120,7 +126,6 @@
           do i1=1,np
             rpaa(1:3)=rstr(1:3,i1)
             rleng=rstr(4,i1)
-
             !! calculate the values of the spherical harmonics at rpaa
             call ylm(rpaa,lammax,ylam)
             qtraa=qvec(1)*rpaa(1)+qvec(2)*rpaa(2)+qvec(3)*rpaa(3)
@@ -144,14 +149,14 @@
           qtemp(1:3)=-1.0d0*qvec(1:3)
           call genrstr(gcf,qtemp,br2,ng)
           if(ldbg) then
+            write(fid_outdbg, "(I5,A35,2I5)") ng,"Latt vecs (recip.) between atoms ", idf, jdf
             do i1=1,ng
-              write(fid_outdbg,"(2I5,4E16.8)") idf, jdf, rstr(1:4,i1)
+              write(fid_outdbg,"(I5,4E16.8)") i1, rstr(1:4,i1)
             end do
           endif
 
           !! Calculate the reciprocal lattice sum
           pref=4.0d0*pi*dsqrt(pi)*vi
-          if(ldbg) write(fid_outdbg,*) "#iq=", iq, " ng=",ng
           do i1=1,ng
             gqv(1:3)=rstr(1:3,i1)
             g(1:3)=gqv(1:3)-qtemp(1:3)
@@ -209,7 +214,7 @@
             enddo
           enddo
         enddo
-      endif 
+      endif
    
    10 format('at1',1x,'at2',2x,'l',2x,'m',15x,'Sigma',27x,'real sum',  &
      &         21x,'reciprocal sum')

@@ -147,7 +147,10 @@ subroutine init_bzinteg_2d(iaxis)
   !call set_qmax_gamma_2d(n_ang_grid,grid_vec,qmax_gamma,vol_gamma)
 
   if(iop_q0.eq.0) then 
-    call set_singc_0_2d(iaxis)
+    ! 0.1 eV in gap to change from 3D gygi treatment to 2D,
+    ! experience by Feng Wu - MYZ
+    !call set_singc_0_2d(iaxis)
+    call set_singc_0
   elseif(iop_q0.eq.1)then
     call set_singc_1
   else

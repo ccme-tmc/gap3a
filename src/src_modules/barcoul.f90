@@ -219,12 +219,14 @@
       end subroutine set_coul_cutoff
 
       subroutine genrstr_cutoff(iop,rmax,rshift,rbs,nr)
+!
 ! Generates the indexes of the lattice vectors to be included in the
 !calculation of the structure constants, under the condition:
 !
 !\begin{equation}
 !|\vec{R}+\vec{r}_{aa'}|\le R_{cutoff}
 !\end{equation}
+!
       implicit none
       integer, intent(in) :: iop  ! cut-off option
       real(8), intent(in) :: rmax ! Maximum radius
@@ -665,13 +667,6 @@
 
       allocate(rct(lambdamax+1))
       allocate(eps(lambdamax+1))
-      allocate(yll(lambdamax+1))
-      ! set Y_{lam,lam}
-      yll(1) = 1.0d0/sqrt(4.0d0*pi)
-      do l1=1,lambdamax
-        rl = real(l1,8)
-        yll(l1+1) = yll(l1)*sqrt(1.0d0+0.5d0/rl)
-      enddo
       ! set eps
       rct(:) = 5.0d+1
       do i=1,100
@@ -681,7 +676,7 @@
           rl =5.0d-1*real(l1+2,8)
           gaml1=incgam(rl,x*x)
           gmm = higam(l1)
-          prefac = 2.0d0/(gmm*eta**(l1+1))*yll(l1+1)/real(l1+1,8)
+          prefac = 2.0d0/(gmm*eta**(l1+1))/real(l1+1,8)
           eps(l1+1)=abs(prefac*(gaml1-x**(l1+1)*gamhalf))
           if((eps(l1+1).lt.tol).and.(x.lt.rct(l1+1)))rct(l1+1)=x
         enddo ! l1
@@ -689,7 +684,6 @@
       rcf=maxval(rct)*2.0d0/eta
       deallocate(rct)
       deallocate(eps)
-      deallocate(yll)
       end function gcutoff_2d
 
       recursive function gammaincc_int(n,x) result(gmi)

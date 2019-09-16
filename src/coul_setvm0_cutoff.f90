@@ -139,6 +139,7 @@
 
       !! Calculate the matrix sigma for the structure constants
       if(lprt) write(6,*) "Calculate the matrix sigma, cutoff", icutoff
+      !call coul_strcnst(iq, 4*(lmbmax+1))
       call coul_strcnst_cutoff(iq, 4*(lmbmax+1), icutoff)
 
       !! calculate the cartesian coordinates of the q-point

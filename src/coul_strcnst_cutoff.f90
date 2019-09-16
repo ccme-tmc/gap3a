@@ -15,7 +15,7 @@
 
       use barcoul,   only: eta, gcf,rcf, rstr, sgm, &
      &                     rbas, genrstr, axis_cut_coul
-      use constants, only: czero, imag, pi
+      use constants, only: czero, imag, pi, cone
       use kpoints,   only: idvq, qlist
       use struk,     only: alat, ndf, pos, vi, br2, ortho 
       use task,      only: fid_outdbg
@@ -67,7 +67,6 @@
 
       real(8), dimension(3) :: qvec  ! cartesian coords. of the q point
       real(8), dimension(3) :: raa   ! Vector going from atom 1 to atom 2.
-      real(8), dimension(3) :: dir_x ! vector (1,1,0)
       real(8), dimension(3) :: rdif
       real(8), dimension(3,3) :: rbs
       real(8), dimension(3) :: rpaa  ! the corresponding sum R+raa
@@ -76,12 +75,12 @@
       real(8), dimension(3) :: gqv   ! the corresponding sum G+qvec
 
       complex(8) :: ylam((lammax+1)*(lammax+1))  ! the values of the spherical harmonics
-      complex(8) :: ylamx((lammax+1)*(lammax+1)) ! the values of the spherical harmonics of (pi/2,0)
       complex(8) :: stmp1((lammax+1)*(lammax+1)) ! temporary allocation of the values of sigma
       complex(8) :: stmp2((lammax+1)*(lammax+1)) ! temporary allocation of the values of sigma
 
       complex(8) :: expqdr                            ! e^(qvec.rpaa)
       complex(8) :: itolam               !i^lambda
+      complex(8) :: prodtemp
 
             
 
@@ -92,7 +91,8 @@
 ! !REVISION HISTORY:
 !
 ! Created 21. Jan. 2004 by RGA
-! Last Modified 3. Apr 2010 by JH
+! Modified 3. Apr 2010 by JH
+! Modified 16. Sept 2019 by MYZ
 !
 !EOP
 !BOC      
@@ -102,20 +102,9 @@
         write(6,"(A52)") "Warning! lammax>30. Numeric issue may happen in 2F2"
       endif
 
-      dir_x(:) = 0.0d0
-      dir_x(1) = 1.0d0
       call k2cart(qlist(1:3,iq),idvq,qtemp)
-      call ylm(dir_x,lammax,ylamx)
       qvec(1:3)=-1.0d0*qtemp(1:3)
-      !if (ldbg) then
-      !  write(fid_outdbg, "(A40)") "#check spherical harmonics at (pi/2,0)"
-      !  do lam=0,lammax
-      !    do mu=-lam,lam
-      !      ilmu=lam*lam+lam+mu+1
-      !      write(fid_outdbg,"(2I4, 2f10.6)") lam, mu, ylamx(ilmu)
-      !    enddo
-      !  enddo
-      !endif
+      write(fid_outdbg, "(A10, 3F12.8)") "q-vector =", qtemp
 
       do idf=1,ndf
         do jdf=idf,ndf
@@ -135,6 +124,12 @@
           !! Calculate all the R's such that R+r_aa < rcf
           rbs=transpose(rbas)
           call genrstr(icutoff,rcf,raa,rbs,np)
+          if(ldbg) then
+            write(fid_outdbg,"(I5,A35,2I5)") np," Latt vecs (real) between atoms ",idf,jdf
+            do i1=1,np
+              write(fid_outdbg,"(I5,4E16.8)") i1, rstr(1:4,i1)
+            end do
+          endif
 
           !! Initialize the temporal storage of the lattice sums
           stmp1=czero
@@ -147,7 +142,6 @@
           do i1=1,np
             rpaa(1:3)=rstr(1:3,i1)
             rleng=rstr(4,i1)
-
             !! calculate the values of the spherical harmonics at rpaa
             call ylm(rpaa,lammax,ylam)
             qtraa=qvec(1)*rpaa(1)+qvec(2)*rpaa(2)+qvec(3)*rpaa(3)
@@ -158,42 +152,50 @@
             stmp1(1)=stmp1(1)+expqdr*cmplx(gammaor,0.0d0,8)*ylam(1)
             do lam=1,lammax
               gammaor=(dble(lam)-0.5d0)*gammaor/rleng+&
-     &                rleng**(lam-2)*gausr/(eta**(2*lam-1))
+                     rleng**(lam-2)*gausr/(eta**(2*lam-1))
               do mu=-lam,lam
                 ilmu=lam*lam+lam+mu+1
                 stmp1(ilmu)=stmp1(ilmu)+cmplx(gammaor,0.0d0,8)*     &
-     &                       expqdr*ylam(ilmu)
+                            expqdr*ylam(ilmu)
               enddo ! mu
             enddo ! lam
           enddo ! i1
 
-          !! calculate the vectors for the sum in reciprocal space
+          ! calculate the vectors for the sum in reciprocal space
           qtemp(1:3)=-1.0d0*qvec(1:3)
           call genrstr(icutoff,gcf,qtemp,br2,ng)
           !write(fid_outdbg,*) "#iq=", iq, " ng=",ng
+          if(ldbg) then
+            write(fid_outdbg,"(I5,A35,2I5)") ng," Latt vecs (recip.) between atoms ",idf,jdf
+            do i1=1,ng
+              write(fid_outdbg,"(I5,4E16.8)") i1, rstr(1:4,i1)
+            end do
+          endif
 
           !! Calculate the reciprocal lattice sum
           do i1=1,ng
             gqv(1:3)=rstr(1:3,i1)
+            !!calculate the values of the spherical harmonics at G-q
+            call ylm(gqv,lammax,ylam)
+            !write(*,*) ylam(2)
             g(1:3)=gqv(1:3)-qtemp(1:3)
             gleng=rstr(4,i1)
             x=gleng*eta/2.0d0
             x2=x**2
-            !!calculate the values of the spherical harmonics at rpaa
             gqtra=g(1)*raa(1)+g(2)*raa(2)+g(3)*raa(3)
             expqdr=cmplx(dcos(gqtra),dsin(gqtra),8)
             ! gausg is used as the whole brace part 
             ! in eq:lattice-sum-2d-reciprocal-final
-            gausg = erfc(x)
+            gausg = sqrt(pi)*erfc(x)
             gtolam = 1.0d0/gleng
-            stmp2(1)=stmp2(1)+cmplx(gtolam*gausg,0.0d0,8)*expqdr
-            itolam=cmplx(1.0d0,0.0d0,8)
+            prodtemp = cmplx(gtolam*gausg*2.0d0*pi*vi*alat(axis_cut_coul),0.0d0,8)
+            stmp2(1)=stmp2(1)+prodtemp*expqdr*ylam(1)
+            itolam=cone
             do lam=1,lammax
               gtolam=gtolam*gleng/2.0d0
               itolam=itolam*imag
               do mu=lam,0,-2 ! loop over non-negative mu
                 x2cut = 1200.0d0*real(lam,8)/real(2*lam-mu+8,8)**2
-                ilmu=lam*lam+lam+mu+1
                 lmmd2=(lam-mu)/2
                 gausg = 0.0d0
                 do ilmmd2=0,lmmd2
@@ -210,73 +212,20 @@
                   !write(*,"(3I3,3es22.12)") lam, mu, lmmd2, gleng, eta, &
                   !gausg*gtolam*sqrt(pi)*dfactr(2*lam-1)/dfactr(lam+mu-1)/dfactr(lam-mu-1)
                 endif
-                stmp2(ilmu)=stmp2(ilmu)+cmplx(gtolam*gausg,0.0d0,8)*expqdr*itolam
+                pref=2.0d0*sqrt(pi)*pi*vi*alat(axis_cut_coul)* &
+                     dfactr(2*lam-1)/dfactr(lam+mu-1)/dfactr(lam-mu-1)
+                prodtemp = cmplx(gtolam*gausg*pref,0.0d0,8)*expqdr*itolam
+                ilmu=lam*lam+lam+mu+1
+                stmp2(ilmu)=stmp2(ilmu) + prodtemp * ylam(ilmu)
+                ! negative mu part
+                if (mu>0) then
+                  ilmu=lam*lam+lam-mu+1
+                  stmp2(ilmu) = stmp2(ilmu) + prodtemp * ylam(ilmu)
+                  !write(*,"(2I8,2es18.9)") lam, mu, ylam(ilmu) + conjg(ylam(lam*lam+lam+mu+1))
+                endif
               enddo ! mu
             enddo ! lam
           enddo !i1
-
-          ! set reciprocal part with negative mu
-          do lam=1,lammax
-            do mu=lam,0,-2
-              ilmu=lam*lam+lam-mu+1
-              stmp2(ilmu)=stmp2(ilmu+2*mu)
-            enddo ! mu
-          enddo ! lam
-
-          pref=2.0d0*sqrt(pi)*pi*vi*alat(axis_cut_coul)
-          ! gausg is used here as a prefactor
-          do lam=0,lammax
-            do mu=lam,0,-2
-              ilmu=lam*lam+lam+mu+1
-              lmmd2=(lam-mu)/2
-              gausg=pref
-              if (mu.ne.lam) then
-                gausg=gausg*dfactr(2*lam-1)/dfactr(lam+mu-1)/dfactr(lam-mu-1)
-              endif
-              stmp2(ilmu)=stmp2(ilmu)*cmplx(gausg,0.0d0,8)*ylamx(ilmu)
-              if(mu>0)then
-                !write(*,*) ylamx(ilmu)
-                ilmu=lam*lam+lam-mu+1
-                stmp2(ilmu)=stmp2(ilmu)*cmplx(gausg,0.0d0,8)*ylamx(ilmu)
-                !write(*,*) ylamx(ilmu)
-              endif
-            enddo ! mu
-          enddo ! lam
-          
-          ! remove part of reciprocal contribution for a=a'
-          if(idf.eq.jdf) then
-            ! lam=mu=0
-            stmp2(1)=stmp2(1) - cmplx(1.0d0/eta/sqrt(pi),0.0d0,8)
-            ! gausg now equals to Gamma(lam/2)/eta^(lam-1)
-            ! odd lam
-            gausg = sqrt(pi)/eta**2
-            do lam=1,lammax,2
-              do mu=lam,0,-2
-                if(mu.eq.0) cycle
-                ilmu=lam*lam+lam+mu+1
-                stmp2(ilmu)=stmp2(ilmu)-ylamx(ilmu)* imag**mu *real(mu,8)&
-                            *cmplx(gausg/real(lam+1),0.0d0,8)
-                ilmu=lam*lam+lam-mu-1
-                stmp2(ilmu)=stmp2(ilmu)-ylamx(ilmu)* imag**mu *real(mu,8)&
-                            *cmplx(gausg/real(lam+1),0.0d0,8)
-              enddo ! mu
-              gausg = gausg / eta**2 * real(lam,8) / 2.0d0
-            enddo ! lam
-            ! even lam
-            gausg = 1.0d0/eta**3
-            do lam=2,lammax,2
-              do mu=lam,0,-2
-                if(mu.eq.0) cycle
-                ilmu=lam*lam+lam+mu+1
-                stmp2(ilmu)=stmp2(ilmu)-ylamx(ilmu)* imag**mu *real(mu,8)&
-                            *cmplx(gausg/real(lam+1),0.0d0,8)
-                ilmu=lam*lam+lam-mu-1
-                stmp2(ilmu)=stmp2(ilmu)-ylamx(ilmu)* imag**mu *real(mu,8)&
-                            *cmplx(gausg/real(lam+1),0.0d0,8)
-              enddo ! mu
-              gausg = gausg / eta**2 * real(lam,8) / 2.0d0
-            enddo ! lam
-          endif
 
           ! sum up the real and reciprocal part and divide by Gamma(lam+0.5)
           gamlam=dsqrt(pi)
@@ -294,11 +243,14 @@
             enddo
           enddo
 
+          ! remove part of reciprocal contribution for a=a'
+          if(idf.eq.jdf) sgm(1,ijdf)=sgm(1,ijdf) - cmplx(1.0d0/eta/pi,0.0d0,8)
 
         enddo ! jdf
       enddo ! idf
 
       if(ldbg) then 
+        write(fid_outdbg,"(A40,2I6)") "Print structure constant, lam ndf",lammax,ndf
         do idf=1,ndf
           do jdf=idf,ndf
             ijdf=idf+jdf*(jdf-1)/2

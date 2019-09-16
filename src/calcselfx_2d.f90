@@ -178,7 +178,8 @@
         complex(8) :: mvm
         real(8) :: wt,sxs2,wts
 
-        sxs2= fourpi*vi*zcut_coul
+        !sxs2= fourpi*vi*zcut_coul
+        sxs2= fourpi*vi
         do ie1=ibgw,nbgw
 
           do ie2=ie2_f,ie2_l
